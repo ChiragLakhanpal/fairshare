@@ -6,9 +6,9 @@ cd "$(git rev-parse --show-toplevel)"
 PY=.venv/bin/python
 [ -x "$PY" ] || PY=python3
 echo "pre-commit: ground-truth SQL"
-$PY evals/run_benchmark.py --check > /dev/null
+FAIRSHARE_BACKEND=duckdb $PY evals/run_benchmark.py --check > /dev/null
 echo "pre-commit: tests"
-$PY -m pytest evals -q
+FAIRSHARE_BACKEND=duckdb $PY -m pytest evals -q
 if [ "$FAIRSHARE_FULL_GATE" = "1" ] && [ -n "$GENIE_SPACE_ID" ]; then
   echo "pre-commit: Genie benchmark"
   FAIRSHARE_BACKEND=databricks $PY evals/run_benchmark.py --genie --label "pre-commit $(git rev-parse --abbrev-ref HEAD)"

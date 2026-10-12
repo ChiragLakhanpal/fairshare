@@ -11,6 +11,7 @@ The same code runs on the laptop (python -m harness.agent "question") and inside
 from __future__ import annotations
 
 import asyncio
+import re
 import os
 import sys
 from dataclasses import dataclass, field
@@ -69,7 +70,9 @@ def make_client():
     from agent_framework.openai import OpenAIChatClient
     b = model_backend()
     if b == "azure":
-        return OpenAIChatClient(model=os.environ["AZURE_OPENAI_DEPLOYMENT"], azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+        # Foundry shows the endpoint as https://<resource>.openai.azure.com/openai/v1; the Azure client wants the resource root.
+        endpoint = re.sub(r"/openai(/v1)?/?$", "", os.environ["AZURE_OPENAI_ENDPOINT"].rstrip("/"))
+        return OpenAIChatClient(model=os.environ["AZURE_OPENAI_DEPLOYMENT"], azure_endpoint=endpoint,
                                 api_key=os.environ["AZURE_OPENAI_API_KEY"], api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2025-04-01-preview"))
     if b == "databricks":
         host = os.environ["DATABRICKS_HOST"].rstrip("/")
