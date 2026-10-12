@@ -1,0 +1,211 @@
+# Twenty questions account managers ask, each with ground-truth SQL over the gold tables (portable: DuckDB and Databricks).
+# Used three ways: (1) Genie alone, result set vs ground truth; (2) the full harness, verifier plus LLM judge;
+# (3) the pre-commit hook, so a prompt or definition change cannot ship a regression unseen.
+# Columns: question, sql, tags (what the question exercises), hard (true for the known-difficult patterns).
+questions:
+  - id: q01
+    question: What is total AA revenue by agency type for 2026 year to date, largest first?
+    tags: [revenue, group]
+    sql: |
+      SELECT a.agency_type, ROUND(SUM(s.aa_revenue), 0) AS aa_revenue
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      WHERE s.sales_month >= DATE '2026-01-01' GROUP BY a.agency_type ORDER BY aa_revenue DESC
+
+  - id: q02
+    question: Who are the top 5 agencies by 2026 AA revenue, with their region and account manager?
+    tags: [revenue, topn]
+    sql: |
+      SELECT a.agency_name, a.region, a.account_manager, ROUND(SUM(s.aa_revenue), 0) AS aa_revenue
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      WHERE s.sales_month >= DATE '2026-01-01' GROUP BY ALL ORDER BY aa_revenue DESC LIMIT 5
+
+  - id: q03
+    question: Show monthly AA revenue for Harbor Business Travel in 2026.
+    tags: [revenue, trend]
+    sql: |
+      SELECT s.sales_month, ROUND(SUM(s.aa_revenue), 0) AS aa_revenue
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      WHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month >= DATE '2026-01-01' GROUP BY ALL ORDER BY s.sales_month
+
+  - id: q04
+    question: What was Summit Travel Partners' AA share on DFW to ORD in Q3 2026 versus Q3 2025?
+    tags: [share, quarter, yoy]
+    sql: |
+      SELECT EXTRACT(YEAR FROM s.sales_month) AS yr, ROUND(SUM(s.aa_revenue) / SUM(s.market_revenue) * 100, 1) AS aa_share_pct
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      JOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id
+      WHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'
+        AND EXTRACT(MONTH FROM s.sales_month) BETWEEN 7 AND 9 GROUP BY ALL ORDER BY yr
+
+  - id: q05
+    question: In Q3 2026, how far above or below fair share was Summit Travel Partners on DFW to ORD, in points?
+    tags: [share, fair_share, gap]
+    sql: |
+      SELECT ROUND(SUM(s.aa_revenue) / SUM(s.market_revenue) * 100, 1) AS aa_share_pct,
+             ROUND(SUM(s.market_revenue * c.aa_seat_share) / SUM(s.market_revenue) * 100, 1) AS fair_share_pct,
+             ROUND((SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / SUM(s.market_revenue) * 100, 1) AS share_gap_pts
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      JOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id
+      JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+      WHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'
+        AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'
+
+  - id: q06
+    question: For August 2026, what was each agency's AA share against its fair share, and the gap in points?
+    tags: [share, fair_share, gap]
+    sql: |
+      SELECT a.agency_name, ROUND(SUM(s.aa_revenue) / SUM(s.market_revenue) * 100, 1) AS aa_share_pct,
+             ROUND(SUM(s.market_revenue * c.aa_seat_share) / SUM(s.market_revenue) * 100, 1) AS fair_share_pct,
+             ROUND((SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / SUM(s.market_revenue) * 100, 1) AS share_gap_pts
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+      WHERE s.sales_month = DATE '2026-08-01' GROUP BY a.agency_name ORDER BY share_gap_pts DESC
+
+  - id: q07
+    question: What is the share gap in dollars by agency for 2026 year to date? Negative means below fair share.
+    tags: [fair_share, gap_usd]
+    sql: |
+      SELECT a.agency_name, ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share), 0) AS share_gap_usd
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+      WHERE s.sales_month >= DATE '2026-01-01' GROUP BY a.agency_name ORDER BY share_gap_usd DESC
+
+  - id: q08
+    question: Year over year AA revenue by agency for August 2026 versus August 2025, with the percent change.
+    tags: [yoy]
+    hard: true
+    sql: |
+      WITH m AS (
+        SELECT a.agency_name, s.sales_month, SUM(s.aa_revenue) AS rev
+        FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE s.sales_month IN (DATE '2026-08-01', DATE '2025-08-01') GROUP BY ALL)
+      SELECT c.agency_name, ROUND(c.rev, 0) AS aug_2026, ROUND(p.rev, 0) AS aug_2025, ROUND((c.rev - p.rev) / p.rev * 100, 1) AS yoy_pct
+      FROM m c JOIN m p ON p.agency_name = c.agency_name AND p.sales_month = DATE '2025-08-01'
+      WHERE c.sales_month = DATE '2026-08-01' ORDER BY yoy_pct DESC
+
+  - id: q09
+    question: Through September 2026, what is each agency's goal attainment and pace against its 2026 revenue goal (goal times nine twelfths)?
+    tags: [goal, pace]
+    sql: |
+      WITH y AS (
+        SELECT a.agency_name, g.revenue_goal_usd, SUM(s.aa_revenue) AS ytd
+        FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        JOIN aa_demo.gold.agency_goals g ON g.agency_id = s.agency_id AND g.goal_year = 2026
+        WHERE s.sales_month BETWEEN DATE '2026-01-01' AND DATE '2026-09-01' GROUP BY a.agency_name, g.revenue_goal_usd)
+      SELECT agency_name, ROUND(ytd, 0) AS ytd_revenue, revenue_goal_usd,
+             ROUND(ytd / revenue_goal_usd * 100, 1) AS attainment_pct,
+             ROUND(ytd / (revenue_goal_usd * 9.0 / 12) * 100, 1) AS pace_pct
+      FROM y ORDER BY pace_pct DESC
+
+  - id: q10
+    question: What share of total 2026 AA revenue does each region contribute?
+    tags: [revenue, share_of_total]
+    sql: |
+      WITH r AS (
+        SELECT a.region, SUM(s.aa_revenue) AS rev FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE s.sales_month >= DATE '2026-01-01' GROUP BY a.region)
+      SELECT region, ROUND(rev, 0) AS aa_revenue, ROUND(rev / SUM(rev) OVER () * 100, 1) AS pct_of_total FROM r ORDER BY aa_revenue DESC
+
+  - id: q11
+    question: Show cumulative AA revenue by month for Summit Travel Partners in 2026.
+    tags: [revenue, cumulative]
+    sql: |
+      WITH m AS (
+        SELECT s.sales_month, SUM(s.aa_revenue) AS rev FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE a.agency_name = 'Summit Travel Partners' AND s.sales_month >= DATE '2026-01-01' GROUP BY s.sales_month)
+      SELECT sales_month, ROUND(rev, 0) AS aa_revenue, ROUND(SUM(rev) OVER (ORDER BY sales_month), 0) AS cumulative_revenue FROM m ORDER BY sales_month
+
+  - id: q12
+    question: What is the three-month rolling average of AA revenue for Sunbelt Vacations in 2026? Note that March and April 2026 have no data.
+    tags: [rolling, gaps]
+    hard: true
+    sql: |
+      WITH m AS (
+        SELECT EXTRACT(MONTH FROM s.sales_month) AS month_no, SUM(s.aa_revenue) AS rev
+        FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE a.agency_name = 'Sunbelt Vacations' AND s.sales_month >= DATE '2026-01-01' GROUP BY ALL)
+      SELECT month_no, ROUND(rev, 0) AS aa_revenue,
+             ROUND(AVG(rev) OVER (ORDER BY month_no RANGE BETWEEN 2 PRECEDING AND CURRENT ROW), 0) AS rolling_3m_avg
+      FROM m ORDER BY month_no
+
+  - id: q13
+    question: Rank the agencies within each region by 2026 AA revenue.
+    tags: [rank]
+    sql: |
+      WITH r AS (
+        SELECT a.region, a.agency_name, SUM(s.aa_revenue) AS rev FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE s.sales_month >= DATE '2026-01-01' GROUP BY ALL)
+      SELECT region, agency_name, ROUND(rev, 0) AS aa_revenue, DENSE_RANK() OVER (PARTITION BY region ORDER BY rev DESC) AS rank_in_region FROM r ORDER BY region, rank_in_region
+
+  - id: q14
+    question: What is the single best market by 2026 AA revenue for each agency?
+    tags: [topn_per_group]
+    sql: |
+      WITH r AS (
+        SELECT a.agency_name, CONCAT(m.origin, '-', m.dest) AS market, SUM(s.aa_revenue) AS rev
+        FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id JOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id
+        WHERE s.sales_month >= DATE '2026-01-01' GROUP BY ALL)
+      SELECT agency_name, market, ROUND(rev, 0) AS aa_revenue FROM r QUALIFY ROW_NUMBER() OVER (PARTITION BY agency_name ORDER BY rev DESC) = 1 ORDER BY agency_name
+
+  - id: q15
+    question: Month over month change in AA revenue for Lone Star Travel Group in 2026.
+    tags: [mom, lag]
+    sql: |
+      WITH m AS (
+        SELECT s.sales_month, SUM(s.aa_revenue) AS rev FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE a.agency_name = 'Lone Star Travel Group' AND s.sales_month >= DATE '2026-01-01' GROUP BY s.sales_month)
+      SELECT sales_month, ROUND(rev, 0) AS aa_revenue, ROUND(rev - LAG(rev) OVER (ORDER BY sales_month), 0) AS mom_change,
+             ROUND((rev - LAG(rev) OVER (ORDER BY sales_month)) / LAG(rev) OVER (ORDER BY sales_month) * 100, 1) AS mom_pct
+      FROM m ORDER BY sales_month
+
+  - id: q16
+    question: Which agencies have been below fair share for three or more consecutive months, ending September 2026?
+    tags: [streak, fair_share]
+    hard: true
+    sql: |
+      WITH m AS (
+        SELECT a.agency_name, s.sales_month, EXTRACT(YEAR FROM s.sales_month) * 12 + EXTRACT(MONTH FROM s.sales_month) AS month_no,
+               SUM(s.aa_revenue) / SUM(s.market_revenue) AS share, SUM(s.market_revenue * c.aa_seat_share) / SUM(s.market_revenue) AS fair
+        FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+        WHERE s.sales_month <= DATE '2026-09-01' GROUP BY ALL),
+      below AS (SELECT agency_name, month_no FROM m WHERE share < fair),
+      isl AS (SELECT agency_name, month_no, month_no - ROW_NUMBER() OVER (PARTITION BY agency_name ORDER BY month_no) AS grp FROM below),
+      runs AS (SELECT agency_name, MIN(month_no) AS first_no, MAX(month_no) AS last_no, COUNT(*) AS months_below FROM isl GROUP BY agency_name, grp)
+      SELECT agency_name, months_below FROM runs WHERE last_no = 2026 * 12 + 9 AND months_below >= 3 ORDER BY months_below DESC
+
+  - id: q17
+    question: Which markets have an AA share across all agencies under 40% in 2026, and what is the dollar gap to 40%?
+    tags: [share, having]
+    sql: |
+      SELECT CONCAT(m.origin, '-', m.dest) AS market, ROUND(SUM(s.aa_revenue) / SUM(s.market_revenue) * 100, 1) AS aa_share_pct,
+             ROUND(0.40 * SUM(s.market_revenue) - SUM(s.aa_revenue), 0) AS gap_to_40_usd
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id
+      WHERE s.sales_month >= DATE '2026-01-01' GROUP BY ALL HAVING SUM(s.aa_revenue) / SUM(s.market_revenue) < 0.40 ORDER BY aa_share_pct
+
+  - id: q18
+    question: Which agencies are behind pace against their 2026 goal as of September 2026, and at what percent of pace?
+    tags: [pace]
+    sql: |
+      SELECT a.agency_name, p.pace_pct FROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id
+      WHERE p.sales_month = DATE '2026-09-01' AND p.pace_pct < 100 ORDER BY p.pace_pct
+
+  - id: q19
+    question: Which account manager's book of agencies has the largest share gap in dollars for 2026 year to date, positive or negative?
+    tags: [gap_usd, group]
+    sql: |
+      SELECT a.account_manager, ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share), 0) AS share_gap_usd
+      FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+      JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+      WHERE s.sales_month >= DATE '2026-01-01' GROUP BY a.account_manager ORDER BY share_gap_usd DESC
+
+  - id: q20
+    question: How many agencies were above fair share in September 2026, and how many below?
+    tags: [fair_share, count]
+    sql: |
+      WITH m AS (
+        SELECT a.agency_name, SUM(s.aa_revenue) / SUM(s.market_revenue) AS share, SUM(s.market_revenue * c.aa_seat_share) / SUM(s.market_revenue) AS fair
+        FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+        WHERE s.sales_month = DATE '2026-09-01' GROUP BY a.agency_name)
+      SELECT SUM(CASE WHEN share >= fair THEN 1 ELSE 0 END) AS above_fair_share, SUM(CASE WHEN share < fair THEN 1 ELSE 0 END) AS below_fair_share FROM m
