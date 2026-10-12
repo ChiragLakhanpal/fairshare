@@ -125,7 +125,7 @@ Data covers Jan 2025 to Sep 2026. Return percentages and deltas as columns; neve
                   "and ratio inside the SQL so the answer only quotes returned columns.")
 def run_sql(sql: Annotated[str, "A single SELECT or WITH statement. No DDL or DML."]) -> str:
     ctx = facts.current()
-    s = sql.strip().rstrip(";")
+    s = "\n".join(l for l in (sql or "").strip().splitlines() if not l.strip().startswith("--")).strip().rstrip(";").strip()
     if not re.match(r"^(select|with)\b", s, re.I) or FORBIDDEN.search(s):
         ctx.record("run_sql", {"sql": sql}, None, note="rejected: not a read-only SELECT")
         return "Rejected: only a single read-only SELECT/WITH statement is allowed."
@@ -133,11 +133,13 @@ def run_sql(sql: Annotated[str, "A single SELECT or WITH statement. No DDL or DM
         s += "\nLIMIT 200"
     try:
         df = db.query(s)
+        ctx.record("run_sql", {"sql": sql}, df, sql=s, source="SQL: " + ", ".join(sorted(set(re.findall(r"aa_demo\.\w+\.\w+", s, re.I)))))
+        return f"Result ({len(df)} rows):\n{_table(df)}"
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         ctx.record("run_sql", {"sql": sql}, None, note=f"error: {e}")
         return f"SQL error: {e}"
-    ctx.record("run_sql", {"sql": sql}, df, sql=s, source="SQL: " + ", ".join(sorted(set(re.findall(r"aa_demo\.\w+\.\w+", s, re.I)))))
-    return f"Result ({len(df)} rows):\n{_table(df)}"
 
 
 # ---------------------------------------------------------------- decomposition

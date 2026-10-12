@@ -17,21 +17,17 @@ month = col2.selectbox("Month", MONTHS[::-1], index=0)
 mode = col3.radio("Writer", ["Agent (guarded prompt)", "Agent (unguarded prompt: for the demo, shows what the verifier catches)", "Template (no model)"],
                   index=0 if get_agent() else 2, horizontal=False)
 
+UNGUARDED = ("Write a confident, insightful Monday performance summary for the Sales VP from the FACTS below. "
+             "Add context, comparisons and interpretation where helpful. Six to nine sentences of plain prose.")
+
 if st.button("Build the summary", type="primary"):
-    agent = get_agent() if mode.startswith("Agent") else None
-    if mode.startswith("Agent") and agent is None:
-        st.warning("No model configured; using the template writer.")
+    writer = None
+    if mode.startswith("Agent"):
+        writer = summary.make_writer(UNGUARDED) if "unguarded" in mode else summary.make_writer()
+        if writer is None:
+            st.warning("No model configured; using the template writer.")
     with st.spinner("Running the metric calls, drafting, verifying..."):
-        if "unguarded" in mode and agent is not None:
-            guarded = summary.DRAFT_INSTRUCTIONS
-            summary.DRAFT_INSTRUCTIONS = ("Write a confident, insightful Monday performance summary for the Sales VP from the FACTS below. "
-                                          "Add context and interpretation where helpful. Six to nine sentences of plain prose.")
-            try:
-                res = summary.run(region, month, agent)
-            finally:
-                summary.DRAFT_INSTRUCTIONS = guarded
-        else:
-            res = summary.run(region, month, agent)
+        res = summary.run(region, month, writer)
         summary.save(res, "draft")
     st.session_state["monday"] = res
 

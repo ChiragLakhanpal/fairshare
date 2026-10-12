@@ -21,7 +21,10 @@ NUMBER = re.compile(
     r"(?P<sign0>[-+])?(?P<cur>\$)?\s?(?P<sign>[-+])?(?P<num>\d{1,3}(?:,\d{3})+|\d+)(?P<dec>\.\d+)?\s?"
     r"(?P<unit>%|percent(?:age points?)?|points?|pts|bn|B|M|K|k|m)?(?![\w-])"
 )
-DATE_LIKE = re.compile(r"\b(?:19|20)\d{2}-\d{2}(?:-\d{2})?\b|\bQ[1-4]\b|\b(?:19|20)\d{2}\b|\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
+DATE_LIKE = re.compile(
+    r"\b(?:19|20)\d{2}-\d{2}(?:-\d{2})?\b|\bQ[1-4]\b|\b(?:19|20)\d{2}\b|\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b"
+    r"|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+(?:19|20)\d{2})?\b"
+    r"|\b\d{1,2}(?:st|nd|rd|th)?\s+(?:of\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\b", re.I)
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z\[\(\"$])|\n+")
 SCALE = {"K": 1e3, "k": 1e3, "M": 1e6, "m": 1e6, "B": 1e9, "bn": 1e9}
 PCT_WORDS = {"%", "percent", "percentage points", "percentage point"}
@@ -170,10 +173,17 @@ def _match(n: Number, pool: FactPool) -> Fact | None:
     return best
 
 
+INFORMATIONAL = re.compile(r"^(could not verify|source|sources|not in the data)\b", re.I)
+
+
 def verify(draft: str, pool: FactPool) -> Verification:
+    """Sentences that declare their own uncertainty ("Could not verify: ...") or name sources carry no claims and are not checked.
+    Bare small integers with no unit ("3+ months", "two of the four agencies" written as 2) are thresholds and counts of
+    things, not metrics, and cannot be matched meaningfully; they are skipped."""
     sentences = []
     for text in (s.strip() for s in SENTENCE_SPLIT.split(draft) if s and s.strip()):
-        numbers = extract_numbers(text)
+        numbers = [] if INFORMATIONAL.match(text) else [n for n in extract_numbers(text)
+                                                       if not (n.unit == "count" and float(n.value).is_integer() and abs(n.value) < 13 and "." not in n.raw and "," not in n.raw)]
         for n in numbers:
             n.matched = _match(n, pool)
         sentences.append(Sentence(text=text, numbers=numbers))

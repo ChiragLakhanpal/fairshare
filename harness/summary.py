@@ -15,7 +15,7 @@ from datetime import datetime
 import pandas as pd
 
 from fairshare import db
-from harness import facts
+from harness import aio, facts
 from harness.verifier import verify
 
 
@@ -129,10 +129,13 @@ def facts_text(f: dict, region: str, month: str) -> str:
 
 DRAFT_INSTRUCTIONS = """You write the Monday performance summary for the Sales VP from the FACTS block only.
 Rules: every number you write must appear in the FACTS exactly as shown (same rounding; you may add $ and % signs and
-abbreviate thousands as K and millions as M). Never compute, estimate, or infer a number. Do not explain causes that the
-facts do not state. Six to nine sentences in this order: headline (revenue, year over year, share vs fair share),
-pace (who is behind), biggest share gap, watch list (share streaks), corporate bookings (last week vs prior week).
-Plain prose, no bullet points, no headings, no preamble."""
+abbreviate thousands as K and millions as M, e.g. 1653532 as $1.65M, 416407 as $416K). Never compute, estimate, or infer
+a number. Do not explain causes that the facts do not state. Write for a VP: no column names, no table jargon, no dates
+in ISO form (say "the week of September 21"). Six to nine sentences in this order: headline (revenue, year over year,
+share vs fair share), pace (who is behind, or that nobody is), biggest share gap, watch list (share streaks, or none),
+corporate bookings (last week vs prior week). Plain prose, plain punctuation (no em dashes), no bullet points, no headings, no preamble,
+no "Source" line (the app attaches the queries). End with one line starting "Could not verify:" naming what the facts
+do not cover, without numbers."""
 
 
 def template_draft(f: dict, region: str, month: str) -> str:
@@ -159,24 +162,59 @@ def template_draft(f: dict, region: str, month: str) -> str:
     return " ".join(lines)
 
 
-def draft(f: dict, region: str, month: str, agent=None) -> str:
+_writer = None
+
+
+def make_writer(instructions: str | None = None):
+    """The writer has no tools: it sees the FACTS block and nothing else, so every number it can write is already in the pool."""
+    global _writer
+    if instructions is None and _writer is not None:
+        return _writer
+    from agent_framework import Agent
+    from harness.agent import make_client
+    client = make_client()
+    if client is None:
+        return None
+    w = Agent(client, instructions=instructions or DRAFT_INSTRUCTIONS, name="fairshare-monday-writer")
+    if instructions is None:
+        _writer = w
+    return w
+
+
+def prettify(text: str) -> str:
+    """Display formatting only, applied before verification so the badges match what is shown: raw floats become money
+    ($1653532.0 -> $1.65M, $416407.0 -> $416K), trailing .0 goes, 'down -0.4%' becomes 'down 0.4%', em dashes become commas."""
+    def money(m):
+        v = float(m.group(1).replace(",", ""))
+        if v >= 1e6:
+            return f"${v / 1e6:.2f}M"
+        if v >= 1e4:
+            return f"${v / 1e3:.0f}K"
+        return m.group(0)
+    text = re.sub(r"\$(\d[\d,]*(?:\.\d+)?)(?![\d.,]*[KMBkmb])", money, text)
+    text = re.sub(r"(?<=\d)\.0\b(?!\d)", "", text)
+    text = re.sub(r"\b(up|down|rose|fell|increased|decreased)\s+-", r"\1 ", text, flags=re.I)
+    text = text.replace(" \u2014 ", ", ").replace("\u2014", ", ").replace(" \u2013 ", ", ")
+    return text
+
+
+def draft(f: dict, region: str, month: str, writer=None) -> str:
     text = facts_text(f, region, month)
-    if agent is None:
+    if writer is None:
         return template_draft(f, region, month)
-    import asyncio
-    resp = asyncio.run(agent.run(f"{DRAFT_INSTRUCTIONS}\n\n{text}"))
-    return resp.text.strip()
+    resp = aio.run(writer.run(text))
+    return prettify(resp.text.strip())
 
 
-def run(region: str, month: str, agent=None) -> dict:
+def run(region: str, month: str, writer=None) -> dict:
     """Facts, draft, verification. Returns everything the Monday page and ops.summaries need."""
     facts.reset()
     f = build_facts(region, month)
-    d = draft(f, region, month, agent)
+    d = draft(f, region, month, writer)
     v = verify(d, facts.current().pool)
     return {"run_id": uuid.uuid4().hex[:12], "region": region, "month": month[:7], "created_at": datetime.now().isoformat(timespec="seconds"),
             "draft": d, "verified_text": v.verified_text, "flagged": v.flagged, "badges": v.badges(), "facts": f,
-            "calls": facts.current().calls, "model": "template" if agent is None else "agent"}
+            "calls": facts.current().calls, "model": "template" if writer is None else "agent"}
 
 
 def _q(s: str) -> str:

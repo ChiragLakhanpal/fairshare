@@ -10,7 +10,6 @@ The same code runs on the laptop (python -m harness.agent "question") and inside
 """
 from __future__ import annotations
 
-import asyncio
 import re
 import os
 import sys
@@ -19,7 +18,7 @@ from dataclasses import dataclass, field
 from dotenv import load_dotenv
 
 from fairshare.db import ROOT, is_databricks
-from harness import facts, tracing
+from harness import aio, facts, tracing
 from harness.tools import SCHEMA_NOTE, ask_metrics, explain_change, run_sql, search_contracts
 from harness.verifier import Verification, verify
 
@@ -43,7 +42,7 @@ Which tool:
 - "Why did X change / why is X down": explain_change (deterministic decomposition). Report volume, mix, share, and the fair-share diagnostic,
   state that the parts sum to the total, and name the markets that moved most.
 - Contract terms: search_contracts. Quote the clause with file and page.
-Keep answers short: the number, the comparison, the source. No preamble.
+Keep answers short: the number, the comparison, the source. No preamble. Plain punctuation (commas, colons, periods); no em dashes, no bullet lists unless asked.
 """ + "\n" + SCHEMA_NOTE
 
 
@@ -70,9 +69,12 @@ def make_client():
     from agent_framework.openai import OpenAIChatClient
     b = model_backend()
     if b == "azure":
-        # Foundry shows the endpoint as https://<resource>.openai.azure.com/openai/v1; the Azure client wants the resource root.
-        endpoint = re.sub(r"/openai(/v1)?/?$", "", os.environ["AZURE_OPENAI_ENDPOINT"].rstrip("/"))
-        return OpenAIChatClient(model=os.environ["AZURE_OPENAI_DEPLOYMENT"], azure_endpoint=endpoint,
+        endpoint = os.environ["AZURE_OPENAI_ENDPOINT"].rstrip("/")
+        if endpoint.endswith("/openai/v1"):
+            # Foundry's v1 surface is OpenAI-compatible and takes the key as a bearer token; no api-version (the dated
+            # api-version path answered "API version not supported" on Oct 11, 2026).
+            return OpenAIChatClient(model=os.environ["AZURE_OPENAI_DEPLOYMENT"], base_url=endpoint, api_key=os.environ["AZURE_OPENAI_API_KEY"])
+        return OpenAIChatClient(model=os.environ["AZURE_OPENAI_DEPLOYMENT"], azure_endpoint=re.sub(r"/openai/?$", "", endpoint),
                                 api_key=os.environ["AZURE_OPENAI_API_KEY"], api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2025-04-01-preview"))
     if b == "databricks":
         host = os.environ["DATABRICKS_HOST"].rstrip("/")
@@ -101,7 +103,7 @@ def ask(question: str, agent=None) -> Answer:
     if agent is None:
         raise RuntimeError("no model configured (FAIRSHARE_MODEL=none); use cached answers")
     facts.reset()
-    resp = asyncio.run(agent.run(question))
+    resp = aio.run(agent.run(question))
     text = (resp.text or "").strip()
     ctx = facts.current()
     return Answer(question=question, text=text, verification=verify(text, ctx.pool), calls=ctx.calls, sources=ctx.sources,
