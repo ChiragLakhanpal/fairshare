@@ -1,0 +1,13 @@
+agency_id,agency_name,agency_type,region,account_manager
+1,Summit Travel Partners,TMC,Central,Dana Whitfield
+2,BlueSky Corporate Travel,TMC,East,Marcus Lee
+3,FareHub Online,OTA,West,Priya Raman
+4,Northstar Leisure,Leisure,Central,Dana Whitfield
+5,Harbor Business Travel,TMC,East,Marcus Lee
+6,Pacific Gateway Travel,Consolidator,West,Priya Raman
+7,Lone Star Travel Group,TMC,Central,Dana Whitfield
+8,Capitol Corporate Travel,TMC,East,Marcus Lee
+9,Sunbelt Vacations,Leisure,Central,Tom Okafor
+10,Golden Coast Travel,OTA,West,Priya Raman
+11,Midway Travel Services,Consolidator,Central,Tom Okafor
+12,Atlantic Premier Travel,TMC,East,Marcus Lee

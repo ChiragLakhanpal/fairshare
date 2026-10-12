@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/t100/raw/
+data/out/*.duckdb
+data/out/*.duckdb.wal
+app/cache/*.parquet
+.streamlit/secrets.toml
+.DS_Store

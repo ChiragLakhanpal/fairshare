@@ -1,0 +1,11 @@
+corp_id,corp_name,industry,hq_city,contract_start,contract_end,annual_commitment_usd
+101,Redwood Consulting,Professional Services,Chicago,2025-01-01,2026-12-31,2400000
+102,Vantage Energy,Energy,Houston,2025-01-01,2026-12-31,3100000
+103,Meridian Health,Healthcare,Dallas,2025-04-01,2027-03-31,1800000
+104,Northwind Logistics,Transportation,Memphis,2025-01-01,2026-06-30,950000
+105,Pinnacle Software,Technology,Austin,2025-01-01,2026-12-31,2050000
+106,Beacon Financial,Financial Services,New York,2025-07-01,2027-06-30,4200000
+107,Ironbridge Manufacturing,Manufacturing,Pittsburgh,2025-01-01,2026-12-31,1200000
+108,Coastal Media Group,Media,Los Angeles,2025-01-01,2026-12-31,700000
+109,Summit Biotech,Healthcare,Boston,2026-01-01,2027-12-31,1500000
+110,Prairie Retail Holdings,Retail,Minneapolis,2025-01-01,2026-12-31,600000
