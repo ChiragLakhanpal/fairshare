@@ -1,0 +1,45 @@
+{
+  "How did Summit Travel Partners do on DFW to ORD in Q3 2026 versus Q3 2025, and are they ahead of fair share?": {
+    "text": "Q3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, YoY vs Q3 2025 +34.6116%. Q3 2025: AA revenue $221,326, AA share 46.3%, fair share 37.7%, share gap 8.6 pts. Ahead of fair share: Ahead in both quarters. Source: ask_metrics (aa_demo.gold.sales_metrics).",
+    "flagged": [
+      {
+        "sentence": "Q3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, YoY vs Q3 2025 +34.6116%.",
+        "reason": "no query supports +34.6116%"
+      }
+    ],
+    "sql": [
+      "WITH quarters AS (\n  SELECT quarter, ROUND(MEASURE(aa_revenue)) AS aa_revenue, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct,\n         ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts,\n         MEASURE(aa_revenue) AS aa_revenue_raw,\n         MEASURE(aa_share) AS aa_share_raw,\n         MEASURE(fair_share) AS fair_share_raw,\n         CASE WHEN MEASURE(aa_share) > MEASURE(fair_share) THEN 'Ahead' ELSE 'Behind' END AS ahead_of_fair_share\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')\n  GROUP BY ALL\n)\nSELECT q1.quarter,\n       q1.aa_revenue,\n       q1.aa_share_pct,\n       q1.fair_share_pct,\n       q1.share_gap_pts,\n       q1.ahead_of_fair_share,\n       q1.aa_revenue_raw,\n       q1.aa_share_raw,\n       q1.fair_share_raw,\n       try_divide((q1.aa_revenue_raw - q2.aa_revenue_raw),NULLIF(q2.aa_revenue_raw, 0)) * 100 AS yoy_revenue_pct\nFROM quarters q1\nLEFT JOIN quarters q2 ON q1.quarter = 'Q3 2026' AND q2.quarter = 'Q3 2025'\nORDER BY q1.quarter"
+    ],
+    "sources": [
+      "Genie: sales_metrics"
+    ],
+    "model": "azure/databricks",
+    "recorded": "2026-10-12T08:01"
+  },
+  "What does Summit Travel Partners' agreement say happens if their share drops under 45% for two quarters, and has that happened?": {
+    "text": "\"5.1 If Agency's Carrier revenue share across the Covered Markets falls below 45% for two consecutive calendar quarters, Carrier may review the Agency's tier and reduce it by one tier for the following year.\" (summit-travel-partners.md, page 2)\n\nHas that happened: No. AA share by quarter for Summit Travel Partners from Q1 2025 to Q3 2026 ranged from 45.1% to 52.6%, and there were no instances where two consecutive quarters had AA share below 45%. (ask_metrics: aa_demo.gold.sales_metrics)\n\nCould not verify: whether Carrier actually reviewed or reduced Summit's tier under this clause; would need internal tier-change records or contract amendment history.",
+    "flagged": [],
+    "sql": [
+      "WITH q AS (\n  SELECT quarter, MEASURE(aa_share) AS aa_share\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND sales_month >= DATE '2025-01-01' AND sales_month <= DATE '2026-09-30'\n  GROUP BY ALL\n  ORDER BY quarter ASC\n)\nSELECT quarter, ROUND(aa_share * 100, 1) AS aa_share_pct,\n       CASE WHEN aa_share < 0.45 AND LAG(aa_share) OVER (ORDER BY quarter ASC) < 0.45 THEN 'Yes' ELSE 'No' END AS two_consecutive_below_45\nFROM q"
+    ],
+    "sources": [
+      "summit-travel-partners.md p.2",
+      "summit-travel-partners.md p.3",
+      "Genie: sales_metrics"
+    ],
+    "model": "azure/databricks",
+    "recorded": "2026-10-12T08:02"
+  },
+  "Which agencies are about to churn?": {
+    "text": "No churn model or churn label in the data. A reasonable proxy, not a prediction: agencies with AA revenue down >10% YoY (2026-09 vs 2025-09) AND pace_pct < 90 as of 2026-09.\n\nResult for that proxy: zero agencies match (Genie returned 0 rows).\n\nSource: ask_metrics, using aa_demo.gold.sales_metrics, aa_demo.gold.agency_pace, aa_demo.gold.dim_agency (the app attached the SQL and result).\n\nCould not verify: actual churn risk or predicted churn. To produce churn predictions would need a churn label or a trained model, or additional features such as historical account cancellations/terminations, contract nonrenewal signals, recent booking/cancellation trends, account contact/activity logs.",
+    "flagged": [],
+    "sql": [
+      "WITH rev AS (SELECT agency, ROUND(MEASURE(aa_revenue)) AS aa_revenue_now, ROUND(MEASURE(aa_revenue_prior_year)) AS aa_revenue_prior, ROUND(MEASURE(yoy_revenue_pct) * 100, 1) AS delta_pct FROM aa_demo.gold.sales_metrics WHERE sales_month = DATE '2026-09-01' GROUP BY ALL HAVING delta_pct < -10), pace AS (SELECT agency_id, ytd_revenue, revenue_goal_usd, ytd_goal, pace_pct FROM aa_demo.gold.agency_pace WHERE sales_month = DATE '2026-09-01' AND goal_year = 2026 AND pace_pct < 90) SELECT a.agency_name, r.aa_revenue_now, r.aa_revenue_prior, r.delta_pct, p.ytd_revenue, p.revenue_goal_usd, p.ytd_goal, p.pace_pct FROM rev r JOIN aa_demo.gold.dim_agency a ON r.agency = a.agency_name JOIN pace p ON a.agency_id = p.agency_id ORDER BY r.delta_pct"
+    ],
+    "sources": [
+      "Genie: sales_metrics"
+    ],
+    "model": "azure/databricks",
+    "recorded": "2026-10-12T08:03"
+  }
+}

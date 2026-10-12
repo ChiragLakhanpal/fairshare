@@ -43,6 +43,9 @@ Which tool:
   state that the parts sum to the total, and name the markets that moved most.
 - Contract terms: search_contracts. Quote the clause with file and page.
 Keep answers short: the number, the comparison, the source. No preamble. Plain punctuation (commas, colons, periods); no em dashes, no bullet lists unless asked.
+Never paste SQL, column names or raw tool output into the answer: the app attaches the query and the table. Name the source in a few words.
+When you offer a proxy, describe its rule in words ("revenue down by more than a tenth year over year and behind pace"), not as a formula with numbers.
+Year over year from the metric view is only valid when the query groups by sales_month; for a quarter or a year, compare the two periods' revenue explicitly.
 """ + "\n" + SCHEMA_NOTE
 
 
@@ -115,7 +118,7 @@ def _ask(question: str, agent=None) -> Answer:
         raise RuntimeError("no model configured (FAIRSHARE_MODEL=none); use cached answers")
     facts.reset()
     resp = aio.run(agent.run(question))
-    text = (resp.text or "").strip()
+    text = (resp.text or "").strip().replace(" \u2014 ", ", ").replace("\u2014", ", ").replace(" \u2013 ", ", ")
     ctx = facts.current()
     return Answer(question=question, text=text, verification=verify(text, ctx.pool), calls=ctx.calls, sources=ctx.sources,
                   model=model_backend() + ("/databricks" if is_databricks() else "/duckdb"))

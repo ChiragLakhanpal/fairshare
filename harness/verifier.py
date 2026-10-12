@@ -173,7 +173,9 @@ def _match(n: Number, pool: FactPool) -> Fact | None:
     return best
 
 
-INFORMATIONAL = re.compile(r"^(could not verify|source|sources|not in the data)\b", re.I)
+INFORMATIONAL = re.compile(r"^(could not verify|source|sources|not in the data|answered by|sql run)\b", re.I)
+CODE_LIKE = re.compile(r"\bSELECT\b.*\bFROM\b|^\s*WITH\s+\w+\s+AS\s*\(|`[\w.]+`", re.I | re.S)
+RULE_NUMBER = re.compile(r"(?:<=|>=|<|>|=)\s*-?\$?\d[\d,.]*%?|-?\$?\d[\d,.]*%?\s*(?:<=|>=|<|>)")
 
 
 def verify(draft: str, pool: FactPool) -> Verification:
@@ -182,7 +184,8 @@ def verify(draft: str, pool: FactPool) -> Verification:
     things, not metrics, and cannot be matched meaningfully; they are skipped."""
     sentences = []
     for text in (s.strip() for s in SENTENCE_SPLIT.split(draft) if s and s.strip()):
-        numbers = [] if INFORMATIONAL.match(text) else [n for n in extract_numbers(text)
+        claim_text = RULE_NUMBER.sub(lambda m: " " * len(m.group(0)), text)  # "YoY <= -10%" is a rule the writer chose, not a fact
+        numbers = [] if (INFORMATIONAL.match(text) or CODE_LIKE.search(text)) else [n for n in extract_numbers(claim_text)
                                                        if not (n.unit == "count" and float(n.value).is_integer() and abs(n.value) < 13 and "." not in n.raw and "," not in n.raw)]
         for n in numbers:
             n.matched = _match(n, pool)

@@ -28,7 +28,7 @@ DESCRIPTION = "Agency sales performance: AA revenue, AA share, fair share (BTS T
 INSTRUCTIONS = [
     "AA share is revenue based: AA revenue divided by the agency's all-carrier revenue on the same markets and months. Never average pre-computed shares; use the metric view measures.",
     "Fair share is AA's share of scheduled seats on the market (BTS T-100), weighted by the agency's market revenue. Share gap = AA share minus fair share; positive is above fair share.",
-    "Use MEASURE() on aa_demo.gold.sales_metrics for every KPI. Year over year (yoy_revenue_pct, aa_revenue_prior_year) is correct at month grain: group by sales_month. For quarters, sum the months of each quarter from the fact grain using the example SQL.",
+    "Use MEASURE() on aa_demo.gold.sales_metrics for every KPI. yoy_revenue_pct and aa_revenue_prior_year are ONLY correct when the query groups by sales_month; never select them when grouping by quarter, year or without a month. For a quarter or a year versus the prior one, select aa_revenue for both periods (see the Q3 example) and let the reader compare.",
     "Data covers January 2025 to September 2026. 'Year to date' and '2026' mean sales_month >= '2026-01-01'. The latest month is September 2026.",
     "Pace against goal lives in aa_demo.gold.agency_pace (pace_pct: 100 means on pace to the annual revenue goal, goal spread evenly over twelve months).",
     "Return percentages as percentages with one decimal and money rounded to whole dollars. When the question is ambiguous about the period, ask rather than guess.",
@@ -51,11 +51,18 @@ def _q(table):
 
 
 EXAMPLES = [  # trusted SQL for the hard patterns, written against the space's own sources (the metric view and agency_pace)
-    ("What was Summit Travel Partners' AA share on DFW to ORD in Q3 2026 versus Q3 2025?",
-     """SELECT year, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct
-FROM aa_demo.gold.sales_metrics
-WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')
-GROUP BY ALL ORDER BY year"""),
+    ("How did Summit Travel Partners do on DFW to ORD in Q3 2026 versus Q3 2025 (revenue, AA share, fair share, share gap)?",
+     """WITH q AS (
+  SELECT quarter, MEASURE(aa_revenue) AS aa_revenue, MEASURE(aa_share) AS aa_share, MEASURE(fair_share) AS fair_share,
+         MEASURE(share_gap_pts) AS share_gap_pts, MEASURE(aa_pax) AS aa_pax
+  FROM aa_demo.gold.sales_metrics
+  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')
+  GROUP BY ALL)
+SELECT quarter, ROUND(aa_revenue) AS aa_revenue,
+       ROUND((aa_revenue - LAG(aa_revenue) OVER (ORDER BY quarter)) / LAG(aa_revenue) OVER (ORDER BY quarter) * 100, 1) AS revenue_change_pct,
+       ROUND(aa_share * 100, 1) AS aa_share_pct, ROUND(fair_share * 100, 1) AS fair_share_pct, ROUND(share_gap_pts, 1) AS share_gap_pts, aa_pax
+FROM q ORDER BY quarter
+-- the change between the two quarters is computed here so the answer never has to; yoy_revenue_pct is month grain only"""),
     ("In Q3 2026, how far above or below fair share was Summit Travel Partners on DFW to ORD, in points?",
      """SELECT ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts
 FROM aa_demo.gold.sales_metrics
@@ -83,6 +90,13 @@ SELECT month_no, ROUND(aa_revenue) AS aa_revenue,
        ROUND(AVG(aa_revenue) OVER (ORDER BY month_no RANGE BETWEEN 2 PRECEDING AND CURRENT ROW)) AS rolling_3m_avg
 FROM m ORDER BY month_no
 -- RANGE on the month number only averages months really inside the window; ROWS BETWEEN 2 PRECEDING would silently span a gap"""),
+    ("How many agencies were above fair share in September 2026, and how many below?",
+     """WITH m AS (
+  SELECT agency, MEASURE(aa_share) AS share, MEASURE(fair_share) AS fair
+  FROM aa_demo.gold.sales_metrics WHERE sales_month = DATE '2026-09-01' GROUP BY ALL)
+SELECT SUM(CASE WHEN share >= fair THEN 1 ELSE 0 END) AS above_fair_share, SUM(CASE WHEN share < fair THEN 1 ELSE 0 END) AS below_fair_share
+FROM m
+-- counting agencies needs one row per agency first (a CTE), then the CASE sums; MEASURE() itself never counts entities"""),
     ("Which agencies have been below fair share for three or more consecutive months, ending September 2026?",
      """WITH m AS (
   SELECT agency, sales_month, EXTRACT(YEAR FROM sales_month) * 12 + EXTRACT(MONTH FROM sales_month) AS month_no,
