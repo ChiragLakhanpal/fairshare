@@ -120,7 +120,7 @@ def _ask(question: str, agent=None) -> Answer:
     resp = aio.run(agent.run(question))
     text = (resp.text or "").strip().replace(" \u2014 ", ", ").replace("\u2014", ", ").replace(" \u2013 ", ", ")
     ctx = facts.current()
-    return Answer(question=question, text=text, verification=verify(text, ctx.pool), calls=ctx.calls, sources=ctx.sources,
+    return Answer(question=question, text=text, verification=verify(text, ctx.pool, question), calls=ctx.calls, sources=ctx.sources,
                   model=model_backend() + ("/databricks" if is_databricks() else "/duckdb"))
 
 

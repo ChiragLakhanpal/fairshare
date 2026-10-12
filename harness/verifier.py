@@ -30,7 +30,7 @@ SCALE = {"K": 1e3, "k": 1e3, "M": 1e6, "m": 1e6, "B": 1e9, "bn": 1e9}
 PCT_WORDS = {"%", "percent", "percentage points", "percentage point"}
 PTS_WORDS = {"points", "point", "pts"}
 RATIO_HINTS = ("share", "pct", "ratio", "rate", "pace")
-USD_HINTS = ("revenue", "usd", "goal", "commit", "fare", "effect", "gap_usd", "market_now", "market_prior", "delta_revenue")
+USD_HINTS = ("revenue", "usd", "goal", "commit", "fare", "effect", "gap_usd", "market_now", "market_prior", "delta_revenue", "dollar", "$", "spend", "booked")
 PTS_HINTS = ("pts", "points")
 
 
@@ -78,6 +78,9 @@ class FactPool:
                 else:
                     self.add(v, "count", source, label)
                     self.add(v, "usd", source, label)  # ids and counts rarely collide with dollar amounts at display precision
+                if abs(v) >= 1000:  # whatever the column is called (Genie uses display names), a value this large is money or a count, never a percent
+                    self.add(v, "usd", source, label)
+                    self.add(v, "count", source, label)
 
     def __len__(self):
         return len(self.facts)
@@ -178,10 +181,16 @@ CODE_LIKE = re.compile(r"\bSELECT\b.*\bFROM\b|^\s*WITH\s+\w+\s+AS\s*\(|`[\w.]+`"
 RULE_NUMBER = re.compile(r"(?:<=|>=|<|>|=)\s*-?\$?\d[\d,.]*%?|-?\$?\d[\d,.]*%?\s*(?:<=|>=|<|>)")
 
 
-def verify(draft: str, pool: FactPool) -> Verification:
+def verify(draft: str, pool: FactPool, question: str | None = None) -> Verification:
     """Sentences that declare their own uncertainty ("Could not verify: ...") or name sources carry no claims and are not checked.
     Bare small integers with no unit ("3+ months", "two of the four agencies" written as 2) are thresholds and counts of
-    things, not metrics, and cannot be matched meaningfully; they are skipped."""
+    things, not metrics, and cannot be matched meaningfully; they are skipped. Numbers the asker wrote in the question
+    ("under 40%", "Q3 2026") are theirs, not the answer's, so they count as facts."""
+    if question:
+        for n in extract_numbers(question):
+            pool.add(n.value, n.unit, "question", f"question: {n.raw}")
+            if n.unit == "count":
+                pool.add(n.value, "pct", "question", f"question: {n.raw}")
     sentences = []
     for text in (s.strip() for s in SENTENCE_SPLIT.split(draft) if s and s.strip()):
         claim_text = RULE_NUMBER.sub(lambda m: " " * len(m.group(0)), text)  # "YoY <= -10%" is a rule the writer chose, not a fact

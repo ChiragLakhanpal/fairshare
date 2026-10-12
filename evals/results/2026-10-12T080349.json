@@ -1,0 +1,169 @@
+{
+  "run_at": "2026-10-12T08:03:49",
+  "label": "third run: counting example, quarter example with change column, YoY guidance",
+  "backend": "databricks",
+  "n": 20,
+  "genie": [
+    {
+      "id": "q01",
+      "pass": true,
+      "seconds": 18.9,
+      "genie_sql": "SELECT `agency_type`, ROUND(MEASURE(`aa_revenue`)) AS `aa_revenue`\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `sales_month` >= DATE '2026-01-01'\nGROUP BY ALL\nORDER BY `aa_revenue` DESC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q02",
+      "pass": true,
+      "seconds": 25.3,
+      "genie_sql": "WITH agency_totals AS (\n  SELECT `agency`, ROUND(MEASURE(`aa_revenue`)) AS aa_revenue\n  FROM aa_demo.gold.sales_metrics\n  WHERE `sales_month` >= DATE '2026-01-01' AND `agency` IS NOT NULL\n  GROUP BY ALL\n)\nSELECT a.`agency_name` AS agency, a.`region`, a.`account_manager`, t.`aa_revenue`\nFROM agency_totals t\nJOIN aa_demo.gold.dim_agency a ON t.agency = a.agency_name\nWHERE a.region IS NOT NULL AND a.account_manager IS NOT NULL\nORDER BY t.aa_revenue DESC\nLIMIT 5",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q03",
+      "pass": true,
+      "seconds": 20.2,
+      "genie_sql": "SELECT date_trunc('MONTH', `sales_month`) AS `month`, ROUND(MEASURE(`aa_revenue`)) AS `aa_revenue`\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `agency` ILIKE '%Harbor Business Travel%' AND `sales_month` >= DATE '2026-01-01' AND `sales_month` < DATE '2027-01-01'\nGROUP BY ALL\nORDER BY `month` ASC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q04",
+      "pass": true,
+      "seconds": 15.0,
+      "genie_sql": "WITH q AS (\n  SELECT quarter, MEASURE(aa_share) AS aa_share\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')\n  GROUP BY ALL)\nSELECT quarter, ROUND(aa_share * 100, 1) AS aa_share_pct\nFROM q ORDER BY quarter",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q05",
+      "pass": true,
+      "seconds": 13.4,
+      "genie_sql": "SELECT ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts\nFROM aa_demo.gold.sales_metrics\nWHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter = 'Q3 2026'",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q06",
+      "pass": true,
+      "seconds": 15.0,
+      "genie_sql": "SELECT agency, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts\nFROM aa_demo.gold.sales_metrics\nWHERE sales_month = DATE '2026-08-01'\nGROUP BY ALL ORDER BY share_gap_pts DESC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q07",
+      "pass": true,
+      "seconds": 21.4,
+      "genie_sql": "SELECT `agency`, ROUND(MEASURE(`share_gap_usd`)) AS `share_gap_usd`\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `sales_month` >= DATE '2026-01-01'\nGROUP BY ALL\nORDER BY `share_gap_usd` DESC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q08",
+      "pass": true,
+      "seconds": 18.6,
+      "genie_sql": "SELECT agency, ROUND(MEASURE(aa_revenue)) AS aug_2026, ROUND(MEASURE(aa_revenue_prior_year)) AS aug_2025, ROUND(MEASURE(yoy_revenue_pct) * 100, 1) AS yoy_pct\nFROM aa_demo.gold.sales_metrics\nWHERE sales_month = DATE '2026-08-01'\nGROUP BY ALL ORDER BY yoy_pct DESC",
+      "error": null,
+      "hard": true
+    },
+    {
+      "id": "q09",
+      "pass": true,
+      "seconds": 19.1,
+      "genie_sql": "SELECT dim_agency.agency_name, ROUND(agency_pace.attainment_pct, 1) AS attainment_pct, ROUND(agency_pace.pace_pct, 1) AS pace_pct\nFROM aa_demo.gold.agency_pace\nJOIN aa_demo.gold.dim_agency ON dim_agency.agency_id = agency_pace.agency_id\nWHERE agency_pace.sales_month = DATE '2026-09-01' AND agency_pace.attainment_pct IS NOT NULL AND agency_pace.pace_pct IS NOT NULL\nORDER BY agency_pace.attainment_pct DESC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q10",
+      "pass": true,
+      "seconds": 19.9,
+      "genie_sql": "SELECT `region`, ROUND(try_divide(MEASURE(`aa_revenue`),SUM(MEASURE(`aa_revenue`)) OVER ()) * 100, 1) AS region_share_pct\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `sales_month` >= DATE '2026-01-01' AND `region` IS NOT NULL\nGROUP BY ALL\nORDER BY region_share_pct DESC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q11",
+      "pass": true,
+      "seconds": 19.7,
+      "genie_sql": "SELECT `sales_month`, ROUND(MEASURE(`aa_revenue`)) AS `aa_revenue`, ROUND(SUM(MEASURE(`aa_revenue`)) OVER (ORDER BY `sales_month`)) AS `cumulative_aa_revenue`\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `agency` = 'Summit Travel Partners' AND `sales_month` >= DATE '2026-01-01' AND `sales_month` IS NOT NULL\nGROUP BY ALL\nORDER BY `sales_month` ASC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q12",
+      "pass": true,
+      "seconds": 20.3,
+      "genie_sql": "WITH m AS (\n  SELECT EXTRACT(MONTH FROM sales_month) AS month_no, MEASURE(aa_revenue) AS aa_revenue\n  FROM aa_demo.gold.sales_metrics WHERE agency = 'Sunbelt Vacations' AND year = 2026 GROUP BY ALL)\nSELECT month_no, ROUND(aa_revenue) AS aa_revenue,\n       ROUND(AVG(aa_revenue) OVER (ORDER BY month_no RANGE BETWEEN 2 PRECEDING AND CURRENT ROW)) AS rolling_3m_avg\nFROM m ORDER BY month_no",
+      "error": null,
+      "hard": true
+    },
+    {
+      "id": "q13",
+      "pass": true,
+      "seconds": 25.8,
+      "genie_sql": "WITH ranked AS (\n  SELECT \n    `region`, \n    `agency`, \n    ROUND(MEASURE(`aa_revenue`)) AS `aa_revenue`,\n    RANK() OVER (PARTITION BY `region` ORDER BY MEASURE(`aa_revenue`) DESC) AS `rank`\n  FROM aa_demo.gold.sales_metrics\n  WHERE `sales_month` >= DATE '2026-01-01'\n  GROUP BY ALL\n)\nSELECT `region`, `agency`, `aa_revenue`, `rank`\nFROM ranked\nORDER BY `region`, `rank` ASC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q14",
+      "pass": true,
+      "seconds": 19.9,
+      "genie_sql": "WITH ranked AS (\n  SELECT \n    `agency`, \n    `market`, \n    MEASURE(`aa_revenue`) AS `aa_revenue`,\n    RANK() OVER (PARTITION BY `agency` ORDER BY MEASURE(`aa_revenue`) DESC) AS `rank`\n  FROM `aa_demo`.`gold`.`sales_metrics`\n  WHERE `agency` IS NOT NULL AND `market` IS NOT NULL AND `year` = 2026\n  GROUP BY ALL\n)\nSELECT `agency`, `market`, ROUND(`aa_revenue`) AS `aa_revenue`\nFROM ranked\nWHERE `rank` = 1\nORDER BY `agency` ASC, `aa_revenue` DESC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q15",
+      "pass": true,
+      "seconds": 20.5,
+      "genie_sql": "WITH m AS (\n  SELECT `sales_month`, MEASURE(`aa_revenue`) AS aa_revenue\n  FROM `aa_demo`.`gold`.`sales_metrics`\n  WHERE `agency` = 'Lone Star Travel Group' AND `sales_month` >= DATE '2026-01-01' AND `sales_month` < DATE '2027-01-01'\n  GROUP BY ALL\n)\nSELECT `sales_month`, ROUND(aa_revenue) AS aa_revenue,\n       ROUND(try_divide((aa_revenue - LAG(aa_revenue) OVER (ORDER BY sales_month)),LAG(aa_revenue) OVER (ORDER BY sales_month)) * 100, 1) AS mom_change_pct\nFROM m\nORDER BY sales_month ASC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q16",
+      "pass": true,
+      "seconds": 19.1,
+      "genie_sql": "WITH m AS (\n  SELECT agency, sales_month, EXTRACT(YEAR FROM sales_month) * 12 + EXTRACT(MONTH FROM sales_month) AS month_no,\n         MEASURE(aa_share) AS share, MEASURE(fair_share) AS fair\n  FROM aa_demo.gold.sales_metrics WHERE sales_month <= DATE '2026-09-01' GROUP BY ALL),\nbelow AS (SELECT agency, month_no FROM m WHERE share < fair),\nisl AS (SELECT agency, month_no, month_no - ROW_NUMBER() OVER (PARTITION BY agency ORDER BY month_no) AS grp FROM below),\nruns AS (SELECT agency, MAX(month_no) AS last_no, COUNT(*) AS months_below FROM isl GROUP BY agency, grp)\nSELECT agency, months_below FROM runs WHERE last_no = 2026 * 12 + 9 AND months_below >= 3 ORDER BY months_below DESC",
+      "error": null,
+      "hard": true
+    },
+    {
+      "id": "q17",
+      "pass": true,
+      "seconds": 27.4,
+      "genie_sql": "SELECT `market`, ROUND(MEASURE(`aa_share`) * 100, 1) AS `aa_share_pct`, ROUND((0.4 - MEASURE(`aa_share`)) * MEASURE(`market_revenue`)) AS `gap_to_40_pct_usd` \nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `sales_month` >= DATE '2026-01-01'\nGROUP BY ALL\nHAVING MEASURE(`aa_share`) < 0.4\nORDER BY `aa_share_pct` ASC",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q18",
+      "pass": true,
+      "seconds": 13.8,
+      "genie_sql": "SELECT a.agency_name, p.ytd_revenue, p.revenue_goal_usd, p.pace_pct\nFROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE p.sales_month = DATE '2026-09-01' AND p.pace_pct < 100\nORDER BY p.pace_pct",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q19",
+      "pass": true,
+      "seconds": 19.8,
+      "genie_sql": "WITH mgr_gap AS (\n  SELECT `account_manager`, MEASURE(`share_gap_usd`) AS `share_gap_usd`\n  FROM `aa_demo`.`gold`.`sales_metrics`\n  WHERE `sales_month` >= DATE '2026-01-01'\n  GROUP BY ALL\n)\nSELECT `account_manager`, ROUND(`share_gap_usd`) AS `share_gap_usd`\nFROM (\n  SELECT *, RANK() OVER (ORDER BY ABS(`share_gap_usd`) DESC) AS rk\n  FROM mgr_gap\n)\nWHERE rk = 1",
+      "error": null,
+      "hard": false
+    },
+    {
+      "id": "q20",
+      "pass": true,
+      "seconds": 13.3,
+      "genie_sql": "WITH m AS (\n  SELECT agency, MEASURE(aa_share) AS share, MEASURE(fair_share) AS fair\n  FROM aa_demo.gold.sales_metrics WHERE sales_month = DATE '2026-09-01' GROUP BY ALL)\nSELECT SUM(CASE WHEN share >= fair THEN 1 ELSE 0 END) AS above_fair_share, SUM(CASE WHEN share < fair THEN 1 ELSE 0 END) AS below_fair_share\nFROM m",
+      "error": null,
+      "hard": false
+    }
+  ],
+  "genie_pass_rate": 1.0
+}

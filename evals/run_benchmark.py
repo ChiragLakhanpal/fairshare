@@ -11,7 +11,6 @@ A result set "matches" when every ground-truth row is represented by a returned 
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import sys
 import time
@@ -112,7 +111,8 @@ def harness_run(questions):
         t0 = time.time()
         try:
             a = harness_agent.ask(q["question"], ag)
-            verdict = asyncio.run(judge.run(f"QUESTION: {q['question']}\n\nGROUND TRUTH:\n{gt.to_string(index=False)}\n\nANSWER:\n{a.text}")).text.strip().upper()
+            from harness import aio
+            verdict = aio.run(judge.run(f"QUESTION: {q['question']}\n\nGROUND TRUTH:\n{gt.to_string(index=False)}\n\nANSWER:\n{a.text}")).text.strip().upper()
             rec = {"id": q["id"], "supported": a.verification.ok, "flagged": a.flagged, "judge": verdict[:8], "tools": [c.tool for c in a.calls],
                    "seconds": round(time.time() - t0, 1), "answer": a.text, "hard": q.get("hard", False)}
         except Exception as e:

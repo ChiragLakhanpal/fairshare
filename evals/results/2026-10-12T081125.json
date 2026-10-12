@@ -1,0 +1,328 @@
+{
+  "run_at": "2026-10-12T08:11:25",
+  "label": "harness run 1: Genie + verifier + judge",
+  "backend": "databricks",
+  "n": 20,
+  "harness": [
+    {
+      "id": "q01",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 30.9,
+      "answer": "TMC: $30,401,986.\nOTA: $8,695,508.\nConsolidator: $4,335,376.\nLeisure: $2,941,838.\n\nSource: ask_metrics, aa_demo.gold.sales_metrics metric view (2026 YTD query).\n\nCould not verify: none, all requested metrics returned by ask_metrics.",
+      "hard": false
+    },
+    {
+      "id": "q02",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 34.5,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": false
+    },
+    {
+      "id": "q03",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 40.2,
+      "answer": "2026-01: $381,498.  \n2026-02: $344,442.  \n2026-03: $410,008.  \n2026-04: $290,165.  \n2026-05: $261,501.  \n2026-06: $260,516.  \n2026-07: $425,711.  \n2026-08: $386,489.  \n2026-09: $330,114.\n\nSource: ask_metrics, aa_demo.gold.sales_metrics (sales_metrics metric view).  \nCould not verify: AA revenue for Oct\u2013Dec 2026, the metric view only returned data through 2026-09.",
+      "hard": false
+    },
+    {
+      "id": "q04",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 21.5,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": false
+    },
+    {
+      "id": "q05",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 30.3,
+      "answer": "15.9 points above fair share (AA share 53.5%, fair share 37.6%). Source: ask_metrics (aa_demo.gold.sales_metrics).  \nCould not verify: none, the metric view returned AA share, fair share, and share gap.",
+      "hard": false
+    },
+    {
+      "id": "q06",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 44.8,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": false
+    },
+    {
+      "id": "q07",
+      "supported": false,
+      "flagged": [
+        {
+          "sentence": "Lone Star Travel Group: $1,603,235",
+          "reason": "no query supports $1,603,235"
+        },
+        {
+          "sentence": "Summit Travel Partners: $1,557,023",
+          "reason": "no query supports $1,557,023"
+        },
+        {
+          "sentence": "Atlantic Premier Travel: $1,529,028",
+          "reason": "no query supports $1,529,028"
+        },
+        {
+          "sentence": "Northstar Leisure: $355,174",
+          "reason": "no query supports $355,174"
+        },
+        {
+          "sentence": "BlueSky Corporate Travel: $21,323",
+          "reason": "no query supports $21,323"
+        },
+        {
+          "sentence": "Sunbelt Vacations: $7,467",
+          "reason": "no query supports $7,467"
+        },
+        {
+          "sentence": "Capitol Corporate Travel: -$33,186",
+          "reason": "no query supports -$33,186"
+        },
+        {
+          "sentence": "Pacific Gateway Travel: -$86,166",
+          "reason": "no query supports -$86,166"
+        },
+        {
+          "sentence": "Midway Travel Services: -$393,683",
+          "reason": "no query supports -$393,683"
+        },
+        {
+          "sentence": "Harbor Business Travel: -$724,610",
+          "reason": "no query supports -$724,610"
+        },
+        {
+          "sentence": "Golden Coast Travel: -$1,149,880",
+          "reason": "no query supports -$1,149,880"
+        },
+        {
+          "sentence": "FareHub Online: -$3,402,995",
+          "reason": "no query supports -$3,402,995"
+        }
+      ],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 36.4,
+      "answer": "Lone Star Travel Group: $1,603,235\nSummit Travel Partners: $1,557,023\nAtlantic Premier Travel: $1,529,028\nNorthstar Leisure: $355,174\nBlueSky Corporate Travel: $21,323\nSunbelt Vacations: $7,467\nCapitol Corporate Travel: -$33,186\nPacific Gateway Travel: -$86,166\nMidway Travel Services: -$393,683\nHarbor Business Travel: -$724,610\nGolden Coast Travel: -$1,149,880\nFareHub Online: -$3,402,995\n\nSource: ask_metrics on aa_demo.gold.sales_metrics (query: share_gap_usd for 2026 YTD).\n\nCould not verify: the exact sales_month end date used for \"year to date\" in the metric view; to confirm, need the sales_month range or raw rows from gold.fact_agency_sales_monthly.",
+      "hard": false
+    },
+    {
+      "id": "q08",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 31.2,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": true
+    },
+    {
+      "id": "q09",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 54.5,
+      "answer": "Atlantic Premier Travel: attainment 119.5%, pace 159.4%.\nBlueSky Corporate Travel: attainment 114.6%, pace 152.8%.\nCapitol Corporate Travel: attainment 110.4%, pace 147.2%.\nFareHub Online: attainment 72.9%, pace 97.2%.\nGolden Coast Travel: attainment 117.5%, pace 156.7%.\nHarbor Business Travel: attainment 72.0%, pace 96.1%.\nLone Star Travel Group: attainment 116.5%, pace 155.4%.\nMidway Travel Services: attainment 88.7%, pace 118.3%.\nNorthstar Leisure: attainment 112.3%, pace 149.7%.\nPacific Gateway Travel: attainment 111.0%, pace 148.1%.\nSummit Travel Partners: attainment 120.8%, pace 161.0%.\nSunbelt Vacations: attainment 79.5%, pace 106.0%.\n\nSource: ask_metrics, using aa_demo.gold.agency_pace joined to aa_demo.gold.dim_agency (sales_month = 2026-09, goal_year = 2026).\n\nCould not verify: that this list is every agency in the portfolio; to confirm need the full agency roster or confirmation that agency_pace contains all agencies for sales_month=2026-09.",
+      "hard": false
+    },
+    {
+      "id": "q10",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 31.7,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": false
+    },
+    {
+      "id": "q11",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 31.0,
+      "answer": "2026-01: $560,526  \n2026-02: $1,141,532  \n2026-03: $1,933,184  \n2026-04: $2,627,511  \n2026-05: $3,310,531  \n2026-06: $4,129,882  \n2026-07: $4,950,744  \n2026-08: $5,658,793  \n2026-09: $6,259,791\n\nSource: ask_metrics, aa_demo.gold.sales_metrics.",
+      "hard": false
+    },
+    {
+      "id": "q12",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 31.3,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": true
+    },
+    {
+      "id": "q13",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 41.3,
+      "answer": "Central:\n1 Summit Travel Partners: $6,259,791\n2 Lone Star Travel Group: $5,847,405\n3 Northstar Leisure: $1,900,118\n4 Midway Travel Services: $1,702,178\n5 Sunbelt Vacations: $1,041,720\n\nEast:\n1 Atlantic Premier Travel: $6,689,409\n2 BlueSky Corporate Travel: $4,434,693\n3 Capitol Corporate Travel: $4,080,244\n4 Harbor Business Travel: $3,090,443\n\nWest:\n1 Golden Coast Travel: $4,654,083\n2 FareHub Online: $4,041,424\n3 Pacific Gateway Travel: $2,633,198\n\nSource: ask_metrics (aa_demo.gold.sales_metrics).",
+      "hard": false
+    },
+    {
+      "id": "q14",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 37.7,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": false
+    },
+    {
+      "id": "q15",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 41.2,
+      "answer": "2026-01: $535,848, MoM change: no prior month for comparison.\n2026-02: $548,427, MoM change: 2.3%.\n2026-03: $755,636, MoM change: 37.8%.\n2026-04: $655,063, MoM change: -13.3%.\n2026-05: $650,362, MoM change: -0.7%.\n2026-06: $727,943, MoM change: 11.9%.\n2026-07: $768,417, MoM change: 5.6%.\n2026-08: $646,195, MoM change: -15.9%.\n2026-09: $559,513, MoM change: -13.4%.\n\nSource: ask_metrics (Genie) over aa_demo.gold.sales_metrics.\n\nCould not verify: month-over-month change for 2026-01 (prior-month aa_revenue not returned); aa_revenue for 2025-12 would be needed.",
+      "hard": false
+    },
+    {
+      "id": "q16",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 42.7,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": true
+    },
+    {
+      "id": "q17",
+      "supported": false,
+      "flagged": [
+        {
+          "sentence": "ORD-SFO: AA share 36.27%, market revenue $11,363,233, dollar gap to 40% $423,559.",
+          "reason": "no query supports $423,559"
+        },
+        {
+          "sentence": "DFW-LAX: AA share 36.67%, market revenue $11,361,935, dollar gap to 40% $377,963.",
+          "reason": "no query supports $377,963"
+        },
+        {
+          "sentence": "PHX-SEA: AA share 36.95%, market revenue $11,358,595, dollar gap to 40% $346,981.",
+          "reason": "no query supports $346,981"
+        },
+        {
+          "sentence": "LAX-JFK: AA share 38.29%, market revenue $11,353,114, dollar gap to 40% $194,480.",
+          "reason": "no query supports $194,480"
+        },
+        {
+          "sentence": "SEA-DEN: AA share 36.29%, market revenue $4,255,290, dollar gap to 40% $158,057.",
+          "reason": "no query supports $158,057"
+        },
+        {
+          "sentence": "DCA-BOS: AA share 38.72%, market revenue $11,543,578, dollar gap to 40% $147,898.",
+          "reason": "no query supports $147,898"
+        },
+        {
+          "sentence": "MIA-JFK: AA share 38.76%, market revenue $11,285,234, dollar gap to 40% $140,146.",
+          "reason": "no query supports $140,146"
+        },
+        {
+          "sentence": "CLT-LGA: AA share 38.78%, market revenue $11,097,419, dollar gap to 40% $135,514.",
+          "reason": "no query supports $135,514"
+        },
+        {
+          "sentence": "DFW-DCA: AA share 39.00%, market revenue $11,267,648, dollar gap to 40% $112,358.",
+          "reason": "no query supports $112,358"
+        },
+        {
+          "sentence": "DFW-DEN: AA share 39.37%, market revenue $11,044,300, dollar gap to 40% $69,972.",
+          "reason": "no query supports $69,972"
+        },
+        {
+          "sentence": "DFW-ORD: AA share 39.56%, market revenue $11,326,602, dollar gap to 40% $50,120.",
+          "reason": "no query supports $50,120"
+        },
+        {
+          "sentence": "AUS-ORD: AA share 39.16%, market revenue $4,159,805, dollar gap to 40% $34,945.",
+          "reason": "no query supports $34,945"
+        }
+      ],
+      "judge": "PARTIAL",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 53.6,
+      "answer": "12 markets with AA share <40% in 2026.\nORD-SFO: AA share 36.27%, market revenue $11,363,233, dollar gap to 40% $423,559.\nDFW-LAX: AA share 36.67%, market revenue $11,361,935, dollar gap to 40% $377,963.\nPHX-SEA: AA share 36.95%, market revenue $11,358,595, dollar gap to 40% $346,981.\nLAX-JFK: AA share 38.29%, market revenue $11,353,114, dollar gap to 40% $194,480.\nSEA-DEN: AA share 36.29%, market revenue $4,255,290, dollar gap to 40% $158,057.\nDCA-BOS: AA share 38.72%, market revenue $11,543,578, dollar gap to 40% $147,898.\nMIA-JFK: AA share 38.76%, market revenue $11,285,234, dollar gap to 40% $140,146.\nCLT-LGA: AA share 38.78%, market revenue $11,097,419, dollar gap to 40% $135,514.\nDFW-DCA: AA share 39.00%, market revenue $11,267,648, dollar gap to 40% $112,358.\nDFW-DEN: AA share 39.37%, market revenue $11,044,300, dollar gap to 40% $69,972.\nDFW-ORD: AA share 39.56%, market revenue $11,326,602, dollar gap to 40% $50,120.\nAUS-ORD: AA share 39.16%, market revenue $4,159,805, dollar gap to 40% $34,945.\n\nSource: ask_metrics (Genie), aa_demo.gold.sales_metrics.  \nCould not verify: nothing additional; all values returned by ask_metrics.",
+      "hard": false
+    },
+    {
+      "id": "q18",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 32.2,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": false
+    },
+    {
+      "id": "q19",
+      "supported": true,
+      "flagged": [],
+      "judge": "CORRECT",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 34.6,
+      "answer": "Priya Raman: -$4,639,040.704 (largest share gap in dollars, 2026 YTD Jan\u2013Sep).\n\nSource: ask_metrics on aa_demo.gold.sales_metrics (sales_metrics metric view), query for 2026 YTD (sales_month 2026-01-01 to 2026-09-01).\n\nCould not verify: whether data beyond September 2026 or any adjustments/projections were included; to confirm need updated sales_month rows or flags (e.g., is_projected) in aa_demo.gold.sales_metrics and/or fact_market_capacity.",
+      "hard": false
+    },
+    {
+      "id": "q20",
+      "supported": false,
+      "flagged": [],
+      "judge": "ERROR",
+      "tools": [],
+      "seconds": 21.6,
+      "answer": "(\"<class 'agent_framework_openai._chat_client.OpenAIChatClient'> service failed to complete the prompt: Event loop is closed\", RuntimeError('Event loop is closed'))",
+      "hard": false
+    }
+  ],
+  "harness_supported_rate": 0.4,
+  "harness_correct_rate": 0.45
+}

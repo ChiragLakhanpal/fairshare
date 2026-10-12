@@ -21,19 +21,24 @@ Fair share barely moved, 39.5% to 39.9%, so AA did not lose capacity: the agency
 DCA-BOS, LAX-JFK and DFW-DCA. The three parts sum to the total; that is arithmetic in the warehouse, not a model." Then the
 one line it will not say: "Could not verify whether they changed a preferred-carrier setting; not in the data."
 
-**5:00 Ask (two and a half minutes).** Three questions, in this order. Summit on DFW to ORD, Q3 vs Q3 and vs fair share:
-the number, the SQL in the drawer. The contract question: the clause quoted with file and page, and whether the two-quarter
-condition has happened. Then "which agencies are about to churn": it refuses, explains there is no churn label, and offers the
-labeled proxy. "Unknown is an allowed answer. That is the difference between a demo and something you can put in front of a VP."
+**5:00 Ask (two and a half minutes).** Three questions, in this order. Summit on DFW to ORD, Q3 2026 vs Q3 2025: revenue
+$221K to $298K, AA share 46.3% to 53.5%, fair share flat at 37.7%, so the share gap went from 8.6 to 15.9 points; Genie wrote
+the MEASURE() query against the metric view and it sits in the drawer. The contract question: clause 5.1 quoted with file and
+page (below 45% for two consecutive quarters), and the quarterly shares from 45.1% to 52.6% showing it has not happened. Then
+"which agencies are about to churn": it refuses, explains there is no churn label, and offers a labeled proxy. "Unknown is an
+allowed answer. That is the difference between a demo and something you can put in front of a VP." If Wi-Fi fails, the three
+answers are cached from a real run (the page says so).
 
 **7:30 Definitions and parity (one and a half minutes).** Pick AA share. "Written once in English; this is the Databricks
 metric view the agent and Genie use; this is the Power BI measure; a nightly job computes both and shows red where they
-disagree. The first version of the Power BI twin was passenger-based; parity ran red on every month; the fix was a pull request.
-When your VP asks why two numbers differ, this page answers before the meeting."
+disagree." The runs table shows three runs: 1,500 checks green, then the retired passenger-based twin red on all 250 months of
+AA share, then green again after the fix. "When your VP asks why two numbers differ, this page answers before the meeting."
 
 **9:00 Under the hood (one minute, then stop).** The diagram. "Three layers. Data: bronze, silver, gold in Databricks. Definitions:
 one metric view. Agent: Genie for the numbers, a decomposition for why, the agreements for terms, a harness that picks the tool
 and a verifier that refuses to show a number no query returned. The harness is the same code on my laptop and in Foundry.
+Twenty benchmark questions with known answers: Genie passed 14 the first time, 19 after two trusted examples and a column it kept
+asking for, all 20 on the third run; every run is logged." Open the MLflow experiment: one trace per answer, model calls and tool calls in order.
 At American the same shape: your gold layer from the migration, metric views for your KPIs, Genie agents per domain, the
 harness in Foundry or Copilot Studio so it lives in Teams, and the agency version runs with each agency's identity. The first
 six months are the data and the definitions. This is what month seven looks like."
