@@ -99,6 +99,17 @@ def make_agent():
 
 def ask(question: str, agent=None) -> Answer:
     """One question through the harness: reset the run context, run the agent, verify the answer."""
+    if tracing.setup():
+        import mlflow
+        with mlflow.start_span(name="fairshare.ask") as sp:
+            sp.set_inputs({"question": question})
+            a = _ask(question, agent)
+            sp.set_outputs({"answer": a.text, "verified": a.verification.ok, "tools": [c.tool for c in a.calls]})
+            return a
+    return _ask(question, agent)
+
+
+def _ask(question: str, agent=None) -> Answer:
     agent = agent or make_agent()
     if agent is None:
         raise RuntimeError("no model configured (FAIRSHARE_MODEL=none); use cached answers")

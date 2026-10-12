@@ -45,9 +45,10 @@ def _databricks():
     global _conn
     if _conn is None:
         from databricks import sql
-        _conn = sql.connect(server_hostname=os.environ["DATABRICKS_SERVER_HOSTNAME"],
-                            http_path=os.environ["DATABRICKS_HTTP_PATH"],
-                            access_token=os.environ["DATABRICKS_TOKEN"])
+        from fairshare.dbx import header_factory
+        token = os.environ.get("DATABRICKS_TOKEN", "").strip()
+        kw = {"access_token": token} if token and not token.startswith("FILL") else {"credentials_provider": header_factory}
+        _conn = sql.connect(server_hostname=os.environ["DATABRICKS_SERVER_HOSTNAME"], http_path=os.environ["DATABRICKS_HTTP_PATH"], **kw)
     return _conn
 
 
@@ -62,10 +63,20 @@ def query(sql: str) -> pd.DataFrame:
 
 
 def execute(sql: str) -> None:
-    """Run one statement with no result."""
+    """Run one statement with no result. On Databricks this goes through the Statement Execution API (status, errors,
+    and a bounded wait) rather than the SQL connector, which blocked without end on DDL on Oct 11, 2026."""
     if is_databricks():
-        with _databricks().cursor() as cur:
-            cur.execute(sql)
+        import time
+        from fairshare.dbx import workspace_client
+        w = workspace_client()
+        wh = os.environ["DATABRICKS_HTTP_PATH"].rsplit("/", 1)[-1]
+        r = w.statement_execution.execute_statement(warehouse_id=wh, statement=sql, wait_timeout="50s")
+        while r.status and r.status.state.value in ("PENDING", "RUNNING"):
+            time.sleep(2)
+            r = w.statement_execution.get_statement(r.statement_id)
+        if r.status and r.status.state.value != "SUCCEEDED":
+            msg = r.status.error.message if r.status.error else r.status.state.value
+            raise RuntimeError(f"{msg}\n-- statement:\n{sql[:400]}")
         return
     _duckdb().execute(sql)
 

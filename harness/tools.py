@@ -18,7 +18,17 @@ import pandas as pd
 from agent_framework import tool
 
 from fairshare import db
-from harness import facts
+from harness import facts, tracing
+
+
+def _traced(name):
+    """An MLflow span around a tool body when tracing is on; otherwise the function itself."""
+    def deco(fn):
+        if not tracing.setup():
+            return fn
+        import mlflow
+        return mlflow.trace(name=name, span_type="TOOL")(fn)
+    return deco
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "data" / "contracts"
@@ -45,8 +55,8 @@ def _genie_space() -> str | None:
 
 def _genie_ask(question: str) -> tuple[str, pd.DataFrame | None, str | None]:
     """Chat-mode Genie through the SDK, called as the user (PAT), never as a service principal."""
-    from databricks.sdk import WorkspaceClient
-    w = WorkspaceClient()  # DATABRICKS_HOST + DATABRICKS_TOKEN from the environment
+    from fairshare.dbx import workspace_client
+    w = workspace_client()
     space = _genie_space()
     delay = 2.0
     for attempt in range(4):
@@ -82,6 +92,7 @@ def _genie_ask(question: str) -> tuple[str, pd.DataFrame | None, str | None]:
       description="Ask the governed sales metrics agent (Genie over the sales_metrics metric view) a question about AA revenue, "
                   "share, fair share, share gap, year over year, passengers, by agency, market, region, month, quarter or year. "
                   "Returns the SQL it ran and the result table. Use this first for any number.")
+@_traced("ask_metrics")
 def ask_metrics(question: Annotated[str, "The business question, in plain English, with the agency, market and period spelled out."]) -> str:
     ctx = facts.current()
     if not _genie_space():
@@ -123,6 +134,7 @@ Data covers Jan 2025 to Sep 2026. Return percentages and deltas as columns; neve
       description="Run one read-only SQL SELECT against the aa_demo catalog (gold and ops schemas) and return up to 200 rows. "
                   "Use when ask_metrics is unavailable or for a join it cannot do. Compute every percentage, difference "
                   "and ratio inside the SQL so the answer only quotes returned columns.")
+@_traced("run_sql")
 def run_sql(sql: Annotated[str, "A single SELECT or WITH statement. No DDL or DML."]) -> str:
     ctx = facts.current()
     s = "\n".join(l for l in (sql or "").strip().splitlines() if not l.strip().startswith("--")).strip().rstrip(";").strip()
@@ -155,6 +167,7 @@ def _month(month: str) -> str:
                   "volume (the agency sold more or less travel overall), mix (it shifted which markets it sells), and share "
                   "(AA won or lost share within markets), plus a fair-share diagnostic (how much AA's own capacity change explains). "
                   "The three parts sum to the total change exactly. Also lists the markets that moved most.")
+@_traced("explain_change")
 def explain_change(agency: Annotated[str, "Agency name, or a distinctive part of it, e.g. 'Harbor'"],
                    month: Annotated[str, "The month to explain, e.g. '2026-08' (compared with 2025-08)"]) -> str:
     ctx = facts.current()
@@ -218,6 +231,7 @@ def _paragraphs(page_text: str):
 @tool(name="search_contracts",
       description="Find what an agency's agreement says about a topic (share maintenance, incentive tiers, goals, termination, "
                   "data sharing, volume commitment, reporting). Returns the clause text with file name and page. Quote it; do not paraphrase numbers.")
+@_traced("search_contracts")
 def search_contracts(agency: Annotated[str, "Agency name or part of it, e.g. 'Summit'"],
                      topic: Annotated[str, "What to look for, e.g. 'share falls below 45% for two quarters'"]) -> str:
     ctx = facts.current()

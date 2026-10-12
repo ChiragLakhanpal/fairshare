@@ -36,13 +36,50 @@ def local_bronze():
 def run_file(name):
     t0 = time.time()
     for stmt in db.statements(HERE / name):
+        t1 = time.time()
         db.execute(stmt)
+        if db.is_databricks():
+            print(f"  {stmt.splitlines()[0][:70]:70s} {time.time() - t1:4.0f}s")
     print(f"{name}: ok ({time.time() - t0:.1f}s)")
+
+
+def upload_landing():
+    """CSVs to /Volumes/aa_demo/bronze/landing and the agreements to /Volumes/aa_demo/ops/contracts, through the Files API."""
+    from fairshare.dbx import workspace_client
+    w = workspace_client()
+    for t in BRONZE_TABLES:
+        f = OUT / f"{t}.csv"
+        with open(f, "rb") as fh:
+            w.files.upload(f"/Volumes/aa_demo/bronze/landing/{f.name}", fh, overwrite=True)
+        print(f"  uploaded {f.name} ({f.stat().st_size // 1024} KB)")
+    for f in sorted((ROOT / "data" / "contracts").glob("*.md")):
+        with open(f, "rb") as fh:
+            w.files.upload(f"/Volumes/aa_demo/ops/contracts/{f.name}", fh, overwrite=True)
+        print(f"  uploaded {f.name}")
+
+
+def run_bronze_databricks():
+    """00_bronze.sql in two halves: the objects (catalog, schemas, volumes), the uploads, then the loads."""
+    stmts = db.statements(HERE / "00_bronze.sql")
+    setup = [x for x in stmts if x.upper().startswith(("CREATE CATALOG", "CREATE SCHEMA", "CREATE VOLUME"))]
+    loads = [x for x in stmts if x not in setup]
+    for x in setup:
+        t1 = time.time()
+        db.execute(x)
+        print(f"  {x[:70]:70s} {time.time() - t1:4.0f}s")
+    print("00_bronze.sql: catalog, schemas, volumes ok")
+    upload_landing()
+    t0 = time.time()
+    for x in loads:
+        t1 = time.time()
+        db.execute(x)
+        print(f"  {x.splitlines()[0][:70]:70s} {time.time() - t1:4.0f}s")
+    print(f"00_bronze.sql: bronze tables ok ({time.time() - t0:.1f}s)")
 
 
 def main():
     if db.is_databricks():
-        run_file("00_bronze.sql")
+        run_bronze_databricks()
     else:
         local_bronze()
         print("bronze: loaded from CSVs")

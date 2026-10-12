@@ -34,5 +34,5 @@ SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing
 
 -- ticket_number must stay a string (leading zeros), so the schema is spelled out for this one
 CREATE OR REPLACE TABLE aa_demo.bronze.fact_corporate_bookings AS
-SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing/fact_corporate_bookings.csv', format => 'csv', header => true,
+SELECT * FROM read_files('/Volumes/aa_demo/bronze/landing/fact_corporate_bookings.csv', format => 'csv', header => true,
   schema => 'booking_id BIGINT, ticket_number STRING, corp_id INT, booking_date DATE, travel_date DATE, origin STRING, dest STRING, channel STRING, fare_usd DOUBLE, ticket_count INT, cabin STRING, agency_id INT');
