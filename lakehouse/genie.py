@@ -42,21 +42,53 @@ SAMPLE_QUESTIONS = [
 
 
 def _lines(s: str):
-    return [l for l in s.strip().splitlines()]
+    """One element holding the whole text: the API concatenates list elements with no separator (seen Oct 11, 2026)."""
+    return [s.strip()]
 
 
 def _q(table):
     return {"identifier": table[0], "description": _lines(table[1])}
 
 
+EXAMPLES = [  # trusted SQL for the hard patterns, written against the space's own sources (the metric view and agency_pace)
+    ("What was Summit Travel Partners' AA share on DFW to ORD in Q3 2026 versus Q3 2025?",
+     """SELECT year, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct
+FROM aa_demo.gold.sales_metrics
+WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')
+GROUP BY ALL ORDER BY year"""),
+    ("In Q3 2026, how far above or below fair share was Summit Travel Partners on DFW to ORD, in points?",
+     """SELECT ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts
+FROM aa_demo.gold.sales_metrics
+WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter = 'Q3 2026'"""),
+    ("For August 2026, what was each agency's AA share against its fair share, and the gap in points?",
+     """SELECT agency, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts
+FROM aa_demo.gold.sales_metrics
+WHERE sales_month = DATE '2026-08-01'
+GROUP BY ALL ORDER BY share_gap_pts DESC"""),
+    ("Year over year AA revenue by agency for August 2026 versus August 2025, with the percent change.",
+     """SELECT agency, ROUND(MEASURE(aa_revenue)) AS aug_2026, ROUND(MEASURE(aa_revenue_prior_year)) AS aug_2025, ROUND(MEASURE(yoy_revenue_pct) * 100, 1) AS yoy_pct
+FROM aa_demo.gold.sales_metrics
+WHERE sales_month = DATE '2026-08-01'
+GROUP BY ALL ORDER BY yoy_pct DESC"""),
+    ("Which agencies are behind pace against their 2026 goal as of September 2026, and at what percent of pace?",
+     """SELECT a.agency_name, p.ytd_revenue, p.revenue_goal_usd, p.pace_pct
+FROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id
+WHERE p.sales_month = DATE '2026-09-01' AND p.pace_pct < 100
+ORDER BY p.pace_pct"""),
+    ("Which agencies have been below fair share for three or more consecutive months, ending September 2026?",
+     """WITH m AS (
+  SELECT agency, sales_month, EXTRACT(YEAR FROM sales_month) * 12 + EXTRACT(MONTH FROM sales_month) AS month_no,
+         MEASURE(aa_share) AS share, MEASURE(fair_share) AS fair
+  FROM aa_demo.gold.sales_metrics WHERE sales_month <= DATE '2026-09-01' GROUP BY ALL),
+below AS (SELECT agency, month_no FROM m WHERE share < fair),
+isl AS (SELECT agency, month_no, month_no - ROW_NUMBER() OVER (PARTITION BY agency ORDER BY month_no) AS grp FROM below),
+runs AS (SELECT agency, MAX(month_no) AS last_no, COUNT(*) AS months_below FROM isl GROUP BY agency, grp)
+SELECT agency, months_below FROM runs WHERE last_no = 2026 * 12 + 9 AND months_below >= 3 ORDER BY months_below DESC"""),
+]
+
+
 def example_sqls():
-    bench = yaml.safe_load((ROOT / "evals" / "benchmark.yaml").read_text())["questions"]
-    picks = {"q04", "q05", "q06", "q09", "q16"}  # the hard patterns: quarter YoY, fair share at a grain, pace, streaks
-    out = []
-    for q in bench:
-        if q["id"] in picks:
-            out.append({"id": uuid.uuid4().hex, "question": [q["question"]], "sql": _lines(q["sql"])})
-    return out
+    return [{"id": uuid.uuid4().hex, "question": [q], "sql": [sql]} for q, sql in EXAMPLES]
 
 
 def serialized(with_benchmarks: bool = False) -> str:
@@ -66,14 +98,14 @@ def serialized(with_benchmarks: bool = False) -> str:
         "data_sources": {
             "metric_views": [{"identifier": "aa_demo.gold.sales_metrics",
                               "description": ["Every KPI defined once: aa_revenue, market_revenue, aa_pax, aa_share, fair_share, share_gap_pts, share_gap_usd, aa_revenue_prior_year, yoy_revenue_pct. Dimensions: agency, agency_type, region, account_manager, market, origin, dest, market_region, sales_month, quarter, year."]}],
-            "tables": [
+            "tables": sorted([  # the API requires tables sorted by identifier
                 _q(("aa_demo.gold.dim_agency", "Twelve travel agencies (synthetic): agency_id, agency_name, agency_type (TMC, OTA, Leisure, Consolidator), region (Central, East, West), account_manager.")),
                 _q(("aa_demo.gold.dim_market", "Twelve origin-destination markets: market_id, origin, dest, region, aa_hub_origin.")),
                 _q(("aa_demo.gold.agency_pace", "Pace against the annual revenue goal by agency and month: ytd_revenue, ytd_goal, pace_pct (100 = on pace).")),
-            ],
+            ], key=lambda t: t["identifier"]),
         },
         "instructions": {
-            "text_instructions": [{"id": uuid.uuid4().hex, "content": [t]} for t in INSTRUCTIONS],
+            "text_instructions": [{"id": uuid.uuid4().hex, "content": ["\n".join(INSTRUCTIONS)]}],  # the API allows exactly one item
             "example_question_sqls": example_sqls(),
         },
     }
@@ -81,7 +113,21 @@ def serialized(with_benchmarks: bool = False) -> str:
         bench = yaml.safe_load((ROOT / "evals" / "benchmark.yaml").read_text())["questions"]
         space["benchmarks"] = {"questions": [{"id": uuid.uuid4().hex, "question": [q["question"]],
                                               "answer": [{"format": "SQL", "content": _lines(q["sql"])}]} for q in bench]}
-    return json.dumps(space)
+    return json.dumps(_sorted(space))
+
+
+def _sorted(node):
+    """The API requires every list sorted by id (or identifier). Applied to the whole tree."""
+    if isinstance(node, dict):
+        return {k: _sorted(v) for k, v in node.items()}
+    if isinstance(node, list):
+        items = [_sorted(x) for x in node]
+        if items and all(isinstance(x, dict) for x in items):
+            key = "id" if all("id" in x for x in items) else ("identifier" if all("identifier" in x for x in items) else None)
+            if key:
+                items.sort(key=lambda x: x[key])
+        return items
+    return node
 
 
 def write_env(space_id: str):
@@ -105,13 +151,21 @@ def create():
 def show():
     w = workspace_client()
     sp = w.genie.get_space(os.environ["GENIE_SPACE_ID"], include_serialized_space=True)
-    print(json.dumps(json.loads(sp.serialized_space), indent=2)[:6000])
+    raw = sp.serialized_space or getattr(sp, "serialized_space_export", None)
+    print(sp.as_dict() if raw is None else json.dumps(json.loads(raw), indent=2)[:8000])
+
+
+def update():
+    w = workspace_client()
+    sid = os.environ["GENIE_SPACE_ID"]
+    sp = w.genie.update_space(sid, serialized_space=serialized(), title=TITLE, description=DESCRIPTION)
+    print("updated", sp.space_id)
 
 
 def benchmarks():
     w = workspace_client()
     sid = os.environ["GENIE_SPACE_ID"]
-    sp = w.genie.update_space(sid, serialized_space=serialized(with_benchmarks=True))
+    sp = w.genie.update_space(sid, serialized_space=serialized(with_benchmarks=True), title=TITLE, description=DESCRIPTION)
     print("benchmarks added to", sp.space_id)
 
 
@@ -133,4 +187,4 @@ def run_eval():
 
 
 if __name__ == "__main__":
-    {"create": create, "show": show, "benchmarks": benchmarks, "eval": run_eval}[sys.argv[1]]()
+    {"create": create, "show": show, "update": update, "benchmarks": benchmarks, "eval": run_eval}[sys.argv[1]]()

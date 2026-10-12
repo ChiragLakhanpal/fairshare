@@ -55,13 +55,15 @@ def _genie_space() -> str | None:
 
 def _genie_ask(question: str) -> tuple[str, pd.DataFrame | None, str | None]:
     """Chat-mode Genie through the SDK, called as the user (PAT), never as a service principal."""
-    from fairshare.dbx import workspace_client
+    from fairshare.dbx import warm_warehouse, workspace_client
     w = workspace_client()
     space = _genie_space()
+    warm_warehouse()  # Free Edition stops the warehouse after 10 idle minutes; Genie then waits in PENDING_WAREHOUSE far longer than a direct start (8 s)
     delay = 2.0
+    from datetime import timedelta
     for attempt in range(4):
         try:
-            msg = w.genie.start_conversation_and_wait(space_id=space, content=question)
+            msg = w.genie.start_conversation_and_wait(space_id=space, content=question, timeout=timedelta(seconds=int(os.environ.get("GENIE_TIMEOUT_S", "150"))))
             break
         except Exception as e:  # 429 RATE_LIMIT_EXCEEDED or a transient error: back off and retry
             if attempt == 3 or "429" not in str(e) and "RATE_LIMIT" not in str(e):
@@ -78,7 +80,12 @@ def _genie_ask(question: str) -> tuple[str, pd.DataFrame | None, str | None]:
                                                               message_id=msg.message_id, attachment_id=att.attachment_id)
             sr = res.statement_response
             cols = [c.name for c in sr.manifest.schema.columns] if sr and sr.manifest and sr.manifest.schema else []
-            rows = sr.result.data_array if sr and sr.result and sr.result.data_array else []
+            rows = list(sr.result.data_array) if sr and sr.result and sr.result.data_array else []
+            # results beyond the first chunk are fetched by chunk index
+            if sr and sr.manifest and sr.manifest.total_chunk_count and sr.manifest.total_chunk_count > 1:
+                for i in range(1, sr.manifest.total_chunk_count):
+                    chunk = w.statement_execution.get_statement_result_chunk_n(sr.statement_id, i)
+                    rows.extend(chunk.data_array or [])
             df = pd.DataFrame(rows, columns=cols)
             for c in df.columns:  # Genie returns strings; make numbers numeric so they enter the fact pool
                 try:

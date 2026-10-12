@@ -1,5 +1,6 @@
 -- Databricks only. The semantic layer: every KPI defined once, queried at any grain with MEASURE().
 -- Syntax checked against the metric view YAML 1.1 reference on Oct 11, 2026 (window measures with offset, MEASURE() composability).
+-- Join aliases (ag, mkt, cap) must differ from dimension names: a dimension called `agency` makes `agency.agency_name` a field lookup on a STRING.
 -- If the workspace rejects a `format` key, delete that line; nothing else depends on it.
 
 CREATE OR REPLACE VIEW aa_demo.gold.sales_metrics
@@ -11,43 +12,43 @@ version: 1.1
 comment: Agency indirect sales. One row of the source is one agency, one market, one month. Share is revenue based.
 source: aa_demo.gold.fact_agency_sales_monthly
 joins:
-  - name: agency
+  - name: ag
     source: aa_demo.gold.dim_agency
-    on: source.agency_id = agency.agency_id
-  - name: market
+    on: source.agency_id = ag.agency_id
+  - name: mkt
     source: aa_demo.gold.dim_market
-    on: source.market_id = market.market_id
-  - name: capacity
+    on: source.market_id = mkt.market_id
+  - name: cap
     source: aa_demo.gold.fact_market_capacity
-    on: source.market_id = capacity.market_id AND source.sales_month = capacity.sales_month
+    on: source.market_id = cap.market_id AND source.sales_month = cap.sales_month
 dimensions:
   - name: agency
-    expr: agency.agency_name
+    expr: ag.agency_name
     display_name: Agency
     synonyms: [account, travel agency, TMC, agency name]
   - name: agency_type
-    expr: agency.agency_type
+    expr: ag.agency_type
     display_name: Agency type
     synonyms: [channel type, TMC or OTA]
   - name: region
-    expr: agency.region
+    expr: ag.region
     display_name: Agency region
     synonyms: [sales region, territory]
   - name: account_manager
-    expr: agency.account_manager
+    expr: ag.account_manager
     display_name: Account manager
     synonyms: [AM, sales rep, rep]
   - name: market
-    expr: CONCAT(market.origin, '-', market.dest)
+    expr: CONCAT(mkt.origin, '-', mkt.dest)
     display_name: Market
     synonyms: [route, city pair, O&D, origin destination]
   - name: origin
-    expr: market.origin
+    expr: mkt.origin
   - name: dest
-    expr: market.dest
+    expr: mkt.dest
     display_name: Destination
   - name: market_region
-    expr: market.region
+    expr: mkt.region
     display_name: Market region
   - name: sales_month
     expr: source.sales_month
@@ -60,7 +61,7 @@ dimensions:
     expr: YEAR(source.sales_month)
     display_name: Year
   - name: capacity_is_projected
-    expr: capacity.is_projected
+    expr: cap.is_projected
     display_name: Capacity projected
     comment: true where BTS has not published the month yet and the prior year's month stands in
 measures:
@@ -94,7 +95,7 @@ measures:
     format:
       type: percentage
   - name: fair_share
-    expr: SUM(source.market_revenue * capacity.aa_seat_share) / NULLIF(SUM(source.market_revenue), 0)
+    expr: SUM(source.market_revenue * cap.aa_seat_share) / NULLIF(SUM(source.market_revenue), 0)
     display_name: Fair share
     synonyms: [seat share, capacity share, expected share, QSI]
     comment: AA's share of scheduled seats on the market (BTS T-100), weighted by the agency's market revenue so it is comparable with aa_share at any grain
@@ -106,7 +107,7 @@ measures:
     synonyms: [share premium, points above fair share, share gap, over or under fair share]
     comment: positive means the agency sells more AA than AA's seat share would predict
   - name: share_gap_usd
-    expr: SUM(source.aa_revenue) - SUM(source.market_revenue * capacity.aa_seat_share)
+    expr: SUM(source.aa_revenue) - SUM(source.market_revenue * cap.aa_seat_share)
     display_name: Share gap (dollars)
     synonyms: [share gap in dollars, revenue above fair share, revenue opportunity]
     comment: AA revenue minus the revenue AA would have at fair share

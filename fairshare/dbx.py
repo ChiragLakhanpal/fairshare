@@ -25,3 +25,20 @@ def workspace_client():
 def header_factory():
     """For databricks-sql-connector: a callable returning the current auth headers (refreshes itself)."""
     return workspace_client().config.authenticate
+
+
+def warehouse_id() -> str:
+    return os.environ["DATABRICKS_HTTP_PATH"].rsplit("/", 1)[-1]
+
+
+def warm_warehouse(timeout_s: int = 90) -> str:
+    """Start the SQL warehouse if it is stopped and wait until it runs. Free Edition auto-stops after 10 minutes and
+    the setting cannot be changed there; an explicit start takes about 8 seconds."""
+    from datetime import timedelta
+    w = workspace_client()
+    wid = warehouse_id()
+    state = w.warehouses.get(wid).state
+    if state is not None and state.value == "RUNNING":
+        return "RUNNING"
+    w.warehouses.start_and_wait(wid, timeout=timedelta(seconds=timeout_s))
+    return w.warehouses.get(wid).state.value
