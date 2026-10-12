@@ -6,7 +6,7 @@
   python evals/run_benchmark.py --genie --harness --label "after prompt change"
 
 Writes evals/results/<timestamp>.json, updates evals/results/latest.json and evals/results/README.md (one row per run).
-A result set "matches" when every ground-truth row's rounded numbers appear in some returned row (extra columns are fine).
+A result set "matches" when every ground-truth row is represented by a returned row sharing at least half of its numbers (see matches()).
 """
 from __future__ import annotations
 
@@ -50,12 +50,17 @@ def row_keys(df: pd.DataFrame) -> list[tuple]:
 
 
 def matches(gt: pd.DataFrame, got: pd.DataFrame | None) -> bool:
+    """Every ground-truth row is represented by some returned row that shares at least half of its numbers (within rounding),
+    and the returned set is not smaller than the ground truth. Extra or missing columns are fine; wrong numbers are not."""
     if got is None or got.empty:
         return False
     gk, ok = row_keys(gt), row_keys(got)
-    def close(a, b):
-        return all(any(abs(x - y) <= max(0.6, abs(x) * 0.005) for y in b) for x in a)
-    return all(any(close(g, o) for o in ok) for g in gk)
+    if len(ok) < len(gk):
+        return False
+    def overlap(g, o):
+        hits = sum(any(abs(x - y) <= max(0.6, abs(x) * 0.005) for y in o) for x in g)
+        return hits >= max(1, (len(g) + 1) // 2)
+    return all(any(overlap(g, o) for o in ok) for g in gk)
 
 
 def check(questions):

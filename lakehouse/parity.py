@@ -29,7 +29,7 @@ def run(retired: bool = False) -> pd.DataFrame:
     out = []
     for d in defs.itertuples():
         twin_sql, version = d.twin_sql, d.twin_version
-        if retired and d.twin_sql_retired:
+        if retired and isinstance(d.twin_sql_retired, str):  # NULL comes back as NaN, which is truthy
             twin_sql, version = d.twin_sql_retired, "v1 (retired)"
         mv = db.query(MV.format(kpi=d.kpi)).rename(columns={"value": "mv_value"})
         tw = db.query(twin_sql).rename(columns={"value": "twin_value"})

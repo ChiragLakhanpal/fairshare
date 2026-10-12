@@ -22,7 +22,8 @@ WITH m AS (
   FROM m JOIN aa_demo.gold.agency_goals g ON g.agency_id = m.agency_id AND g.goal_year = m.goal_year
 )
 SELECT agency_id, goal_year, sales_month, ROUND(aa_revenue, 2) AS aa_revenue, ROUND(ytd_revenue, 2) AS ytd_revenue,
-       revenue_goal_usd, ROUND(ytd_goal, 2) AS ytd_goal, ROUND(ytd_revenue / NULLIF(ytd_goal, 0) * 100, 1) AS pace_pct
+       revenue_goal_usd, ROUND(ytd_goal, 2) AS ytd_goal, ROUND(ytd_revenue / NULLIF(ytd_goal, 0) * 100, 1) AS pace_pct,
+       ROUND(ytd_revenue / NULLIF(revenue_goal_usd, 0) * 100, 1) AS attainment_pct
 FROM y;
 
 -- Weekly corporate bookings with week-over-week change. The column is called wow_pct on purpose:

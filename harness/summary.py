@@ -208,6 +208,18 @@ def draft(f: dict, region: str, month: str, writer=None) -> str:
 
 def run(region: str, month: str, writer=None) -> dict:
     """Facts, draft, verification. Returns everything the Monday page and ops.summaries need."""
+    from harness import tracing
+    if tracing.setup():
+        import mlflow
+        with mlflow.start_span(name="fairshare.monday_summary") as sp:
+            sp.set_inputs({"region": region, "month": month, "writer": "template" if writer is None else "agent"})
+            res = _run(region, month, writer)
+            sp.set_outputs({"sentences": len(res["badges"]), "flagged": len(res["flagged"])})
+            return res
+    return _run(region, month, writer)
+
+
+def _run(region: str, month: str, writer=None) -> dict:
     facts.reset()
     f = build_facts(region, month)
     d = draft(f, region, month, writer)

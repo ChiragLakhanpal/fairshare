@@ -84,18 +84,12 @@ questions:
       WHERE c.sales_month = DATE '2026-08-01' ORDER BY yoy_pct DESC
 
   - id: q09
-    question: Through September 2026, what is each agency's goal attainment and pace against its 2026 revenue goal (goal times nine twelfths)?
+    question: Through September 2026, what is each agency's attainment of its full-year 2026 revenue goal, and its pace (year to date against nine twelfths of the goal)?
     tags: [goal, pace]
     sql: |
-      WITH y AS (
-        SELECT a.agency_name, g.revenue_goal_usd, SUM(s.aa_revenue) AS ytd
-        FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
-        JOIN aa_demo.gold.agency_goals g ON g.agency_id = s.agency_id AND g.goal_year = 2026
-        WHERE s.sales_month BETWEEN DATE '2026-01-01' AND DATE '2026-09-01' GROUP BY a.agency_name, g.revenue_goal_usd)
-      SELECT agency_name, ROUND(ytd, 0) AS ytd_revenue, revenue_goal_usd,
-             ROUND(ytd / revenue_goal_usd * 100, 1) AS attainment_pct,
-             ROUND(ytd / (revenue_goal_usd * 9.0 / 12) * 100, 1) AS pace_pct
-      FROM y ORDER BY pace_pct DESC
+      SELECT a.agency_name, p.ytd_revenue, p.revenue_goal_usd, p.attainment_pct, p.pace_pct
+      FROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id
+      WHERE p.sales_month = DATE '2026-09-01' ORDER BY p.pace_pct DESC
 
   - id: q10
     question: What share of total 2026 AA revenue does each region contribute?
@@ -191,13 +185,13 @@ questions:
       WHERE p.sales_month = DATE '2026-09-01' AND p.pace_pct < 100 ORDER BY p.pace_pct
 
   - id: q19
-    question: Which account manager's book of agencies has the largest share gap in dollars for 2026 year to date, positive or negative?
+    question: Which account manager's book of agencies has the largest share gap in dollars for 2026 year to date, positive or negative, and how large is it?
     tags: [gap_usd, group]
     sql: |
       SELECT a.account_manager, ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share), 0) AS share_gap_usd
       FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
       JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
-      WHERE s.sales_month >= DATE '2026-01-01' GROUP BY a.account_manager ORDER BY share_gap_usd DESC
+      WHERE s.sales_month >= DATE '2026-01-01' GROUP BY a.account_manager ORDER BY ABS(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) DESC LIMIT 1
 
   - id: q20
     question: How many agencies were above fair share in September 2026, and how many below?

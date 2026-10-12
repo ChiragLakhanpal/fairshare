@@ -75,6 +75,14 @@ GROUP BY ALL ORDER BY yoy_pct DESC"""),
 FROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id
 WHERE p.sales_month = DATE '2026-09-01' AND p.pace_pct < 100
 ORDER BY p.pace_pct"""),
+    ("What is the three-month rolling average of AA revenue for Sunbelt Vacations in 2026? March and April 2026 have no data.",
+     """WITH m AS (
+  SELECT EXTRACT(MONTH FROM sales_month) AS month_no, MEASURE(aa_revenue) AS aa_revenue
+  FROM aa_demo.gold.sales_metrics WHERE agency = 'Sunbelt Vacations' AND year = 2026 GROUP BY ALL)
+SELECT month_no, ROUND(aa_revenue) AS aa_revenue,
+       ROUND(AVG(aa_revenue) OVER (ORDER BY month_no RANGE BETWEEN 2 PRECEDING AND CURRENT ROW)) AS rolling_3m_avg
+FROM m ORDER BY month_no
+-- RANGE on the month number only averages months really inside the window; ROWS BETWEEN 2 PRECEDING would silently span a gap"""),
     ("Which agencies have been below fair share for three or more consecutive months, ending September 2026?",
      """WITH m AS (
   SELECT agency, sales_month, EXTRACT(YEAR FROM sales_month) * 12 + EXTRACT(MONTH FROM sales_month) AS month_no,
@@ -101,7 +109,7 @@ def serialized(with_benchmarks: bool = False) -> str:
             "tables": sorted([  # the API requires tables sorted by identifier
                 _q(("aa_demo.gold.dim_agency", "Twelve travel agencies (synthetic): agency_id, agency_name, agency_type (TMC, OTA, Leisure, Consolidator), region (Central, East, West), account_manager.")),
                 _q(("aa_demo.gold.dim_market", "Twelve origin-destination markets: market_id, origin, dest, region, aa_hub_origin.")),
-                _q(("aa_demo.gold.agency_pace", "Pace against the annual revenue goal by agency and month: ytd_revenue, ytd_goal, pace_pct (100 = on pace).")),
+                _q(("aa_demo.gold.agency_pace", "Pace against the annual revenue goal by agency and month: ytd_revenue, ytd_goal, pace_pct (100 = on pace to the full-year goal), attainment_pct (ytd_revenue as a percent of the full-year goal).")),
             ], key=lambda t: t["identifier"]),
         },
         "instructions": {
