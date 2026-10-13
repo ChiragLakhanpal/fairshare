@@ -24,7 +24,8 @@ The agent: Genie for numbers, a deterministic decomposition for "why", the agree
 c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown("**Links**")
-    for label, var in [("Databricks workspace", "DATABRICKS_HOST"), ("Genie Agent", "GENIE_SPACE_URL"), ("MLflow traces", "MLFLOW_TRACES_URL"),
+    for label, var in [("Databricks workspace", "DATABRICKS_HOST"), ("AI/BI dashboard (the Power BI stand-in)", "DASHBOARD_URL"), ("Genie Agent", "GENIE_SPACE_URL"),
+                       ("This app inside Databricks", "DATABRICKS_APP_URL"), ("MLflow traces", "MLFLOW_TRACES_URL"),
                        ("Foundry project", "FOUNDRY_PROJECT_URL"), ("Repository", "REPO_URL")]:
         v = os.environ.get(var)
         st.markdown(f"- [{label}]({v})" if v else f"- {label}: not set (`{var}`)")
@@ -35,7 +36,11 @@ with c2:
         r = json.loads(latest.read_text())
         st.metric("Genie pass rate", f"{r.get('genie_pass_rate', 0) * 100:.0f}%", help=f"{r.get('n', 0)} questions with ground-truth SQL")
         st.metric("Harness: numbers supported", f"{r.get('harness_supported_rate', 0) * 100:.0f}%", help="LLM judge: every number in the answer appears in a tool result")
-        st.caption(f"run {r.get('run_at', '')}")
+        st.caption(f"run {r.get('run_at', '')}" + (f" on {r['model']}" if r.get("model") else ""))
+        runs = ROOT / "evals" / "results" / "README.md"
+        if runs.exists():
+            with st.expander("Every run, every model"):
+                st.markdown(runs.read_text().split("\n", 2)[-1])
     else:
         st.caption("No benchmark results yet: `python evals/run_benchmark.py`.")
 with c3:

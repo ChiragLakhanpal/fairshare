@@ -1,8 +1,8 @@
 """One query function, two backends.
 
 FAIRSHARE_BACKEND=duckdb      local file data/out/fairshare.duckdb, attached as catalog aa_demo (default; works offline)
-FAIRSHARE_BACKEND=databricks  a SQL warehouse via databricks-sql-connector, needs DATABRICKS_SERVER_HOSTNAME,
-                              DATABRICKS_HTTP_PATH, DATABRICKS_TOKEN in the environment or in .env
+FAIRSHARE_BACKEND=databricks  a SQL warehouse via databricks-sql-connector, needs DATABRICKS_HOST and DATABRICKS_HTTP_PATH
+                              (or DATABRICKS_WAREHOUSE_ID) in the environment or in .env; auth as in fairshare/dbx.py
 
 SQL is written once with three-part names (aa_demo.gold.table) and runs on both. MEASURE() queries are
 Databricks only; callers check `is_databricks()` before using them.
@@ -45,10 +45,10 @@ def _databricks():
     global _conn
     if _conn is None:
         from databricks import sql
-        from fairshare.dbx import header_factory
+        from fairshare.dbx import header_factory, http_path, server_hostname, user_token
         token = os.environ.get("DATABRICKS_TOKEN", "").strip()
-        kw = {"access_token": token} if token and not token.startswith("FILL") else {"credentials_provider": header_factory}
-        _conn = sql.connect(server_hostname=os.environ["DATABRICKS_SERVER_HOSTNAME"], http_path=os.environ["DATABRICKS_HTTP_PATH"], **kw)
+        kw = {"access_token": token} if token and not token.startswith("FILL") and not user_token() else {"credentials_provider": header_factory}
+        _conn = sql.connect(server_hostname=server_hostname(), http_path=http_path(), **kw)
     return _conn
 
 
@@ -67,10 +67,9 @@ def execute(sql: str) -> None:
     and a bounded wait) rather than the SQL connector, which blocked without end on DDL on Oct 11, 2026."""
     if is_databricks():
         import time
-        from fairshare.dbx import workspace_client
+        from fairshare.dbx import warehouse_id, workspace_client
         w = workspace_client()
-        wh = os.environ["DATABRICKS_HTTP_PATH"].rsplit("/", 1)[-1]
-        r = w.statement_execution.execute_statement(warehouse_id=wh, statement=sql, wait_timeout="50s")
+        r = w.statement_execution.execute_statement(warehouse_id=warehouse_id(), statement=sql, wait_timeout="50s")
         while r.status and r.status.state.value in ("PENDING", "RUNNING"):
             time.sleep(2)
             r = w.statement_execution.get_statement(r.statement_id)

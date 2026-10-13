@@ -2,11 +2,13 @@
 
 Model backends (FAIRSHARE_MODEL=...):
   azure       a Foundry / Azure OpenAI deployment: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT, AZURE_OPENAI_API_VERSION
-  databricks  a Databricks model serving endpoint through the OpenAI-compatible API: DATABRICKS_HOST, DATABRICKS_TOKEN, DATABRICKS_MODEL
+  databricks  a Databricks model serving endpoint through the OpenAI-compatible API: DATABRICKS_HOST, DATABRICKS_MODEL (auth as fairshare/dbx.py)
   openai      any OpenAI-compatible endpoint: OPENAI_API_KEY, OPENAI_BASE_URL (optional), OPENAI_MODEL
   none        no model; the app shows cached answers and the template summary
 
-The same code runs on the laptop (python -m harness.agent "question") and inside Foundry Hosted Agents (harness/foundry/host.py).
+The same code runs on the laptop (python -m harness.agent "question"), inside Foundry Hosted Agents (harness/foundry/host.py)
+and inside a Databricks App (app.yaml, lakehouse/app_deploy.py), where the model is a Databricks serving endpoint because Free Edition
+apps cannot reach Foundry.
 """
 from __future__ import annotations
 
@@ -80,9 +82,13 @@ def make_client():
         return OpenAIChatClient(model=os.environ["AZURE_OPENAI_DEPLOYMENT"], azure_endpoint=re.sub(r"/openai/?$", "", endpoint),
                                 api_key=os.environ["AZURE_OPENAI_API_KEY"], api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2025-04-01-preview"))
     if b == "databricks":
-        host = os.environ["DATABRICKS_HOST"].rstrip("/")
-        return OpenAIChatClient(model=os.environ.get("DATABRICKS_MODEL", "databricks-gpt-5-mini"), base_url=f"{host}/serving-endpoints",
-                                api_key=os.environ["DATABRICKS_TOKEN"])
+        from agent_framework.openai import OpenAIChatCompletionClient
+        from fairshare.dbx import bearer_token, host
+        # pay-per-token Foundation Model API through chat completions (OpenAIChatClient speaks the Responses API, which Databricks
+        # answers "passthrough is not supported" for gpt-oss, Oct 13, 2026). Llama 4 Maverick because the reasoning models (gpt-oss,
+        # qwen3.5) return content as reasoning+text parts the framework drops. The token is the user's, inside the App the viewer's.
+        return OpenAIChatCompletionClient(model=os.environ.get("DATABRICKS_MODEL", "databricks-llama-4-maverick"), base_url=f"{host()}/serving-endpoints",
+                                          api_key=bearer_token())
     if b == "openai":
         return OpenAIChatClient(model=os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"), api_key=os.environ["OPENAI_API_KEY"],
                                 base_url=os.environ.get("OPENAI_BASE_URL"))

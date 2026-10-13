@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from datetime import datetime
@@ -104,7 +105,7 @@ def harness_run(questions):
     if ag is None:
         raise SystemExit("no model configured (FAIRSHARE_MODEL)")
     from agent_framework import Agent
-    judge = Agent(harness_agent.make_client(), instructions=JUDGE, name="judge")
+    judge = Agent(judge_client(), instructions=JUDGE, name="judge")
     out = []
     for q in questions:
         gt = db.query(q["sql"])
@@ -113,13 +114,30 @@ def harness_run(questions):
             a = harness_agent.ask(q["question"], ag)
             from harness import aio
             verdict = aio.run(judge.run(f"QUESTION: {q['question']}\n\nGROUND TRUTH:\n{gt.to_string(index=False)}\n\nANSWER:\n{a.text}")).text.strip().upper()
-            rec = {"id": q["id"], "supported": a.verification.ok, "flagged": a.flagged, "judge": verdict[:8], "tools": [c.tool for c in a.calls],
+            rec = {"id": q["id"], "supported": a.verification.ok, "flagged": a.flagged, "judge": verdict.split()[0][:8] if verdict else "", "tools": [c.tool for c in a.calls],
                    "seconds": round(time.time() - t0, 1), "answer": a.text, "hard": q.get("hard", False)}
         except Exception as e:
             rec = {"id": q["id"], "supported": False, "flagged": [], "judge": "ERROR", "tools": [], "seconds": round(time.time() - t0, 1), "answer": str(e), "hard": q.get("hard", False)}
         out.append(rec)
         print(f"{q['id']} supported={rec['supported']} judge={rec['judge']} tools={rec['tools']} {rec['seconds']}s")
     return out
+
+
+def judge_client():
+    """The judge stays on one model across runs (FAIRSHARE_JUDGE_MODEL, default azure/gpt-5-mini) so agent models are comparable."""
+    backend = os.environ.get("FAIRSHARE_JUDGE_MODEL", "azure")
+    saved = os.environ.get("FAIRSHARE_MODEL")
+    os.environ["FAIRSHARE_MODEL"] = backend
+    try:
+        return harness_agent.make_client()
+    finally:
+        os.environ["FAIRSHARE_MODEL"] = saved or "none"
+
+
+def model_name() -> str:
+    b = os.environ.get("FAIRSHARE_MODEL", "none").lower()
+    return {"azure": "azure/" + os.environ.get("AZURE_OPENAI_DEPLOYMENT", ""), "databricks": os.environ.get("DATABRICKS_MODEL", "databricks-llama-4-maverick"),
+            "openai": os.environ.get("OPENAI_MODEL", "")}.get(b, b)
 
 
 def main():
@@ -135,7 +153,7 @@ def main():
         print(f"ground truth: {len(questions) - bad}/{len(questions)} run")
         sys.exit(1 if bad else 0)
     RESULTS.mkdir(exist_ok=True)
-    result = {"run_at": datetime.now().isoformat(timespec="seconds"), "label": args.label, "backend": db.backend(), "n": len(questions)}
+    result = {"run_at": datetime.now().isoformat(timespec="seconds"), "label": args.label, "backend": db.backend(), "model": model_name(), "n": len(questions)}
     if args.genie:
         g = genie_run(questions)
         result["genie"] = g
@@ -152,7 +170,7 @@ def main():
     if not readme.exists():
         readme.write_text("# Benchmark runs\n\n| run | label | backend | Genie pass | harness supported | harness correct |\n|---|---|---|---|---|---|\n")
     with readme.open("a") as f:
-        f.write(f"| {result['run_at']} | {args.label} | {db.backend()} | {result.get('genie_pass_rate', '')} | {result.get('harness_supported_rate', '')} | {result.get('harness_correct_rate', '')} |\n")
+        f.write(f"| {result['run_at']} | {args.label} | {db.backend()} | {result.get('genie_pass_rate', '')} | {result.get('harness_supported_rate', '')} | {result.get('harness_correct_rate', '')} | {result['model']} |\n")
     print(json.dumps({k: v for k, v in result.items() if not isinstance(v, list)}, indent=2))
 
 

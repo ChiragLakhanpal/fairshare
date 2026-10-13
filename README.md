@@ -5,7 +5,9 @@ contract say if they drop under 45%?" Today that question is a Power BI hunt or 
 days. This is a small version of the agent that should answer it in ten seconds, with the SQL attached, built on public
 airline data in a couple of weekends.
 
-It is one system with five screens, told as an account manager's Monday:
+It is one system with five screens, told as an account manager's Monday. It opens on the sales director's dashboard (an
+AI/BI dashboard on the same metric view, standing in for Power BI: pace, share against fair share, what moved), which can say
+*what* and *where* and stops there. The five screens are what happens next:
 
 1. **Monday**: the month's summary for a region. Every number carries a green badge that links to its query; a sentence the
    model wrote that no query supports is quarantined in a "removed before sending" box; a person presses send.
@@ -38,8 +40,10 @@ BTS T-100 + synthetic agency layer + 4 agreements
   -> harness (Microsoft Agent Framework): ask_metrics | run_sql | explain_change | search_contracts
      three rules (numbers only from tools; cite the SQL; "Could not verify" for the rest), a deterministic verifier
      on every answer, OpenTelemetry traces to MLflow, 20 benchmark questions in a pre-commit hook
-  -> Streamlit app on the laptop (Databricks App optional); at an airline: Teams via Copilot Studio, Power BI via the
-     mirrored catalog, the agency portal, the harness hosted in Microsoft Foundry
+  -> AI/BI dashboard on the metric view (lakehouse/dashboard.py, the leadership view; Ask Genie goes to the same Genie Agent)
+  -> Streamlit app: on the laptop with the Foundry model, and as a Databricks App with the viewer's own identity and a
+     Databricks-hosted model (app.yaml, lakehouse/app_deploy.py); at an airline: Teams via Copilot Studio, Power BI via
+     the mirrored catalog, the agency portal, the harness hosted in Microsoft Foundry
 ```
 
 `docs/architecture.svg` is the picture; `docs/walkthrough.md` is the ten-minute version.
@@ -62,6 +66,8 @@ FAIRSHARE_BACKEND=databricks .venv/bin/python lakehouse/parity.py     # metric v
 .venv/bin/python evals/run_benchmark.py --genie --harness             # Genie alone, then the full harness with the verifier and a judge
 .venv/bin/python -m harness.agent "Which agencies are behind pace?"   # one question from the command line
 .venv/bin/python -m harness.cache                                     # record the scripted answers for the offline fallback
+.venv/bin/python lakehouse/dashboard.py push                          # the dashboard from lakehouse/dashboard.lvdash.json (build regenerates it, pull captures UI edits)
+.venv/bin/python lakehouse/app_deploy.py create && .venv/bin/python lakehouse/app_deploy.py deploy   # the app inside the workspace; start before a demo
 ```
 
 ## Why these choices

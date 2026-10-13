@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from fairshare import db  # noqa: E402
+from fairshare import db, dbx  # noqa: E402
 from harness import agent as harness_agent  # noqa: E402
 
 CACHE = ROOT / "app" / "cache"
@@ -28,14 +28,25 @@ def setup(title: str):
         .sent{line-height:1.7}.flag{border-left:3px solid #c0392b;background:#fff5f5;padding:8px 12px;margin:6px 0}
         .verified{border-left:3px solid #1e6b36;background:#f3faf5;padding:8px 12px;margin:6px 0}
         </style>""", unsafe_allow_html=True)
+    headers = getattr(st.context, "headers", {}) or {}
+    dbx.set_user_token(headers.get("x-forwarded-access-token"))  # inside a Databricks App: act as the viewer (user authorization)
     with st.sidebar:
-        st.markdown(f"**Data:** `{db.backend()}`  \n**Model:** `{harness_agent.model_backend()}`")
+        model = harness_agent.model_backend()
+        if model == "databricks":
+            model += "/" + os.environ.get("DATABRICKS_MODEL", "databricks-llama-4-maverick")
+        st.markdown(f"**Data:** `{db.backend()}`  \n**Model:** `{model}`")
+        if dbx.user_token():
+            st.caption(f"Running inside Databricks as {headers.get('x-forwarded-email', 'you')}: SQL, Genie and the model run with your permissions.")
         if db.backend() == "duckdb":
             st.caption("Offline mode: local DuckDB copy of the gold tables. Switch with FAIRSHARE_BACKEND=databricks.")
 
 
-@st.cache_resource(show_spinner=False)
 def get_agent():
+    return _agent(dbx.user_token())  # the viewer's token is baked into the model client, so the cache is per token
+
+
+@st.cache_resource(show_spinner=False)
+def _agent(_token):
     try:
         return harness_agent.make_agent()
     except Exception as e:  # missing env var and the like: the pages fall back to cached answers

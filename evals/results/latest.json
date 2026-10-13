@@ -1,7 +1,8 @@
 {
-  "run_at": "2026-10-12T08:25:14",
-  "label": "harness run 2: judge on the shared loop, fact pool by magnitude, question numbers as facts",
+  "run_at": "2026-10-13T15:42:46",
+  "label": "harness run 3: Databricks Llama 4 Maverick, the model inside the Databricks App (judge is Maverick too)",
   "backend": "databricks",
+  "model": "databricks-llama-4-maverick",
   "n": 20,
   "harness": [
     {
@@ -12,8 +13,8 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 32.7,
-      "answer": "TMC: $30,401,986\nOTA: $8,695,508\nConsolidator: $4,335,376\nLeisure: $2,941,838\n\nSource: ask_metrics (sales_metrics view, aa_demo.gold).\nCould not verify: none, totals by agency_type for 2026 YTD were returned by the ask_metrics query.",
+      "seconds": 18.1,
+      "answer": "TMC: $30.4M, OTA: $8.7M, Consolidator: $4.3M, Leisure: $2.9M. ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
@@ -24,8 +25,8 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 57.8,
-      "answer": "1. Atlantic Premier Travel: $6,689,409, East, Marcus Lee  \n2. Summit Travel Partners: $6,259,791, Central, Dana Whitfield  \n3. Lone Star Travel Group: $5,847,405, Central, Dana Whitfield  \n4. Golden Coast Travel: $4,654,083, West, Priya Raman  \n5. BlueSky Corporate Travel: $4,434,693, East, Marcus Lee\n\nSource: ask_metrics, tables aa_demo.gold.sales_metrics and aa_demo.gold.dim_agency.  \nCould not verify: none; all requested fields were returned by the query.",
+      "seconds": 22.4,
+      "answer": "The top 5 agencies by 2026 AA revenue are: \n- Atlantic Premier Travel (East, Marcus Lee): $6.69M\n- Summit Travel Partners (Central, Dana Whitfield): $6.26M\n- Lone Star Travel Group (Central, Dana Whitfield): $5.85M\n- Golden Coast Travel (West, Priya Raman): $4.65M\n- BlueSky Corporate Travel (East, Marcus Lee): $4.43M\nSource: ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
@@ -36,8 +37,8 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 32.3,
-      "answer": "2026-01: $381,498\n2026-02: $344,442\n2026-03: $410,008\n2026-04: $290,165\n2026-05: $261,501\n2026-06: $260,516\n2026-07: $425,711\n2026-08: $386,489\n2026-09: $330,114\n\nSource: ask_metrics (aa_demo.gold.sales_metrics).\nCould not verify: AA revenue for Harbor Business Travel for 2026-10 through 2026-12; monthly sales_month rows for those months would be needed.",
+      "seconds": 22.2,
+      "answer": "$381,498, $344,442, $410,008, $290,165, $261,501, $260,516, $425,711, $386,489, $330,114. ask_metrics, gold.sales_metrics. Could not verify: none.",
       "hard": false
     },
     {
@@ -48,8 +49,8 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 29.9,
-      "answer": "Q3 2025: 46.3%, Q3 2026: 53.5%, change: +7.2 percentage points. Source: ask_metrics (aa_demo.gold.sales_metrics). Could not verify: none, both quarter shares were returned.",
+      "seconds": 21.2,
+      "answer": "46.3% in Q3 2025, 53.5% in Q3 2026, ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
@@ -60,8 +61,8 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 25.2,
-      "answer": "15.9 pts above fair share. (AA share 53.5%, fair share 37.6%). Source: ask_metrics on aa_demo.gold.sales_metrics (Q3 2026, Summit Travel Partners, DFW-ORD).  \nCould not verify: none, the metric view returned share, fair share, and share gap for Q3 2026.",
+      "seconds": 15.7,
+      "answer": "15.9 points above fair share, ask_metrics, sales_metrics.",
       "hard": false
     },
     {
@@ -72,8 +73,8 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 30.2,
-      "answer": "Lone Star Travel Group: AA share 54.5%, fair share 38.8%, share gap 15.7 pts.\nSummit Travel Partners: AA share 52.7%, fair share 38.5%, share gap 14.3 pts.\nAtlantic Premier Travel: AA share 52%, fair share 40.1%, share gap 11.8 pts.\nNorthstar Leisure: AA share 48.3%, fair share 38.2%, share gap 10.1 pts.\nBlueSky Corporate Travel: AA share 40.9%, fair share 39.7%, share gap 1.2 pts.\nSunbelt Vacations: AA share 39%, fair share 39%, share gap 0 pts.\nCapitol Corporate Travel: AA share 39.9%, fair share 40.2%, share gap -0.3 pts.\nPacific Gateway Travel: AA share 36.4%, fair share 37.7%, share gap -1.3 pts.\nHarbor Business Travel: AA share 35.4%, fair share 39.9%, share gap -4.4 pts.\nGolden Coast Travel: AA share 30.5%, fair share 37.7%, share gap -7.2 pts.\nMidway Travel Services: AA share 30.1%, fair share 38.5%, share gap -8.3 pts.\nFareHub Online: AA share 19.4%, fair share 37.9%, share gap -18.5 pts.\n\nSource: functions.ask_metrics, aa_demo.gold.sales_metrics (sales_metrics) for sales_month = 2026-08-01.\n\nCould not verify: underlying aa_revenue, market_revenue, aa_seat_share and pax by agency/market for August 2026 (would need fact_agency_sales_monthly and fact_market_capacity rows for 2026-08-01) if you want the component values behind these shares.",
+      "seconds": 26.1,
+      "answer": "Lone Star Travel Group: 54.5%, 38.8%, +15.7 points. \nSummit Travel Partners: 52.7%, 38.5%, +14.3 points. \nAtlantic Premier Travel: 52.0%, 40.1%, +11.8 points. \nNorthstar Leisure: 48.3%, 38.2%, +10.1 points. \nBlueSky Corporate Travel: 40.9%, 39.7%, +1.2 points. \nSunbelt Vacations: 39%, 39%, 0 points. \nCapitol Corporate Travel: 39.9%, 40.2%, -0.3 points. \nPacific Gateway Travel: 36.4%, 37.7%, -1.3 points. \nHarbor Business Travel: 35.4%, 39.9%, -4.4 points. \nGolden Coast Travel: 30.5%, 37.7%, -7.2 points. \nMidway Travel Services: 30.1%, 38.5%, -8.3 points. \nFareHub Online: 19.4%, 37.9%, -18.5 points. \nFrom ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
@@ -84,57 +85,93 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 33.5,
-      "answer": "FareHub Online: -$3,402,995\nGolden Coast Travel: -$1,149,880\nHarbor Business Travel: -$724,610\nMidway Travel Services: -$393,683\nPacific Gateway Travel: -$86,166\nCapitol Corporate Travel: -$33,186\nSunbelt Vacations: $7,467\nBlueSky Corporate Travel: $21,323\nNorthstar Leisure: $355,174\nAtlantic Premier Travel: $1,529,028\nSummit Travel Partners: $1,557,023\nLone Star Travel Group: $1,603,235\n\nSource: ask_metrics, sales_metrics (aa_demo.gold.sales_metrics), query for 2026 year-to-date. Negative = below fair share.",
+      "seconds": 22.8,
+      "answer": "Lone Star Travel Group: $1.6M, Summit Travel Partners: $1.6M, Atlantic Premier Travel: $1.5M, Northstar Leisure: $355K, BlueSky Corporate Travel: $21K, Sunbelt Vacations: $7K, Capitol Corporate Travel: -$33K, Pacific Gateway Travel: -$86K, Midway Travel Services: -$394K, Harbor Business Travel: -$725K, Golden Coast Travel: -$1.1M, FareHub Online: -$3.4M. From ask_metrics, gold.sales_metrics. Could not verify: contract terms related to share gap.",
       "hard": false
     },
     {
       "id": "q08",
       "supported": true,
       "flagged": [],
-      "judge": "CORRECT",
+      "judge": "PARTIAL\n",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 37.3,
-      "answer": "Northstar Leisure: $217,217 vs $183,967, 18.1%.\nSummit Travel Partners: $708,049 vs $614,581, 15.2%.\nLone Star Travel Group: $646,195 vs $574,919, 12.4%.\nGolden Coast Travel: $496,359 vs $446,665, 11.1%.\nPacific Gateway Travel: $282,129 vs $264,057, 6.8%.\nBlueSky Corporate Travel: $482,717 vs $459,163, 5.1%.\nAtlantic Premier Travel: $736,120 vs $710,333, 3.6%.\nCapitol Corporate Travel: $468,539 vs $454,831, 3%.\nSunbelt Vacations: $148,905 vs $147,413, 1%.\nMidway Travel Services: $173,564 vs $186,407, -6.9%.\nHarbor Business Travel: $386,489 vs $457,202, -15.5%.\nFareHub Online: $405,932 vs $541,381, -25%.\n\nSource: ask_metrics (Genie over the sales_metrics metric view, aa_demo.gold.sales_metrics).\n\nCould not verify: agency_id or underlying market-level rows; to validate or drill down, need gold.fact_agency_sales_monthly rows for sales_month = 2026-08-01 and 2025-08-01.",
+      "seconds": 25.8,
+      "answer": "Northstar Leisure: $217,217 vs $183,967, +18.1%. Summit Travel Partners: $708,049 vs $614,581, +15.2%. Lone Star Travel Group: $646,195 vs $574,919, +12.4%. Harbor Business Travel: $386,489 vs $457,202, -15.5%. FareHub Online: $405,932 vs $541,381, -25.0%. From ask_metrics, gold.sales_metrics.",
       "hard": true
     },
     {
       "id": "q09",
-      "supported": true,
-      "flagged": [],
-      "judge": "CORRECT",
-      "tools": [
-        "ask_metrics"
-      ],
-      "seconds": 51.3,
-      "answer": "Atlantic Premier Travel: YTD revenue $6,689,409, 2026 goal $5,596,800, attainment 119.5%, pace 159.4%.\nBlueSky Corporate Travel: YTD revenue $4,434,693, 2026 goal $3,870,000, attainment 114.6%, pace 152.8%.\nCapitol Corporate Travel: YTD revenue $4,080,244, 2026 goal $3,696,000, attainment 110.4%, pace 147.2%.\nFareHub Online: YTD revenue $4,041,424, 2026 goal $5,544,000, attainment 72.9%, pace 97.2%.\nGolden Coast Travel: YTD revenue $4,654,083, 2026 goal $3,960,000, attainment 117.5%, pace 156.7%.\nHarbor Business Travel: YTD revenue $3,090,443, 2026 goal $4,290,000, attainment 72%, pace 96.1%.\nLone Star Travel Group: YTD revenue $5,847,405, 2026 goal $5,018,400, attainment 116.5%, pace 155.4%.\nMidway Travel Services: YTD revenue $1,702,178, 2026 goal $1,918,800, attainment 88.7%, pace 118.3%.\nNorthstar Leisure: YTD revenue $1,900,118, 2026 goal $1,692,000, attainment 112.3%, pace 149.7%.\nPacific Gateway Travel: YTD revenue $2,633,198, 2026 goal $2,371,200, attainment 111%, pace 148.1%.\nSummit Travel Partners: YTD revenue $6,259,791, 2026 goal $5,184,000, attainment 120.8%, pace 161%.\nSunbelt Vacations: YTD revenue $1,041,720, 2026 goal $1,310,400, attainment 79.5%, pace 106%.\n\nSource: ask_metrics (used aa_demo.gold.agency_pace joined to aa_demo.gold.dim_agency).\nCould not verify: none; all requested fields (YTD revenue through 2026-09, 2026 goal, attainment, pace) were returned by the query.",
-      "hard": false
-    },
-    {
-      "id": "q10",
       "supported": false,
       "flagged": [
         {
-          "sentence": "East: 39.4499%",
-          "reason": "no query supports 39.4499%"
+          "sentence": "Summit Travel Partners: 120.8% attainment, 161.0% pace.",
+          "reason": "no query supports 120.8%"
         },
         {
-          "sentence": "Central: 36.1214%",
-          "reason": "no query supports 36.1214%"
+          "sentence": "Atlantic Premier Travel: 119.5% attainment, 159.4% pace.",
+          "reason": "no query supports 119.5%"
         },
         {
-          "sentence": "West: 24.4286%",
-          "reason": "no query supports 24.4286%"
+          "sentence": "Golden Coast Travel: 117.5% attainment, 156.7% pace.",
+          "reason": "no query supports 117.5%"
+        },
+        {
+          "sentence": "Lone Star Travel Group: 116.5% attainment, 155.4% pace.",
+          "reason": "no query supports 116.5%"
+        },
+        {
+          "sentence": "BlueSky Corporate Travel: 114.6% attainment, 152.8% pace.",
+          "reason": "no query supports 114.6%"
+        },
+        {
+          "sentence": "Northstar Leisure: 112.3% attainment, 149.7% pace.",
+          "reason": "no query supports 112.3%"
+        },
+        {
+          "sentence": "Pacific Gateway Travel: 111.0% attainment, 148.1% pace.",
+          "reason": "no query supports 111.0%"
+        },
+        {
+          "sentence": "Capitol Corporate Travel: 110.4% attainment, 147.2% pace.",
+          "reason": "no query supports 110.4%"
+        },
+        {
+          "sentence": "Midway Travel Services: 88.7% attainment, 118.3% pace.",
+          "reason": "no query supports 88.7%"
+        },
+        {
+          "sentence": "Sunbelt Vacations: 79.5% attainment, 106.0% pace.",
+          "reason": "no query supports 79.5%"
+        },
+        {
+          "sentence": "FareHub Online: 72.9% attainment, 97.2% pace.",
+          "reason": "no query supports 72.9%"
+        },
+        {
+          "sentence": "Harbor Business Travel: 72.0% attainment, 96.1% pace.",
+          "reason": "no query supports 72.0%"
         }
       ],
       "judge": "CORRECT",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 35.0,
-      "answer": "East: 39.4499%\nCentral: 36.1214%\nWest: 24.4286%\n\nSource: functions.ask_metrics (Genie) over aa_demo.gold.sales_metrics (2026 sales_months).\n\nCould not verify: none.",
+      "seconds": 24.0,
+      "answer": "Summit Travel Partners: 120.8% attainment, 161.0% pace. \nAtlantic Premier Travel: 119.5% attainment, 159.4% pace. \nGolden Coast Travel: 117.5% attainment, 156.7% pace. \nLone Star Travel Group: 116.5% attainment, 155.4% pace. \nBlueSky Corporate Travel: 114.6% attainment, 152.8% pace. \nNorthstar Leisure: 112.3% attainment, 149.7% pace. \nPacific Gateway Travel: 111.0% attainment, 148.1% pace. \nCapitol Corporate Travel: 110.4% attainment, 147.2% pace. \nMidway Travel Services: 88.7% attainment, 118.3% pace. \nSunbelt Vacations: 79.5% attainment, 106.0% pace. \nFareHub Online: 72.9% attainment, 97.2% pace. \nHarbor Business Travel: 72.0% attainment, 96.1% pace. \nask_metrics, gold.agency_pace and gold.dim_agency.",
+      "hard": false
+    },
+    {
+      "id": "q10",
+      "supported": true,
+      "flagged": [],
+      "judge": "WRONG",
+      "tools": [
+        "ask_metrics"
+      ],
+      "seconds": 15.9,
+      "answer": "Central 47.4%, East 41.6%, West 26.9%. ask_metrics, sales_metrics.",
       "hard": false
     },
     {
@@ -145,20 +182,20 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 39.5,
-      "answer": "2026-01-01: $560,526\n2026-02-01: $1,141,532\n2026-03-01: $1,933,184\n2026-04-01: $2,627,511\n2026-05-01: $3,310,531\n2026-06-01: $4,129,882\n2026-07-01: $4,950,744\n2026-08-01: $5,658,793\n2026-09-01: $6,259,791\n\nSource: ask_metrics (metric view aa_demo.gold.sales_metrics).",
+      "seconds": 28.4,
+      "answer": "Summit Travel Partners' cumulative AA revenue by month in 2026: $560,526 (Jan), $1,141,532 (Feb), $1,933,184 (Mar), $2,627,511 (Apr), $3,310,531 (May), $4,129,882 (Jun), $4,950,744 (Jul), $5,658,793 (Aug), $6,259,791 (Sep). \nSource: ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
       "id": "q12",
       "supported": true,
       "flagged": [],
-      "judge": "CORRECT",
+      "judge": "PARTIAL",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 34.4,
-      "answer": "Jan 2026: $126,472\nFeb 2026: $128,400\nMar 2026: no data\nApr 2026: no data\nMay 2026: $148,163\nJun 2026: $163,172\nJul 2026: $166,869\nAug 2026: $167,117\nSep 2026: $152,859\n\nSource: ask_metrics (Genie) on aa_demo.gold.sales_metrics.  \nCould not verify: three-month rolling average for March 2026 and April 2026; need aa_revenue rows for those months in the sales_metrics view.",
+      "seconds": 22.6,
+      "answer": "The three-month rolling average of AA revenue for Sunbelt Vacations in 2026 is $152,859 in September, peaking at $167,117 in August. \nNotable values include $126,472 in January and $163,172 in June. \nSource: ask_metrics, gold.sales_metrics. \nCould not verify: March and April 2026 have no data.",
       "hard": true
     },
     {
@@ -169,8 +206,8 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 48.2,
-      "answer": "Central:\n1. Summit Travel Partners: $6,259,791\n2. Lone Star Travel Group: $5,847,405\n3. Northstar Leisure: $1,900,118\n4. Midway Travel Services: $1,702,178\n5. Sunbelt Vacations: $1,041,720\n\nEast:\n1. Atlantic Premier Travel: $6,689,409\n2. BlueSky Corporate Travel: $4,434,693\n3. Capitol Corporate Travel: $4,080,244\n4. Harbor Business Travel: $3,090,443\n\nWest:\n1. Golden Coast Travel: $4,654,083\n2. FareHub Online: $4,041,424\n3. Pacific Gateway Travel: $2,633,198\n\nSource: ask_metrics (aa_demo.gold.sales_metrics via Genie).  \nCould not verify: any agencies or 2026 AA revenue rows not returned in the query result; to verify need the sales_metrics rows for 2026 for those agencies.",
+      "seconds": 27.4,
+      "answer": "In 2026, the top agency in each region by AA revenue is:\n- Central: Summit Travel Partners ($6.26M, rank 1)\n- East: Atlantic Premier Travel ($6.69M, rank 1)\n- West: Golden Coast Travel ($4.65M, rank 1)\nFrom ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
@@ -181,32 +218,32 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 36.2,
-      "answer": "Atlantic Premier Travel: DCA-BOS, $824,427\nBlueSky Corporate Travel: DCA-BOS, $525,884\nCapitol Corporate Travel: CLT-LGA, $479,697\nFareHub Online: ORD-SFO, $493,229\nGolden Coast Travel: PHX-SEA, $594,698\nHarbor Business Travel: DFW-DCA, $365,052\nLone Star Travel Group: DFW-ORD, $743,863\nMidway Travel Services: DFW-ORD, $222,981\nNorthstar Leisure: DFW-DEN, $242,693\nPacific Gateway Travel: DFW-LAX, $320,978\nSummit Travel Partners: DFW-ORD, $848,285\nSunbelt Vacations: DFW-ORD, $132,602\n\nSource: functions.ask_metrics, aa_demo.gold.sales_metrics (sales_metrics metric view).\nCould not verify: market IDs or month-by-month breakdowns for 2026; to provide those would need the sales_month-level rows from aa_demo.gold.fact_agency_sales_monthly for 2026.",
+      "seconds": 23.3,
+      "answer": "For each agency, the top market by AA revenue in 2026:\n- Atlantic Premier Travel: DCA-BOS ($824,427)\n- BlueSky Corporate Travel: DCA-BOS ($525,884)\n- Capitol Corporate Travel: CLT-LGA ($479,697)\n- FareHub Online: ORD-SFO ($493,229)\n- Golden Coast Travel: PHX-SEA ($594,698)\n- Harbor Business Travel: DFW-DCA ($365,052)\n- Lone Star Travel Group: DFW-ORD ($743,863)\n- Midway Travel Services: DFW-ORD ($222,981)\n- Northstar Leisure: DFW-DEN ($242,693)\n- Pacific Gateway Travel: DFW-LAX ($320,978)\n- Summit Travel Partners: DFW-ORD ($848,285)\n- Sunbelt Vacations: DFW-ORD ($132,602)\nSource: ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
       "id": "q15",
       "supported": true,
       "flagged": [],
-      "judge": "CORRECT",
+      "judge": "WRONG",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 46.5,
-      "answer": "2026-01-01: $535,848, MoM change: n/a\n2026-02-01: $548,427, MoM change: 2.3%\n2026-03-01: $755,636, MoM change: 37.8%\n2026-04-01: $655,063, MoM change: -13.3%\n2026-05-01: $650,362, MoM change: -0.7%\n2026-06-01: $727,943, MoM change: 11.9%\n2026-07-01: $768,417, MoM change: 5.6%\n2026-08-01: $646,195, MoM change: -15.9%\n2026-09-01: $559,513, MoM change: -13.4%\n\nSource: ask_metrics, sales_metrics (aa_demo.gold.sales_metrics).\n\nCould not verify: MoM change for 2026-01-01 (prior-month revenue from 2025-12 would be needed to compute a January MoM change).",
+      "seconds": 18.2,
+      "answer": "To get the month-over-month change, I'll need to run another query.\n\n[ask_metrics(question=AA revenue for Lone Star Travel Group by month in 2025 and 2026)]",
       "hard": false
     },
     {
       "id": "q16",
       "supported": true,
       "flagged": [],
-      "judge": "WRONG",
+      "judge": "WRONG\n\nR",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 72.6,
-      "answer": "FareHub Online: Jul 2026 aa_share 19.3%, fair_share 37.9%; Aug 2026 aa_share 19.4%, fair_share 37.9%; Sep 2026 aa_share 17.1%, fair_share 38.3%; months_below 3.\nGolden Coast Travel: Jul 2026 aa_share 31.4%, fair_share 37.7%; Aug 2026 aa_share 30.5%, fair_share 37.7%; Sep 2026 aa_share 31%, fair_share 38.2%; months_below 3.\nHarbor Business Travel: Jul 2026 aa_share 35.6%, fair_share 39.6%; Aug 2026 aa_share 35.4%, fair_share 39.9%; Sep 2026 aa_share 34.2%, fair_share 40.1%; months_below 3.\nMidway Travel Services: Jul 2026 aa_share 30.2%, fair_share 38.1%; Aug 2026 aa_share 30.1%, fair_share 38.5%; Sep 2026 aa_share 31.3%, fair_share 38.8%; months_below 3.\nPacific Gateway Travel: Jul 2026 aa_share 37.1%, fair_share 38%; Aug 2026 aa_share 36.4%, fair_share 37.7%; Sep 2026 aa_share 36.5%, fair_share 38%; months_below 3.\n\nSource: ask_metrics, using aa_demo.gold.sales_metrics and aa_demo.gold.dim_agency.\nCould not verify: none.",
+      "seconds": 25.6,
+      "answer": "5 agencies: FareHub Online, Golden Coast Travel, Midway Travel Services, Pacific Gateway Travel (21 months); Harbor Business Travel (8 months). ask_metrics, gold.sales_metrics.",
       "hard": true
     },
     {
@@ -217,47 +254,47 @@
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 51.0,
-      "answer": "ORD-SFO, 2026, AA share 36.27%, market revenue $11,363,233.04, dollar gap to 40% $423,559.306\nDFW-LAX, 2026, AA share 36.67%, market revenue $11,361,934.56, dollar gap to 40% $377,962.994\nPHX-SEA, 2026, AA share 36.95%, market revenue $11,358,594.94, dollar gap to 40% $346,981.106\nLAX-JFK, 2026, AA share 38.29%, market revenue $11,353,113.64, dollar gap to 40% $194,479.726\nSEA-DEN, 2026, AA share 36.29%, market revenue $4,255,290.29, dollar gap to 40% $158,056.846\nDCA-BOS, 2026, AA share 38.72%, market revenue $11,543,578.40, dollar gap to 40% $147,898\nMIA-JFK, 2026, AA share 38.76%, market revenue $11,285,233.99, dollar gap to 40% $140,146.286\nCLT-LGA, 2026, AA share 38.78%, market revenue $11,097,419.24, dollar gap to 40% $135,514.066\nDFW-DCA, 2026, AA share 39.0%, market revenue $11,267,648.48, dollar gap to 40% $112,357.832\nDFW-DEN, 2026, AA share 39.37%, market revenue $11,044,300.24, dollar gap to 40% $69,972.026\nDFW-ORD, 2026, AA share 39.56%, market revenue $11,326,601.96, dollar gap to 40% $50,120.334\nAUS-ORD, 2026, AA share 39.16%, market revenue $4,159,804.63, dollar gap to 40% $34,945.462\n\nSource: ask_metrics (aa_demo.gold.sales_metrics).",
+      "seconds": 33.2,
+      "answer": "12 markets in 2026 have an AA share under 40%. The dollar gap to 40% ranges from $34,945 (AUS-ORD) to $423,559 (ORD-SFO). \nExamples: \n- ORD-SFO: AA share 36.3%, gap $423,559\n- DFW-LAX: AA share 36.7%, gap $377,963\n- PHX-SEA: AA share 36.9%, gap $346,981\n- LAX-JFK: AA share 38.3%, gap $194,480\n- SEA-DEN: AA share 36.3%, gap $158,057\nSource: ask_metrics, gold.sales_metrics.",
       "hard": false
     },
     {
       "id": "q18",
       "supported": true,
       "flagged": [],
-      "judge": "CORRECT",
+      "judge": "PARTIAL",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 34.4,
-      "answer": "Harbor Business Travel: 96.1% pace.  \nFareHub Online: 97.2% pace.\n\nSource: ask_metrics, tables gold.agency_pace and gold.dim_agency.\n\nCould not verify: any agencies not listed here, need aa_demo.gold.agency_pace rows for goal_year = 2026 and sales_month = 2026-09 to confirm other agencies' pace.",
+      "seconds": 14.8,
+      "answer": "Harbor Business Travel: 96.1% pace, FareHub Online: 97.2% pace. ask_metrics, gold.agency_pace and gold.dim_agency.",
       "hard": false
     },
     {
       "id": "q19",
       "supported": true,
       "flagged": [],
-      "judge": "CORRECT",
+      "judge": "WRONG",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 38.6,
-      "answer": "Priya Raman: -$4,639,041.\n\nSource: ask_metrics (aa_demo.gold.sales_metrics metric view).\n\nCould not verify: none; ask_metrics returned the account_manager and share_gap_usd for 2026 year to date.",
+      "seconds": 22.3,
+      "answer": "Dana Whitfield, $3,515,432, ask_metrics.",
       "hard": false
     },
     {
       "id": "q20",
       "supported": true,
       "flagged": [],
-      "judge": "CORRECT",
+      "judge": "PARTIAL",
       "tools": [
         "ask_metrics"
       ],
-      "seconds": 37.2,
-      "answer": "6 agencies above fair share, 6 agencies below fair share, 0 agencies equal to fair share. Source: ask_metrics, aa_demo.gold.sales_metrics (sales_metrics view) for sales_month = 2026-09-01.",
+      "seconds": 23.2,
+      "answer": "6 agencies were above fair share and 6 agencies were below fair share in September 2026. ask_metrics, gold.sales_metrics.",
       "hard": false
     }
   ],
   "harness_supported_rate": 0.95,
-  "harness_correct_rate": 0.9
+  "harness_correct_rate": 0.55
 }
