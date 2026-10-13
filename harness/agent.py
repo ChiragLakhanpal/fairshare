@@ -85,9 +85,10 @@ def make_client():
         from agent_framework.openai import OpenAIChatCompletionClient
         from fairshare.dbx import bearer_token, host
         # pay-per-token Foundation Model API through chat completions (OpenAIChatClient speaks the Responses API, which Databricks
-        # answers "passthrough is not supported" for gpt-oss, Oct 13, 2026). Llama 4 Maverick because the reasoning models (gpt-oss,
-        # qwen3.5) return content as reasoning+text parts the framework drops. The token is the user's, inside the App the viewer's.
-        return OpenAIChatCompletionClient(model=os.environ.get("DATABRICKS_MODEL", "databricks-llama-4-maverick"), base_url=f"{host()}/serving-endpoints",
+        # answers "passthrough is not supported" for every Free Edition model, Oct 13, 2026). Qwen3-Next instruct: plain content and
+        # real tool calls; the reasoning models (gpt-oss, qwen3.5) return content as reasoning+text parts the framework drops, and
+        # Llama 4 Maverick pasted a run_sql call as text instead of calling it. The token is the user's, inside the App the viewer's.
+        return OpenAIChatCompletionClient(model=os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct"), base_url=f"{host()}/serving-endpoints",
                                           api_key=bearer_token())
     if b == "openai":
         return OpenAIChatClient(model=os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"), api_key=os.environ["OPENAI_API_KEY"],
@@ -118,13 +119,28 @@ def ask(question: str, agent=None) -> Answer:
     return _ask(question, agent)
 
 
+PASTED_CALL = re.compile(r'(\{\s*"name"\s*:\s*"(ask_metrics|run_sql|explain_change|search_contracts)"|\b(ask_metrics|run_sql|explain_change|search_contracts)\s*\()')
+
+
+def _clean(text: str) -> str:
+    return (text or "").strip().replace(" \u2014 ", ", ").replace("\u2014", ", ").replace(" \u2013 ", ", ")
+
+
 def _ask(question: str, agent=None) -> Answer:
     agent = agent or make_agent()
     if agent is None:
         raise RuntimeError("no model configured (FAIRSHARE_MODEL=none); use cached answers")
     facts.reset()
-    resp = aio.run(agent.run(question))
-    text = (resp.text or "").strip().replace(" \u2014 ", ", ").replace("\u2014", ", ").replace(" \u2013 ", ", ")
+    text = _clean(aio.run(agent.run(question)).text)
+    if PASTED_CALL.search(text):
+        # open models (Llama 4 Maverick, Qwen3-Next; Oct 13, 2026) sometimes write the tool call as text instead of making it:
+        # one retry with the instruction made explicit, then an honest refusal rather than a pasted query on screen
+        facts.reset()
+        text = _clean(aio.run(agent.run(question + "\n\nCall the tool; do not write the call out as text.")).text)
+        if PASTED_CALL.search(text):
+            text = "Could not verify: the model wrote a query instead of running it. Ask again, or use the laptop model."
+    if not text:
+        text = "Could not verify: the model returned no answer text."
     ctx = facts.current()
     return Answer(question=question, text=text, verification=verify(text, ctx.pool, question), calls=ctx.calls, sources=ctx.sources,
                   model=model_backend() + ("/databricks" if is_databricks() else "/duckdb"))

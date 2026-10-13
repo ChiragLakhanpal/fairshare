@@ -83,7 +83,7 @@
   <text x="302" y="408" class="sub">tools: ask_metrics (Genie)  |  run_sql (read-only fallback)  |  explain_change (decomposition)  |  search_contracts</text>
   <text x="302" y="426" class="sub">rules: numbers only from tool results; cite the SQL; "Could not verify" for everything else</text>
   <text x="302" y="446" class="sub">verifier (deterministic): every number in the draft matched to a query result; unmatched sentences quarantined</text>
-  <text x="302" y="466" class="sub">model: gpt-4.1-mini in Foundry (Databricks serving endpoint as fallback)  |  traces: OpenTelemetry to MLflow</text>
+  <text x="302" y="466" class="sub">model: gpt-5-mini in Foundry on the laptop, Qwen3-Next on Databricks inside the App  |  traces: MLflow</text>
 
   <rect x="876" y="366" width="280" height="120" class="box"/>
   <text x="888" y="388" class="title">Governance loop</text>
@@ -94,13 +94,14 @@
   <text x="888" y="470" class="sub">public repo, pull requests</text>
 
   <!-- surfaces -->
-  <rect x="24" y="526" width="420" height="90" class="box"/>
-  <text x="36" y="548" class="title">This app (Streamlit, on the laptop)</text>
-  <text x="36" y="566" class="sub">Monday summary with badges and approve step  |  Why  |  Ask  |  Definitions and parity  |  Under the hood</text>
-  <text x="36" y="582" class="sub">"how I got this" drawer: SQL, rows, sources, trace link</text>
+  <rect x="24" y="526" width="436" height="90" class="box"/>
+  <text x="36" y="548" class="title">AI/BI dashboard  |  this app (laptop, and as a Databricks App)</text>
+  <text x="36" y="566" class="sub">dashboard: pace, share vs fair, what moved; Ask Genie is the same agent</text>
+  <text x="36" y="582" class="sub">app: Monday, Why, Ask, Definitions and parity, Under the hood; the drawer</text>
+  <text x="36" y="598" class="sub">Databricks App: everything runs as the viewer, never a service principal</text>
 
   <rect x="470" y="526" width="686" height="90" class="aa"/>
-  <text x="482" y="548" class="title">At AA: Teams through Copilot Studio  |  Power BI through the mirrored Databricks catalog  |  the agency portal (each agency sees itself)</text>
+  <text x="482" y="548" class="title">At AA: Teams through Copilot Studio  |  Power BI on the mirrored catalog  |  the agency portal (each agency sees itself)</text>
   <text x="482" y="566" class="sub">Monday summary posts to Teams or mail after a human approves; the SVP gets the same page every week</text>
   <text x="482" y="582" class="sub">the metric view and the Power BI model are kept equal by the parity job; a definition change is a pull request with a test</text>
 

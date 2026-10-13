@@ -2,6 +2,7 @@
 The laptop (Foundry model) stays the demo path; this is the one-click "and here it is inside the workspace" in beat five.
 
   python lakehouse/app_deploy.py create   # once: the app, its resources (warehouse, Genie space, model) and the user-authorization scopes
+  python lakehouse/app_deploy.py update   # after changing DATABRICKS_MODEL or the scopes (then deploy)
   python lakehouse/app_deploy.py deploy   # upload the repo (allowlist below) to the workspace and deploy a snapshot; prints the URL
   python lakehouse/app_deploy.py start    # Free Edition stops apps 24 hours after a start or deploy: run this before a demo
   python lakehouse/app_deploy.py status   # compute state, last deployment, URL
@@ -21,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 from fairshare.dbx import warehouse_id, workspace_client  # noqa: E402
 
 NAME = "fairshare"
-MODEL = os.environ.get("DATABRICKS_MODEL", "databricks-llama-4-maverick")
+MODEL = os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct")
 SCOPES = ["sql", "genie", "model-serving"]
 INCLUDE = ["app.yaml", "requirements.txt", "app", "harness", "fairshare", "data/contracts", "docs", "evals/results/latest.json", ".streamlit"]
 LINKS = ["DASHBOARD_URL", "GENIE_SPACE_URL", "MLFLOW_TRACES_URL", "FOUNDRY_PROJECT_URL", "REPO_URL", "DATABRICKS_APP_URL"]  # shown on Under the hood
@@ -80,19 +81,30 @@ def sync(w) -> str:
     return "/Workspace" + base
 
 
-def create(w):
-    from databricks.sdk.service.apps import (App, AppResource, AppResourceGenieSpace, AppResourceGenieSpaceGenieSpacePermission,
+def resources():
+    from databricks.sdk.service.apps import (AppResource, AppResourceGenieSpace, AppResourceGenieSpaceGenieSpacePermission,
                                              AppResourceServingEndpoint, AppResourceServingEndpointServingEndpointPermission,
                                              AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission)
-    resources = [
+    return [
         AppResource(name="warehouse", sql_warehouse=AppResourceSqlWarehouse(id=warehouse_id(), permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE)),
         AppResource(name="genie", genie_space=AppResourceGenieSpace(name=NAME, space_id=os.environ["GENIE_SPACE_ID"], permission=AppResourceGenieSpaceGenieSpacePermission.CAN_RUN)),
         AppResource(name="model", serving_endpoint=AppResourceServingEndpoint(name=MODEL, permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY)),
     ]
+
+
+def create(w):
+    from databricks.sdk.service.apps import App
     app = w.apps.create_and_wait(App(name=NAME, description="fairshare: one sales agent, one semantic layer, every number with its query.",
-                                     resources=resources, user_api_scopes=SCOPES), timeout=timedelta(minutes=10))
+                                     resources=resources(), user_api_scopes=SCOPES), timeout=timedelta(minutes=10))
     print("created", app.name, app.url, app.compute_status.state.value if app.compute_status else "")
     write_env("DATABRICKS_APP_URL", app.url or "")
+
+
+def update(w):
+    """Re-point the resources (a different model, say) and the scopes; deploy afterwards so the env picks them up."""
+    from databricks.sdk.service.apps import App
+    app = w.apps.update(NAME, App(name=NAME, resources=resources(), user_api_scopes=SCOPES))
+    print("updated resources:", [r.name + ":" + (r.serving_endpoint.name if r.serving_endpoint else "") for r in app.resources or []])
 
 
 def deploy(w):
@@ -131,4 +143,4 @@ def write_env(key: str, value: str):
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
     w = workspace_client()
-    {"create": create, "deploy": deploy, "start": start, "status": status, "sync": sync}.get(cmd, lambda w: sys.exit(__doc__))(w)
+    {"create": create, "update": update, "deploy": deploy, "start": start, "status": status, "sync": sync}.get(cmd, lambda w: sys.exit(__doc__))(w)

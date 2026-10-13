@@ -125,6 +125,7 @@ def harness_run(questions):
 
 def judge_client():
     """The judge stays on one model across runs (FAIRSHARE_JUDGE_MODEL, default azure/gpt-5-mini) so agent models are comparable."""
+    from harness import agent as harness_agent
     backend = os.environ.get("FAIRSHARE_JUDGE_MODEL", "azure")
     saved = os.environ.get("FAIRSHARE_MODEL")
     os.environ["FAIRSHARE_MODEL"] = backend
@@ -136,7 +137,7 @@ def judge_client():
 
 def model_name() -> str:
     b = os.environ.get("FAIRSHARE_MODEL", "none").lower()
-    return {"azure": "azure/" + os.environ.get("AZURE_OPENAI_DEPLOYMENT", ""), "databricks": os.environ.get("DATABRICKS_MODEL", "databricks-llama-4-maverick"),
+    return {"azure": "azure/" + os.environ.get("AZURE_OPENAI_DEPLOYMENT", ""), "databricks": os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct"),
             "openai": os.environ.get("OPENAI_MODEL", "")}.get(b, b)
 
 

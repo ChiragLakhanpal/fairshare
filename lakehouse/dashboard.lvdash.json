@@ -1476,7 +1476,7 @@
             "name": "footer",
             "multilineTextboxSpec": {
               "lines": [
-                "**Why is an account down?** This page stops at what and where. For why, the agreement, and a verified Monday summary, open the fairshare app (streamlit run app/app.py). Definitions: `aa_demo.ops.kpi_definitions`. Nightly check: `aa_demo.ops.kpi_parity`.\n"
+                "**Why is an account down?** This page stops at what and where. For why, the agreement, and a verified Monday summary, open [the fairshare app](https://fairshare-7474658003099155.aws.databricksapps.com). Definitions: `aa_demo.ops.kpi_definitions`. Nightly check: `aa_demo.ops.kpi_parity`.\n"
               ]
             }
           },

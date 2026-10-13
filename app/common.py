@@ -33,7 +33,7 @@ def setup(title: str):
     with st.sidebar:
         model = harness_agent.model_backend()
         if model == "databricks":
-            model += "/" + os.environ.get("DATABRICKS_MODEL", "databricks-llama-4-maverick")
+            model += "/" + os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct")
         st.markdown(f"**Data:** `{db.backend()}`  \n**Model:** `{model}`")
         if dbx.user_token():
             st.caption(f"Running inside Databricks as {headers.get('x-forwarded-email', 'you')}: SQL, Genie and the model run with your permissions.")
@@ -46,7 +46,7 @@ def get_agent():
 
 
 @st.cache_resource(show_spinner=False)
-def _agent(_token):
+def _agent(token):  # no leading underscore: Streamlit would then leave it out of the cache key
     try:
         return harness_agent.make_agent()
     except Exception as e:  # missing env var and the like: the pages fall back to cached answers
