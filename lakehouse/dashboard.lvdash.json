@@ -1,0 +1,1505 @@
+{
+  "datasets": [
+    {
+      "name": "agency_month",
+      "displayName": "agency_month",
+      "queryLines": [
+        "WITH mv AS (\n",
+        "  SELECT region, account_manager, agency, agency_type, sales_month,\n",
+        "         MEASURE(aa_revenue) AS aa_revenue, MEASURE(market_revenue) AS market_revenue,\n",
+        "         MEASURE(aa_revenue) - MEASURE(share_gap_usd) AS fair_revenue\n",
+        "  FROM aa_demo.gold.sales_metrics\n",
+        "  GROUP BY ALL),\n",
+        "pace AS (\n",
+        "  SELECT a.agency_name AS agency, p.sales_month, p.ytd_revenue, p.ytd_goal, p.revenue_goal_usd\n",
+        "  FROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a USING (agency_id))\n",
+        "SELECT n.region, n.account_manager, n.agency, n.agency_type, n.sales_month,\n",
+        "       date_format(n.sales_month, 'yyyy-MM') AS month_label,\n",
+        "       n.aa_revenue, n.market_revenue, n.fair_revenue,\n",
+        "       l.aa_revenue AS aa_revenue_ly, l.market_revenue AS market_revenue_ly, l.fair_revenue AS fair_revenue_ly,\n",
+        "       p.ytd_revenue, p.ytd_goal, p.revenue_goal_usd,\n",
+        "       (n.aa_revenue / l.aa_revenue - 1) * 100 AS yoy_pct, n.aa_revenue / n.market_revenue * 100 AS share_pct, n.fair_revenue / n.market_revenue * 100 AS fair_pct,\n",
+        "       (n.aa_revenue - n.fair_revenue) / n.market_revenue * 100 AS gap_pts, n.aa_revenue - n.fair_revenue AS gap_usd,\n",
+        "       (n.aa_revenue / n.market_revenue - l.aa_revenue / l.market_revenue) * 100 AS share_chg_pts,\n",
+        "       p.ytd_revenue / p.ytd_goal * 100 AS pace_pct, p.ytd_revenue / p.revenue_goal_usd * 100 AS attainment_pct\n",
+        "FROM mv n\n",
+        "LEFT JOIN mv l ON l.agency = n.agency AND l.sales_month = add_months(n.sales_month, -12)\n",
+        "LEFT JOIN pace p ON p.agency = n.agency AND p.sales_month = n.sales_month"
+      ]
+    },
+    {
+      "name": "trend",
+      "displayName": "trend",
+      "queryLines": [
+        "WITH mv AS (\n",
+        "  SELECT region, account_manager, agency, agency_type, sales_month,\n",
+        "         MEASURE(aa_revenue) AS aa_revenue, MEASURE(market_revenue) AS market_revenue,\n",
+        "         MEASURE(aa_revenue) - MEASURE(share_gap_usd) AS fair_revenue\n",
+        "  FROM aa_demo.gold.sales_metrics\n",
+        "  GROUP BY ALL)\n",
+        "SELECT region, agency, sales_month, 'AA share' AS series, aa_revenue AS numerator, market_revenue AS denominator FROM mv\n",
+        "UNION ALL\n",
+        "SELECT region, agency, sales_month, 'Fair share' AS series, fair_revenue AS numerator, market_revenue AS denominator FROM mv"
+      ]
+    },
+    {
+      "name": "markets",
+      "displayName": "markets",
+      "queryLines": [
+        "WITH mv AS (\n",
+        "  SELECT region, account_manager, agency, agency_type, market, sales_month,\n",
+        "         MEASURE(aa_revenue) AS aa_revenue, MEASURE(market_revenue) AS market_revenue,\n",
+        "         MEASURE(aa_revenue) - MEASURE(share_gap_usd) AS fair_revenue\n",
+        "  FROM aa_demo.gold.sales_metrics\n",
+        "  GROUP BY ALL)\n",
+        "SELECT n.region, n.agency, n.market, n.sales_month, date_format(n.sales_month, 'yyyy-MM') AS month_label,\n",
+        "       n.aa_revenue, n.market_revenue, n.fair_revenue, l.aa_revenue AS aa_revenue_ly\n",
+        "FROM mv n\n",
+        "LEFT JOIN mv l ON l.agency = n.agency AND l.market = n.market AND l.sales_month = add_months(n.sales_month, -12)"
+      ]
+    },
+    {
+      "name": "parity",
+      "displayName": "parity",
+      "queryLines": [
+        "SELECT MAX(run_at) AS last_run, COUNT(*) AS checks, COUNT_IF(status <> 'ok') AS red\n",
+        "FROM aa_demo.ops.kpi_parity\n",
+        "WHERE run_id = (SELECT run_id FROM aa_demo.ops.kpi_parity ORDER BY run_at DESC LIMIT 1)"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "monday",
+      "displayName": "Monday",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Agency sales: share, fair share, pace\n",
+                "Every number on this page is a `MEASURE()` on `aa_demo.gold.sales_metrics`, the metric view the agent and Genie use; pace comes from `gold.agency_pace`. At American this is the Power BI report on the mirrored catalog, same definitions.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_region",
+            "queries": [
+              {
+                "name": "filter_agency_month_region",
+                "query": {
+                  "datasetName": "agency_month",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "region_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "filter_trend_region",
+                "query": {
+                  "datasetName": "trend",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "region_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "filter_markets_region",
+                "query": {
+                  "datasetName": "markets",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "region_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "region",
+                    "displayName": "Region",
+                    "queryName": "filter_agency_month_region"
+                  },
+                  {
+                    "fieldName": "region",
+                    "displayName": "Region",
+                    "queryName": "filter_trend_region"
+                  },
+                  {
+                    "fieldName": "region",
+                    "displayName": "Region",
+                    "queryName": "filter_markets_region"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Region",
+                "showDescription": false,
+                "description": ""
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "f_month",
+            "queries": [
+              {
+                "name": "filter_agency_month_month_label",
+                "query": {
+                  "datasetName": "agency_month",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "month_label",
+                      "expression": "`month_label`"
+                    },
+                    {
+                      "name": "month_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "filter_markets_month_label",
+                "query": {
+                  "datasetName": "markets",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "month_label",
+                      "expression": "`month_label`"
+                    },
+                    {
+                      "name": "month_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "month_label",
+                    "displayName": "Month",
+                    "queryName": "filter_agency_month_month_label"
+                  },
+                  {
+                    "fieldName": "month_label",
+                    "displayName": "Month",
+                    "queryName": "filter_markets_month_label"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Month",
+                "showDescription": false,
+                "description": ""
+              },
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "2026-09"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "f_agency",
+            "queries": [
+              {
+                "name": "filter_agency_month_agency",
+                "query": {
+                  "datasetName": "agency_month",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "agency",
+                      "expression": "`agency`"
+                    },
+                    {
+                      "name": "agency_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "filter_trend_agency",
+                "query": {
+                  "datasetName": "trend",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "agency",
+                      "expression": "`agency`"
+                    },
+                    {
+                      "name": "agency_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "filter_markets_agency",
+                "query": {
+                  "datasetName": "markets",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "agency",
+                      "expression": "`agency`"
+                    },
+                    {
+                      "name": "agency_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "agency",
+                    "displayName": "Agency",
+                    "queryName": "filter_agency_month_agency"
+                  },
+                  {
+                    "fieldName": "agency",
+                    "displayName": "Agency",
+                    "queryName": "filter_trend_agency"
+                  },
+                  {
+                    "fieldName": "agency",
+                    "displayName": "Agency",
+                    "queryName": "filter_markets_agency"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Agency",
+                "showDescription": false,
+                "description": ""
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "c_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_month",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "SUM(`aa_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value",
+                  "displayName": "AA revenue, month",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "AA revenue, month",
+                "showDescription": true,
+                "description": "MEASURE(aa_revenue)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "c_pace",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_month",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "SUM(`ytd_revenue`) / SUM(`ytd_goal`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value",
+                  "displayName": "Pace to 2026 goal",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Pace to 2026 goal",
+                "showDescription": true,
+                "description": "year to date revenue over year to date goal"
+              }
+            }
+          },
+          "position": {
+            "x": 1,
+            "y": 3,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "c_share",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_month",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "SUM(`aa_revenue`) / SUM(`market_revenue`)"
+                    },
+                    {
+                      "name": "target",
+                      "expression": "SUM(`fair_revenue`) / SUM(`market_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value",
+                  "displayName": "AA share",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "target",
+                  "displayName": "Fair share",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "AA share",
+                "showDescription": true,
+                "description": "against fair share, AA's seat share on the same markets"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 3,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "c_gap",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_month",
+                  "fields": [
+                    {
+                      "name": "value",
+                      "expression": "SUM(`aa_revenue`) - SUM(`fair_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "value",
+                  "displayName": "Share gap, dollars",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Share gap, dollars",
+                "showDescription": true,
+                "description": "AA revenue minus revenue at fair share"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 3,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "t_parity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "parity",
+                  "fields": [
+                    {
+                      "name": "last_run",
+                      "expression": "`last_run`"
+                    },
+                    {
+                      "name": "checks",
+                      "expression": "`checks`"
+                    },
+                    {
+                      "name": "red",
+                      "expression": "`red`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "last_run",
+                    "displayName": "Last run",
+                    "title": "Last run",
+                    "type": "string",
+                    "displayAs": "string",
+                    "order": 100000,
+                    "visible": true,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}"
+                  },
+                  {
+                    "fieldName": "checks",
+                    "displayName": "Checks",
+                    "title": "Checks",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100001,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0,0"
+                  },
+                  {
+                    "fieldName": "red",
+                    "displayName": "Red",
+                    "title": "Red",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100002,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0,0"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Definitions check",
+                "showDescription": true,
+                "description": "last nightly parity run: metric view against the Power BI twin, red = cells that disagree"
+              },
+              "invisibleColumns": [],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 3,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "b_moved",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_month",
+                  "fields": [
+                    {
+                      "name": "agency",
+                      "expression": "`agency`"
+                    },
+                    {
+                      "name": "value",
+                      "expression": "AVG(`share_chg_pts`)"
+                    },
+                    {
+                      "name": "below",
+                      "expression": "AVG(`share_chg_pts`) < 0"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "mark": {
+                "colors": [
+                  "#2E6FD6",
+                  "#B3261E"
+                ]
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "What moved: AA share vs last year, points"
+                },
+                "y": {
+                  "fieldName": "agency",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x"
+                    }
+                  },
+                  "displayName": "Agency"
+                },
+                "color": {
+                  "fieldName": "below",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "true",
+                        "color": "#B3261E"
+                      },
+                      {
+                        "value": "false",
+                        "color": "#2E6FD6"
+                      }
+                    ]
+                  },
+                  "displayName": "below zero",
+                  "legend": {
+                    "hide": true
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "What moved: AA share vs last year, points",
+                "showDescription": true,
+                "description": "same month last year; the biggest move is the first question for the account manager"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 3,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "l_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "trend",
+                  "fields": [
+                    {
+                      "name": "sales_month",
+                      "expression": "`sales_month`"
+                    },
+                    {
+                      "name": "series",
+                      "expression": "`series`"
+                    },
+                    {
+                      "name": "share",
+                      "expression": "SUM(`numerator`) / SUM(`denominator`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "sales_month",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Month"
+                },
+                "y": {
+                  "fieldName": "share",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Share",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "series",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "AA share",
+                        "color": "#2E6FD6"
+                      },
+                      {
+                        "value": "Fair share",
+                        "color": "#8A8F98"
+                      }
+                    ]
+                  },
+                  "displayName": "Series"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "AA share vs fair share by month",
+                "showDescription": true,
+                "description": "click an agency on the left to isolate it; fair share is what AA's seats would predict"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 6,
+            "width": 3,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "b_gap",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_month",
+                  "fields": [
+                    {
+                      "name": "agency",
+                      "expression": "`agency`"
+                    },
+                    {
+                      "name": "value",
+                      "expression": "SUM(`aa_revenue`) - SUM(`fair_revenue`)"
+                    },
+                    {
+                      "name": "below",
+                      "expression": "SUM(`aa_revenue`) - SUM(`fair_revenue`) < 0"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "mark": {
+                "colors": [
+                  "#2E6FD6",
+                  "#B3261E"
+                ]
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Where the gap sits: share gap in dollars",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "agency",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x"
+                    }
+                  },
+                  "displayName": "Agency"
+                },
+                "color": {
+                  "fieldName": "below",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "true",
+                        "color": "#B3261E"
+                      },
+                      {
+                        "value": "false",
+                        "color": "#2E6FD6"
+                      }
+                    ]
+                  },
+                  "displayName": "below zero",
+                  "legend": {
+                    "hide": true
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Where the gap sits: share gap in dollars",
+                "showDescription": true,
+                "description": "a steady gap is structure (an OTA sells every carrier); a new gap is the one to chase"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 3,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "b_markets",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "markets",
+                  "fields": [
+                    {
+                      "name": "market",
+                      "expression": "`market`"
+                    },
+                    {
+                      "name": "value",
+                      "expression": "SUM(`aa_revenue`) - SUM(`fair_revenue`)"
+                    },
+                    {
+                      "name": "below",
+                      "expression": "SUM(`aa_revenue`) - SUM(`fair_revenue`) < 0"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "mark": {
+                "colors": [
+                  "#2E6FD6",
+                  "#B3261E"
+                ]
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Share gap by market, dollars",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "market",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x"
+                    }
+                  },
+                  "displayName": "Market"
+                },
+                "color": {
+                  "fieldName": "below",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "true",
+                        "color": "#B3261E"
+                      },
+                      {
+                        "value": "false",
+                        "color": "#2E6FD6"
+                      }
+                    ]
+                  },
+                  "displayName": "below zero",
+                  "legend": {
+                    "hide": true
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Share gap by market, dollars",
+                "showDescription": true,
+                "description": "the selected agencies' markets for the month; click an agency above to isolate it"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 13,
+            "width": 3,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "t_agencies",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agency_month",
+                  "fields": [
+                    {
+                      "name": "account_manager",
+                      "expression": "`account_manager`"
+                    },
+                    {
+                      "name": "agency",
+                      "expression": "`agency`"
+                    },
+                    {
+                      "name": "agency_type",
+                      "expression": "`agency_type`"
+                    },
+                    {
+                      "name": "aa_revenue",
+                      "expression": "`aa_revenue`"
+                    },
+                    {
+                      "name": "yoy_pct",
+                      "expression": "`yoy_pct`"
+                    },
+                    {
+                      "name": "share_pct",
+                      "expression": "`share_pct`"
+                    },
+                    {
+                      "name": "fair_pct",
+                      "expression": "`fair_pct`"
+                    },
+                    {
+                      "name": "gap_pts",
+                      "expression": "`gap_pts`"
+                    },
+                    {
+                      "name": "gap_usd",
+                      "expression": "`gap_usd`"
+                    },
+                    {
+                      "name": "pace_pct",
+                      "expression": "`pace_pct`"
+                    },
+                    {
+                      "name": "attainment_pct",
+                      "expression": "`attainment_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "account_manager",
+                    "displayName": "Account manager",
+                    "title": "Account manager",
+                    "type": "string",
+                    "displayAs": "string",
+                    "order": 100000,
+                    "visible": true,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}"
+                  },
+                  {
+                    "fieldName": "agency",
+                    "displayName": "Agency",
+                    "title": "Agency",
+                    "type": "string",
+                    "displayAs": "string",
+                    "order": 100001,
+                    "visible": true,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}"
+                  },
+                  {
+                    "fieldName": "agency_type",
+                    "displayName": "Type",
+                    "title": "Type",
+                    "type": "string",
+                    "displayAs": "string",
+                    "order": 100002,
+                    "visible": true,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}"
+                  },
+                  {
+                    "fieldName": "aa_revenue",
+                    "displayName": "AA revenue",
+                    "title": "AA revenue",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100003,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "$0,0"
+                  },
+                  {
+                    "fieldName": "yoy_pct",
+                    "displayName": "vs last year",
+                    "title": "vs last year",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100004,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0.0%"
+                  },
+                  {
+                    "fieldName": "share_pct",
+                    "displayName": "AA share",
+                    "title": "AA share",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100005,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0.0%"
+                  },
+                  {
+                    "fieldName": "fair_pct",
+                    "displayName": "Fair share",
+                    "title": "Fair share",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100006,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0.0%"
+                  },
+                  {
+                    "fieldName": "gap_pts",
+                    "displayName": "Gap, pts",
+                    "title": "Gap, pts",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100007,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0.0"
+                  },
+                  {
+                    "fieldName": "gap_usd",
+                    "displayName": "Gap $",
+                    "title": "Gap $",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100008,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "$0,0"
+                  },
+                  {
+                    "fieldName": "pace_pct",
+                    "displayName": "Pace",
+                    "title": "Pace",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100009,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0.0%"
+                  },
+                  {
+                    "fieldName": "attainment_pct",
+                    "displayName": "Attainment YTD",
+                    "title": "Attainment YTD",
+                    "type": "float",
+                    "displayAs": "number",
+                    "order": 100010,
+                    "visible": true,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "highlightLinks": false,
+                    "preserveWhitespace": false,
+                    "useMonospaceFont": false,
+                    "imageHeight": "",
+                    "imageWidth": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0.0%"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Agencies",
+                "showDescription": true,
+                "description": "revenue, share and pace for the month"
+              },
+              "invisibleColumns": [],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "footer",
+            "multilineTextboxSpec": {
+              "lines": [
+                "**Why is an account down?** This page stops at what and where. For why, the agreement, and a verified Monday summary, open the fairshare app (streamlit run app/app.py). Definitions: `aa_demo.ops.kpi_definitions`. Nightly check: `aa_demo.ops.kpi_parity`.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 28,
+            "width": 6,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false,
+    "genieSpace": {
+      "isEnabled": true,
+      "enablementMode": "ENABLED",
+      "overrideId": "01f1c60a62e51bcea5943cdd14e9debb"
+    }
+  }
+}
