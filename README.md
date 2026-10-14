@@ -40,6 +40,8 @@ BTS T-100 + synthetic agency layer + 4 agreements
   -> harness (Microsoft Agent Framework): ask_metrics | run_sql | explain_change | search_contracts
      three rules (numbers only from tools; cite the SQL; "Could not verify" for the rest), a deterministic verifier
      on every answer, OpenTelemetry traces to MLflow, 20 benchmark questions in a pre-commit hook
+  -> Lakeflow job (databricks.yml, a Databricks Asset Bundle): nightly bronze to gold, metric view, definitions, decomposition,
+     parity as tasks; on Mondays a task drafts and verifies the summaries that wait for approval on the Monday page
   -> AI/BI dashboard on the metric view (lakehouse/dashboard.py, the leadership view; Ask Genie goes to the same Genie Agent)
   -> Streamlit app: on the laptop with the Foundry model, and as a Databricks App with the viewer's own identity and a
      Databricks-hosted model (app.yaml, lakehouse/app_deploy.py); at an airline: Teams via Copilot Studio, Power BI via
@@ -68,6 +70,7 @@ FAIRSHARE_BACKEND=databricks .venv/bin/python lakehouse/parity.py     # metric v
 .venv/bin/python -m harness.cache                                     # record the scripted answers for the offline fallback
 .venv/bin/python lakehouse/dashboard.py push                          # the dashboard from lakehouse/dashboard.lvdash.json (build regenerates it, pull captures UI edits)
 .venv/bin/python lakehouse/app_deploy.py create && .venv/bin/python lakehouse/app_deploy.py deploy   # the app inside the workspace; start before a demo
+databricks bundle deploy && databricks bundle run fairshare_nightly   # the nightly job (databricks.yml): bronze to parity as tasks, the Monday drafts on Mondays
 ```
 
 ## Why these choices

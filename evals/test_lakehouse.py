@@ -85,3 +85,39 @@ def test_viewer_token_wins_inside_the_apps_runtime(monkeypatch):
         assert dbx.bearer_token() == "viewer-token"
     finally:
         dbx.set_user_token(None)
+
+
+def test_job_tasks_pick_the_latest_closed_month_and_every_region():
+    """lakehouse/job_tasks.py drafts one summary per region for the newest month in gold (the job sets the spark backend;
+    conftest already set duckdb, so setdefault leaves it)."""
+    sys.path.insert(0, str(ROOT / "lakehouse"))
+    import job_tasks
+    assert job_tasks.latest_month() == "2026-09"
+    assert job_tasks.regions() == ["Central", "East", "West"]
+
+
+def test_bundle_runs_every_sql_file_in_the_lakehouse():
+    """A new or renamed lakehouse SQL file must appear as a task in databricks.yml, in the same order run.py uses."""
+    import yaml
+    job = yaml.safe_load((ROOT / "databricks.yml").read_text())["resources"]["jobs"]["fairshare_nightly"]
+    in_job = [t["sql_task"]["file"]["path"] for t in job["tasks"] if "sql_task" in t]
+    on_disk = sorted(f"lakehouse/{p.name}" for p in (ROOT / "lakehouse").glob("0*.sql"))
+    assert in_job == on_disk
+    assert {t["spark_python_task"]["parameters"][0] for t in job["tasks"] if "spark_python_task" in t} == {"parity", "summary"}
+
+
+def test_aio_run_works_inside_a_running_loop():
+    """A serverless job task runs inside a kernel whose event loop is already running (Oct 14, 2026)."""
+    import asyncio
+    from harness import aio
+
+    async def answer():
+        await asyncio.sleep(0)
+        return 42
+
+    assert aio.run(answer()) == 42  # the laptop and Streamlit case: no loop on this thread
+
+    async def kernel():
+        return aio.run(answer())  # called from inside a running loop
+
+    assert asyncio.run(kernel()) == 42

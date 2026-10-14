@@ -25,7 +25,7 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown("**Links**")
     for label, var in [("Databricks workspace", "DATABRICKS_HOST"), ("AI/BI dashboard (network view)", "DASHBOARD_URL"), ("Genie Agent", "GENIE_SPACE_URL"),
-                       ("This app inside Databricks", "DATABRICKS_APP_URL"), ("MLflow traces", "MLFLOW_TRACES_URL"),
+                       ("This app inside Databricks", "DATABRICKS_APP_URL"), ("Nightly job (Lakeflow)", "JOB_URL"), ("MLflow traces", "MLFLOW_TRACES_URL"),
                        ("Foundry project", "FOUNDRY_PROJECT_URL"), ("Repository", "REPO_URL")]:
         v = os.environ.get(var)
         st.markdown(f"- [{label}]({v})" if v else f"- {label}: not set (`{var}`)")

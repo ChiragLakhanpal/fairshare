@@ -3,6 +3,7 @@ Free Edition and what makes Unity Catalog row filters apply):
 
   inside the Databricks App   the token Databricks forwards for the signed-in viewer (user authorization; app/common.py
                               hands it over on every request with set_user_token)
+  inside a job task           the compute's own credentials, which are the job's run-as user (FAIRSHARE_BACKEND=spark)
   DATABRICKS_TOKEN set        a personal access token
   otherwise                   OAuth as you through the system browser (auth_type external-browser), cached by the SDK in
                               ~/.databricks/token-cache.json
@@ -12,7 +13,7 @@ from functools import lru_cache
 
 from dotenv import load_dotenv
 
-from fairshare.db import ROOT
+from fairshare.db import ROOT, backend
 
 load_dotenv(ROOT / ".env")
 
@@ -29,7 +30,7 @@ def user_token():
 
 
 def host() -> str:
-    h = os.environ["DATABRICKS_HOST"].rstrip("/")
+    h = (_cached_client().config.host if backend() == "spark" else os.environ["DATABRICKS_HOST"]).rstrip("/")  # a job task knows its workspace from the runtime
     return h if "://" in h else f"https://{h}"
 
 
@@ -49,6 +50,8 @@ def server_hostname() -> str:
 @lru_cache(maxsize=1)
 def _cached_client():
     from databricks.sdk import WorkspaceClient
+    if backend() == "spark":  # inside Databricks compute: the runtime's credentials, no configuration
+        return WorkspaceClient()
     token = os.environ.get("DATABRICKS_TOKEN", "").strip()
     if token and not token.startswith("FILL"):
         return WorkspaceClient(host=host(), token=token)

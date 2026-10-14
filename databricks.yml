@@ -1,0 +1,92 @@
+# The nightly job as a Databricks Asset Bundle: the SQL files lakehouse/run.py runs from the laptop become SQL tasks on
+# the warehouse, then parity and the Monday draft run as Python tasks on serverless compute (lakehouse/job_tasks.py).
+#
+#   databricks bundle validate && databricks bundle deploy     # the CLI's default profile; -p <profile> for another workspace
+#   databricks bundle run fairshare_nightly                    # one run now; the draft task runs on Mondays (summary_weekday)
+#
+# The landing step stays manual: `FAIRSHARE_BACKEND=databricks python lakehouse/run.py` once uploads the CSVs and the
+# agreements to the volumes (at an airline that is Fabric Data Factory into OneLake); from bronze on, the job owns it.
+# Nothing workspace-specific is written here: the warehouse is looked up by name, failure mail goes to whoever deploys.
+bundle:
+  name: fairshare
+
+sync:
+  exclude: [data/out, app, evals, docs, .streamlit, .claude, .githooks, .pytest_cache]  # the job needs lakehouse, fairshare, harness, data/contracts
+
+variables:
+  warehouse_id:
+    description: The SQL warehouse the SQL tasks run on (Free Edition has the one)
+    lookup:
+      warehouse: Serverless Starter Warehouse
+
+resources:
+  jobs:
+    fairshare_nightly:
+      name: fairshare nightly
+      description: bronze to gold, the metric view, definitions, decomposition, parity against the Power BI twins; on Mondays the drafts for the Monday page
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: America/Chicago
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure: ["${workspace.current_user.userName}"]
+      parameters:
+        - name: summary_weekday
+          default: "1"  # ISO weekday the drafts are written on (1 = Monday); set today's number under "Run now with different parameters" to force them
+      environments:
+        - environment_key: fairshare
+          spec:
+            environment_version: "3"
+            dependencies: ["python-dotenv", "agent-framework-core>=1.21", "agent-framework-openai>=1.16"]
+      tasks:
+        - task_key: bronze
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: lakehouse/00_bronze.sql}
+        - task_key: silver
+          depends_on: [{task_key: bronze}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: lakehouse/01_silver.sql}
+        - task_key: gold
+          depends_on: [{task_key: silver}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: lakehouse/02_gold.sql}
+        - task_key: metric_view
+          depends_on: [{task_key: gold}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: lakehouse/03_metric_view.sql}
+        - task_key: definitions
+          depends_on: [{task_key: gold}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: lakehouse/04_definitions.sql}
+        - task_key: decomposition
+          depends_on: [{task_key: gold}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: lakehouse/06_decomposition.sql}
+        - task_key: parity
+          depends_on: [{task_key: metric_view}, {task_key: definitions}]
+          environment_key: fairshare
+          spark_python_task:
+            python_file: lakehouse/job_tasks.py
+            parameters: ["parity", "--root", "${workspace.file_path}"]
+        - task_key: monday
+          depends_on: [{task_key: parity}, {task_key: decomposition}]
+          condition_task:
+            left: "{{job.start_time.iso_weekday}}"
+            op: EQUAL_TO
+            right: "{{job.parameters.summary_weekday}}"
+        - task_key: summary
+          depends_on: [{task_key: monday, outcome: "true"}]
+          environment_key: fairshare
+          spark_python_task:
+            python_file: lakehouse/job_tasks.py
+            parameters: ["summary", "databricks", "--root", "${workspace.file_path}"]
+
+targets:
+  demo:
+    default: true

@@ -1,11 +1,13 @@
-"""One query function, two backends.
+"""One query function, three backends.
 
 FAIRSHARE_BACKEND=duckdb      local file data/out/fairshare.duckdb, attached as catalog aa_demo (default; works offline)
 FAIRSHARE_BACKEND=databricks  a SQL warehouse via databricks-sql-connector, needs DATABRICKS_HOST and DATABRICKS_HTTP_PATH
                               (or DATABRICKS_WAREHOUSE_ID) in the environment or in .env; auth as in fairshare/dbx.py
+FAIRSHARE_BACKEND=spark       the Spark session of the Databricks compute this process runs on (a job task, a notebook):
+                              no warehouse connection, no token; lakehouse/job_tasks.py sets it
 
-SQL is written once with three-part names (aa_demo.gold.table) and runs on both. MEASURE() queries are
-Databricks only; callers check `is_databricks()` before using them.
+SQL is written once with three-part names (aa_demo.gold.table) and runs on all three. MEASURE() queries are
+Databricks only (warehouse or spark); callers check `is_databricks()` before using them.
 """
 import os
 from pathlib import Path
@@ -26,7 +28,12 @@ def backend() -> str:
 
 
 def is_databricks() -> bool:
-    return backend() == "databricks"
+    return backend() in ("databricks", "spark")
+
+
+def _spark():
+    from pyspark.sql import SparkSession
+    return SparkSession.builder.getOrCreate()
 
 
 def _duckdb():
@@ -54,6 +61,8 @@ def _databricks():
 
 def query(sql: str) -> pd.DataFrame:
     """Run one SELECT and return a DataFrame."""
+    if backend() == "spark":
+        return _spark().sql(sql).toPandas()
     if is_databricks():
         with _databricks().cursor() as cur:
             cur.execute(sql)
@@ -65,6 +74,9 @@ def query(sql: str) -> pd.DataFrame:
 def execute(sql: str) -> None:
     """Run one statement with no result. On Databricks this goes through the Statement Execution API (status, errors,
     and a bounded wait) rather than the SQL connector, which blocked without end on DDL on Oct 11, 2026."""
+    if backend() == "spark":
+        _spark().sql(sql)  # commands run eagerly
+        return
     if is_databricks():
         import time
         from fairshare.dbx import warehouse_id, workspace_client

@@ -25,7 +25,7 @@ NAME = "fairshare"
 MODEL = os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct")
 SCOPES = ["sql", "genie", "model-serving"]
 INCLUDE = ["app.yaml", "requirements.txt", "app", "harness", "fairshare", "data/contracts", "docs", "evals/results/latest.json", ".streamlit"]
-LINKS = ["DASHBOARD_URL", "GENIE_SPACE_URL", "MLFLOW_TRACES_URL", "FOUNDRY_PROJECT_URL", "REPO_URL", "DATABRICKS_APP_URL"]  # shown on Under the hood
+LINKS = ["DASHBOARD_URL", "GENIE_SPACE_URL", "JOB_URL", "MLFLOW_TRACES_URL", "FOUNDRY_PROJECT_URL", "REPO_URL", "DATABRICKS_APP_URL"]  # shown on Under the hood
 # What the app needs, nothing more: the agent-framework metapackage drags in thirty integrations and its install failed in the
 # Apps runtime (Oct 13, 2026); mlflow, duckdb and pytest are laptop-only (tracing is off inside the app, the data is the warehouse).
 APP_REQUIREMENTS = """streamlit>=1.40

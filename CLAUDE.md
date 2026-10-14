@@ -16,7 +16,7 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 ## Layout
 
 - `data/` generator, T-100 filter, contracts; `data/out/` the CSVs (committed) and the local DuckDB file (ignored)
-- `lakehouse/` SQL in run order, `run.py` (local or Databricks), `parity.py`
+- `lakehouse/` SQL in run order, `run.py` (local or Databricks), `parity.py`, `job_tasks.py` (the job's Python tasks); `databricks.yml` at the root is the nightly job as a bundle (every `0*.sql` file is a task, in order; a test checks that)
 - `harness/` agent, tools, verifier, summary, tracing, `foundry/` hosting
 - `evals/` benchmark questions with ground truth, runner, tests
 - `app/` Streamlit pages; `docs/` architecture, walkthrough, failure modes, limits
@@ -29,4 +29,5 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 .venv/bin/python evals/run_benchmark.py --check                           # ground-truth SQL runs
 .venv/bin/streamlit run app/Home.py                                        # the app
 FAIRSHARE_BACKEND=databricks .venv/bin/python lakehouse/run.py            # build on Databricks (needs .env)
+databricks bundle deploy && databricks bundle run fairshare_nightly        # the job (CLI default profile); --params summary_weekday=<today> forces the drafts
 ```
