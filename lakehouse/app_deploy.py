@@ -14,6 +14,7 @@ hence user authorization for everything.
 import io
 import os
 import sys
+import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -110,6 +111,11 @@ def update(w):
 def deploy(w):
     from databricks.sdk.service.apps import AppDeployment, AppDeploymentMode
     path = sync(w)
+    app = w.apps.get(NAME)
+    if not app.compute_status or app.compute_status.state.value != "ACTIVE":
+        start(w)  # a stopped app (24-hour stop) refuses a deployment
+    while w.apps.get(NAME).pending_deployment is not None:  # a start redeploys the last snapshot first; the API refuses a second deployment meanwhile
+        time.sleep(10)
     d = w.apps.deploy_and_wait(NAME, AppDeployment(source_code_path=path, mode=AppDeploymentMode.SNAPSHOT), timeout=timedelta(minutes=20))
     print("deployment", d.status.state.value if d.status else "", (d.status.message if d.status else "")[:400])
     app = w.apps.get(NAME)
