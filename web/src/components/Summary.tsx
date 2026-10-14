@@ -12,9 +12,9 @@ type Props = { summary: SummaryT | null; loading: boolean; error: string | null;
 function Stat({ value, label, term, note, color }: { value: string; label: string; term?: string; note: string; color?: string }) {
   return (
     <div>
-      <div className="t-display" style={color ? { color } : undefined}>{value}</div>
+      <div className="t-display whitespace-nowrap" style={color ? { color } : undefined}>{value}</div>
       <div className="mt-1.5 text-[13.5px] text-ink-2">{term ? <Term kpi={term}>{label}</Term> : label}</div>
-      <div className="mt-0.5 text-[13.5px] text-ink-2">{note}</div>
+      <div className="mt-0.5 max-w-[150px] text-[13.5px] text-ink-2">{note}</div>
     </div>
   );
 }
@@ -59,12 +59,12 @@ export function Summary({ summary, loading, error, onWhy, onAsk }: Props) {
         </Dropdown.Root>
       </div>
 
-      <div className="mt-7 flex flex-wrap gap-x-11 gap-y-7">
+      <div className="mt-7 grid grid-cols-2 justify-between gap-x-5 gap-y-7 sm:grid-cols-3 md:grid-cols-[repeat(5,auto)]">
         <Stat value={money(k.aa_revenue)} label="AA revenue" note={`${upDown(k.yoy_pct).replace(/^./, (c) => c.toUpperCase())} from ${monthLabel(summary.prior_month)}.`} />
-        <Stat value={pct(k.aa_share_pct)} label="AA share" term="aa_share" note={k.aa_revenue_prior_year ? "Against all carriers on these markets." : "No comparison a year ago."} />
-        <Stat value={pct(k.fair_share_pct)} label="Fair share" term="fair_share" note="AA's share of the seats on these markets." />
+        <Stat value={pct(k.aa_share_pct)} label="AA share" term="aa_share" note="Of all carriers on these markets." />
+        <Stat value={pct(k.fair_share_pct)} label="Fair share" term="fair_share" note="AA's share of the seats here." />
         <Stat value={pts(k.share_gap_pts)} label="Share gap" term="share_gap_pts" note={`That is ${money(k.share_gap_usd)} ${k.share_gap_usd < 0 ? "below" : "above"} fair share.`} color={k.share_gap_pts < 0 ? "#C30019" : "#0078D2"} />
-        <Stat value={pct(k.pace_pct, 0)} label="Pace to goal" term="pace_pct" note="Year to date, against this year's goal." color={k.pace_pct !== null && k.pace_pct < 100 ? "#C30019" : "#0078D2"} />
+        <Stat value={pct(k.pace_pct, 0)} label="Pace to goal" term="pace_pct" note="Year to date, against the goal." color={k.pace_pct !== null && k.pace_pct < 100 ? "#C30019" : "#0078D2"} />
       </div>
 
       <div className="mt-9">

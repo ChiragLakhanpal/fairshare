@@ -77,7 +77,7 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
       <div className="mt-2.5 flex items-start gap-1.5 text-[13.5px] leading-[1.45] text-ink-2">
         {refusal ? <Info className="mt-[3px] shrink-0" width={15} height={15} /> : <Check className="mt-[3px] shrink-0 text-blue" width={15} height={15} strokeWidth={2.5} />}
         <span>
-          {refusal ? "I did not guess. Everything above is either a query result or a clear statement of what the data does not have." : copy.verified(nums)}{" "}
+          {refusal ? "I did not guess. Everything above is either a query result or a clear statement of what the data does not have." : a.cached ? "Every number in this answer was checked against its query when it was recorded." : copy.verified(nums)}{" "}
           <Popover.Root>
             <Popover.Trigger asChild><button type="button" className="border-b border-dotted border-grey text-ink-2 hover:text-ink">{copy.howChecked}</button></Popover.Trigger>
             <Popover.Portal>

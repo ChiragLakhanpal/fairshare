@@ -177,7 +177,7 @@ function Main() {
         <section className="flex min-w-0 flex-1 flex-col">
           <TopBar me={me} scope={scope} onScope={setScope} />
           {active && <SummaryStrip summary={summary} expanded={summaryExpanded} onToggle={() => store.setSummaryExpanded(!summaryExpanded)} />}
-          <div className="flex-1">
+          <div className={`flex-1 ${active ? "pb-28" : "pb-52"}`}>
             {active ? (
               <>
                 <AnimatePresence initial={false}>
