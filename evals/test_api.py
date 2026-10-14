@@ -92,7 +92,7 @@ def test_brief_template_approve_get(client, monkeypatch, tmp_path):
     assert b["status"] == "draft" and b["sentences"] and b["removed"] == [] and b["model"] == "template"
     assert all(s["status"] == "verified" for s in b["sentences"]) and b["calls"]
     ok = client.post(f"/api/brief/{b['run_id']}/approve").json()
-    assert ok == {"run_id": b["run_id"], "status": "approved", "table": "aa_demo.ops.summaries"}
+    assert ok["run_id"] == b["run_id"] and ok["status"] == "approved" and ok["verified_text"] == b["verified_text"]
     g = client.get(f"/api/brief/{b['run_id']}").json()
     assert g["status"] == "approved" and g["verified_text"] == b["verified_text"]
 
@@ -129,3 +129,39 @@ def test_no_web_build_is_503(monkeypatch, tmp_path):
     c = TestClient(create_app())
     r = c.get("/")
     assert r.status_code == 503 and r.json()["code"] == "no_web_build"
+
+
+def test_informational_sentences_are_notes_not_verified():
+    import pandas as pd
+    from harness.verifier import FactPool, verify
+    from server.serialize import sentences_json
+    pool = FactPool()
+    pool.add_frame(pd.DataFrame({"aa_revenue": [330114.0]}), "q")
+    v = verify("Revenue was $330K. Could not verify: the cause. Source: ask_metrics.", pool)
+    assert [s["status"] for s in sentences_json(v.badges())] == ["verified", "note", "note"]
+
+
+def test_summary_reports_the_agency_count_for_the_region(client):
+    assert client.get("/api/summary", params={"region": "Central", "month": "2026-09"}).json()["agency_count"] == 5
+    assert client.get("/api/summary", params={"region": "All", "month": "2026-09"}).json()["agency_count"] == 12
+
+
+def test_approve_reverifies_edited_text(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(db, "STATE_FILE", tmp_path / "state.duckdb")
+    b = client.post("/api/brief", json={"region": "Central", "month": "2026-09", "writer": "template"}).json()
+    bad = client.post(f"/api/brief/{b['run_id']}/approve", json={"text": "AA revenue was $9.9M and nobody checked it."})
+    assert bad.status_code == 422 and bad.json()["code"] == "unverified" and "$9.9M" in bad.json()["removed"][0]["reason"]
+    first = b["sentences"][0]["text"]
+    ok = client.post(f"/api/brief/{b['run_id']}/approve", json={"text": first})
+    assert ok.status_code == 200 and ok.json()["status"] == "approved" and ok.json()["verified_text"] == first
+    assert client.get(f"/api/brief/{b['run_id']}").json()["verified_text"] == first
+
+
+def test_agencies_are_read_per_call_not_cached_across_viewers(monkeypatch):
+    from server import validate
+    calls = []
+    real = validate.db.query
+    monkeypatch.setattr(validate.db, "query", lambda sql: (calls.append(sql), real(sql))[1])
+    validate.agencies()
+    validate.agencies()
+    assert len(calls) == 2

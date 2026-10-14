@@ -20,7 +20,7 @@ export const copy = {
   sharePdf: "Save as a PDF",
   moversTitle: "Three agencies moved the most this month.",
   moversNone: "No agency moved more than a point of share this month.",
-  seeAll: "See all twelve",
+  seeAll: (n: number) => `See all ${n}`,
   why: "Why did this happen?",
   behindPace: (names: string[], total: number) => {
     if (names.length === 0) return `All ${total} agencies are ahead of pace.`;

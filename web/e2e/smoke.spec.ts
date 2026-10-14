@@ -8,8 +8,13 @@ const summary = {
   region: "All", month: "2026-09", prior_month: "2025-09", headline: "September closed ahead of pace and a little under fair share.",
   kpis: { aa_revenue: 4492373, aa_revenue_prior_year: 4456241, yoy_pct: 0.8, aa_share_pct: 37.8, fair_share_pct: 39.0, share_gap_pts: -1.2, share_gap_usd: -143384, pace_pct: 139.1 },
   movers: [{ agency_id: 5, agency: "Harbor Business Travel", region: "East", share_now_pct: 34.2, share_prior_pct: 44.3, share_chg_pts: -10.1, revenue_now: 330114, yoy_pct: -16.4 }],
-  behind_pace: [{ agency_id: 5, agency: "Harbor Business Travel", pace_pct: 96.1, aa_revenue: 330114, yoy_pct: -16.4 }], calls: [],
+  behind_pace: [{ agency_id: 5, agency: "Harbor Business Travel", pace_pct: 96.1, aa_revenue: 330114, yoy_pct: -16.4 }], calls: [], agency_count: 4,
 };
+const allRemoved = [
+  'id: 1\nevent: status\ndata: {"type":"status","phase":"model","text":"I am writing the answer.","t_ms":0}\n\n',
+  'id: 2\nevent: answer\ndata: {"question":"q","text":"Harbor sold $999K. Source: ask_metrics.","model":"x","kind":"numbers","sentences":[{"text":"Harbor sold $999K.","status":"flagged","numbers":[{"raw":"$999K","source":null,"fact":null}]},{"text":"Source: ask_metrics.","status":"note","numbers":[]}],"removed":[{"sentence":"Harbor sold $999K.","reason":"no query supports $999K"}],"could_not_verify":[],"verified_text":"Source: ask_metrics.","calls":[],"sources":[],"follow_ups":[],"genie_conversation_id":null,"timing":{"total_ms":1,"tools_ms":0},"cached":null,"trace_url":null}\n\n',
+  'id: 3\nevent: done\ndata: {"t_ms":2}\n\n',
+].join("");
 const sse = [
   'id: 1\nevent: status\ndata: {"type":"status","phase":"model","text":"I am writing the answer.","t_ms":0}\n\n',
   'id: 2\nevent: status\ndata: {"type":"status","phase":"sql","text":"I am running a query on your data.","t_ms":10}\n\n',
@@ -30,7 +35,8 @@ test("the summary is the first screen and folds into the strip on send", async (
   await expect(page.getByRole("heading", { name: summary.headline })).toBeVisible();
   await expect(page.getByText("$4.49M")).toBeVisible();
   await expect(page.getByText("37.8%", { exact: true })).toBeVisible();
-  await expect(page.getByText(/One agency is behind pace: Harbor Business Travel at 96.1%/)).toBeVisible();
+  await expect(page.getByText(/One agency is behind pace: Harbor Business Travel at 96.1%. The other 3 are ahead./)).toBeVisible();
+  await expect(page.getByText("That is $143K below fair share.")).toBeVisible();
   await page.getByLabel("Ask a question").fill("Why is Harbor down this month?");
   await page.keyboard.press("Enter");
   const strip = page.getByRole("button", { name: /Show the summary/ });
@@ -60,4 +66,30 @@ test("the sidebar collapse is remembered and the definition window opens and clo
   await expect(dialog).toContainText("all 1,500 values matched");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+});
+
+test("an answer whose every numeric sentence was removed says so", async ({ page }) => {
+  await mock(page);
+  await page.route("**/api/ask", (r) => r.fulfill({ status: 200, headers: { "content-type": "text/event-stream" }, body: allRemoved }));
+  await page.goto("/");
+  await page.getByLabel("Ask a question").fill("q");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText(/I could not show this answer/)).toBeVisible();
+  await expect(page.getByText("I removed one sentence before showing you this answer.")).toBeVisible();
+  await expect(page.getByText("Source: ask_metrics.")).toBeHidden();
+});
+
+test("save as a PDF prints only the answer", async ({ page }) => {
+  await mock(page);
+  await page.goto("/");
+  await page.evaluate(() => { (window as unknown as { print: () => void }).print = () => {}; });
+  await page.getByLabel("Ask a question").fill("Why is Harbor down this month?");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Harbor sold $330K, down 16.4%.")).toBeVisible();
+  await page.getByRole("button", { name: "More actions for this answer" }).click();
+  await page.getByRole("menuitem", { name: "Save as a PDF" }).click();
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator(".print-target")).toBeVisible();
+  await expect(page.locator(".print-target").getByText("Harbor sold $330K, down 16.4%.")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeHidden();
 });

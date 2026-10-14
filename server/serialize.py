@@ -1,5 +1,6 @@
 """JSON shapes shared by the routes and the stream."""
 from harness.facts import records  # noqa: F401  (re-exported for the routes)
+from harness.verifier import INFORMATIONAL
 
 
 def calls_json(calls) -> list[dict]:
@@ -7,7 +8,8 @@ def calls_json(calls) -> list[dict]:
 
 
 def sentences_json(badges) -> list[dict]:
-    return [{"text": b["sentence"], "status": b["status"], "numbers": b.get("numbers", [])} for b in badges]
+    # "Could not verify: ..." and "Source: ..." lines carry no claim: the verifier gives them no numbers, so they are notes, not checks
+    return [{"text": b["sentence"], "status": "note" if INFORMATIONAL.match(b["sentence"]) else b["status"], "numbers": b.get("numbers", [])} for b in badges]
 
 
 def brief_json(res: dict, status: str = "draft", writer: str | None = None) -> dict:

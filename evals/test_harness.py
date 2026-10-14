@@ -215,3 +215,15 @@ def test_save_then_load_a_brief(monkeypatch, tmp_path):
     row = summary.load(res["run_id"])
     assert row["status"] == "approved" and row["region"] == "East" and row["verified_text"] == res["verified_text"]
     assert summary.load("000000000000") is None
+
+
+def test_benchmark_genie_run_unpacks_the_genie_tuple(monkeypatch):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("run_benchmark", ROOT / "evals" / "run_benchmark.py")
+    rb = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rb)
+    df = pd.DataFrame({"n": [12]})
+    monkeypatch.setattr("harness.tools._genie_ask", lambda q, conversation_id=None: ("Genie says", df, "SELECT 12 AS n", "c1", "m1"))
+    monkeypatch.setattr(rb.time, "sleep", lambda s: None)
+    out = rb.genie_run([{"id": "q0", "question": "How many agencies?", "sql": "SELECT COUNT(*) AS n FROM aa_demo.gold.dim_agency"}])
+    assert out[0]["error"] is None and out[0]["pass"] is True and out[0]["genie_sql"] == "SELECT 12 AS n"

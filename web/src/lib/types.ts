@@ -12,7 +12,7 @@ export type Kpis = {
 };
 export type Mover = { agency_id: number; agency: string; region: string; share_now_pct: number; share_prior_pct: number; share_chg_pts: number; revenue_now: number; yoy_pct: number | null };
 export type BehindPace = { agency_id: number; agency: string; pace_pct: number; aa_revenue: number; yoy_pct: number | null };
-export type Summary = { region: string; month: string; prior_month: string; kpis: Kpis; movers: Mover[]; behind_pace: BehindPace[]; headline: string; calls: Call[] };
+export type Summary = { region: string; month: string; prior_month: string; kpis: Kpis; movers: Mover[]; behind_pace: BehindPace[]; agency_count: number; headline: string; calls: Call[] };
 
 export type Call = { i: number; tool: string; args: Record<string, unknown>; sql: string | null; rows: number | null; note: string; preview: Record<string, unknown>[]; genie: { conversation_id: string; message_id: string; url: string } | null; ms: number };
 export type Sentence = { text: string; status: "verified" | "flagged" | "note"; numbers: { raw: string; source: string | null; fact: string | null }[] };

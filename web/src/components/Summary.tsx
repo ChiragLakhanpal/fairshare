@@ -26,7 +26,7 @@ export function summaryText(s: SummaryT): string {
     `${scope}, ${monthLabel(s.month)}. ${s.headline}`,
     `AA revenue ${money(k.aa_revenue)}, ${upDown(k.yoy_pct)} from ${monthLabel(s.prior_month)}. AA share ${pct(k.aa_share_pct)} against a fair share of ${pct(k.fair_share_pct)}, a gap of ${pts(k.share_gap_pts)} worth ${money(k.share_gap_usd)}. Pace to goal ${pct(k.pace_pct, 0)}.`,
     ...s.movers.map((m) => `${m.agency} ${m.share_chg_pts < 0 ? "lost" : "gained"} ${Math.abs(m.share_chg_pts).toFixed(1)} points of share, from ${pct(m.share_prior_pct)} to ${pct(m.share_now_pct)}. Revenue was ${money(m.revenue_now)}, ${upDown(m.yoy_pct)}.`),
-    copy.behindPace(s.behind_pace.map((b) => `${b.agency} at ${pct(b.pace_pct)}`), 12),
+    copy.behindPace(s.behind_pace.map((b) => `${b.agency} at ${pct(b.pace_pct)}`), s.agency_count),
   ];
   return lines.join("\n");
 }
@@ -63,14 +63,14 @@ export function Summary({ summary, loading, error, onWhy, onAsk }: Props) {
         <Stat value={money(k.aa_revenue)} label="AA revenue" note={`${upDown(k.yoy_pct).replace(/^./, (c) => c.toUpperCase())} from ${monthLabel(summary.prior_month)}.`} />
         <Stat value={pct(k.aa_share_pct)} label="AA share" term="aa_share" note="Of all carriers on these markets." />
         <Stat value={pct(k.fair_share_pct)} label="Fair share" term="fair_share" note="AA's share of the seats here." />
-        <Stat value={pts(k.share_gap_pts)} label="Share gap" term="share_gap_pts" note={`That is ${money(k.share_gap_usd)} ${k.share_gap_usd < 0 ? "below" : "above"} fair share.`} color={k.share_gap_pts < 0 ? "#C30019" : "#0078D2"} />
+        <Stat value={pts(k.share_gap_pts)} label="Share gap" term="share_gap_pts" note={`That is ${money(Math.abs(k.share_gap_usd))} ${k.share_gap_usd < 0 ? "below" : "above"} fair share.`} color={k.share_gap_pts < 0 ? "#C30019" : "#0078D2"} />
         <Stat value={pct(k.pace_pct, 0)} label="Pace to goal" term="pace_pct" note="Year to date, against the goal." color={k.pace_pct !== null && k.pace_pct < 100 ? "#C30019" : "#0078D2"} />
       </div>
 
       <div className="mt-9">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[15px] font-semibold text-ink">{summary.movers.length ? copy.moversTitle : copy.moversNone}</h2>
-          <button type="button" className="no-print text-[13.5px] text-blue hover:underline" onClick={() => onAsk(`Show every agency's share against fair share for ${monthLabel(summary.month)}.`)}>{copy.seeAll}</button>
+          <button type="button" className="no-print text-[13.5px] text-blue hover:underline" onClick={() => onAsk(`Show every agency's share against fair share for ${monthLabel(summary.month)}.`)}>{copy.seeAll(summary.agency_count)}</button>
         </div>
         <div className="mt-2">
           {summary.movers.map((m) => (
@@ -83,7 +83,7 @@ export function Summary({ summary, loading, error, onWhy, onAsk }: Props) {
             </div>
           ))}
         </div>
-        <p className="mt-3 text-[14px] text-ink-2">{copy.behindPace(summary.behind_pace.map((b) => `${b.agency} at ${pct(b.pace_pct)}`), 12)}</p>
+        <p className="mt-3 text-[14px] text-ink-2">{copy.behindPace(summary.behind_pace.map((b) => `${b.agency} at ${pct(b.pace_pct)}`), summary.agency_count)}</p>
       </div>
     </div>
   );

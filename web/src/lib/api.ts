@@ -13,8 +13,8 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 }
 async function asError(r: Response): Promise<ApiError> {
   try {
-    const j = (await r.json()) as ApiError;
-    return { code: j.code ?? String(r.status), message: j.message ?? r.statusText };
+    const j = (await r.json()) as ApiError & Record<string, unknown>;
+    return { ...j, code: j.code ?? String(r.status), message: j.message ?? r.statusText };
   } catch {
     return { code: String(r.status), message: r.statusText };
   }
@@ -29,7 +29,7 @@ export const api = {
     get<{ hits: { file: string; page: number; text: string; score: number }[] }>(`/api/agreements?topic=${encodeURIComponent(topic)}${agency_id ? `&agency_id=${agency_id}` : ""}`),
   definitions: () => get<Definitions>("/api/definitions"),
   brief: (s: Scope, writer: "guarded" | "unguarded" | "template" = "guarded") => post<Brief>("/api/brief", { ...s, writer }),
-  approveBrief: (run_id: string) => post<{ run_id: string; status: string }>(`/api/brief/${run_id}/approve`, {}),
+  approveBrief: (run_id: string, text?: string) => post<Brief>(`/api/brief/${run_id}/approve`, text ? { text } : {}),
   getBrief: (run_id: string) => get<Brief>(`/api/brief/${run_id}`),
 };
 

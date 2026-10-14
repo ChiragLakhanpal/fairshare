@@ -60,7 +60,7 @@ async def get_summary(region: str, month: str, v: Viewer = Depends(viewer)):
     behind = [{"agency_id": b["agency_id"], "agency": b["agency_name"], "pace_pct": b["pace_pct"], "aa_revenue": b["aa_revenue"], "yoy_pct": b["yoy_pct"]}
               for b in records(f["behind_pace"], 100)]
     return {"region": region, "month": month, "prior_month": _prior(month), "kpis": kpis, "movers": records(f["movers"]),
-            "behind_pace": behind, "headline": summary.headline(f, month), "calls": calls_json(ctx.calls)}
+            "behind_pace": behind, "agency_count": int(len(f["agencies"])), "headline": summary.headline(f, month), "calls": calls_json(ctx.calls)}
 
 
 @router.get("/explain")
@@ -132,14 +132,31 @@ async def post_brief(body: BriefIn, v: Viewer = Depends(viewer)):
     return brief_json(res, "draft", body.writer)
 
 
+class ApproveIn(BaseModel):
+    text: str | None = Field(default=None, max_length=6000)
+
+
 @router.post("/brief/{run_id}/approve")
-async def approve_brief(run_id: str, v: Viewer = Depends(viewer)):
+async def approve_brief(run_id: str, body: ApproveIn | None = None, v: Viewer = Depends(viewer)):
     item = drafts.get(run_id)
     if item is None:
         raise HTTPException(404, {"code": "draft_expired", "message": "That draft is gone. Write the brief again."})
-    await run_in_threadpool(summary.save, item["res"], "approved")
+    res = item["res"]
+    text = (body.text or "").strip() if body else ""
+    if text and text != res["draft"]:
+        # an edited brief goes through the same checker as the model's draft, against the same query results
+        from harness.verifier import FactPool, verify
+        pool = FactPool()
+        for name, frame in res.get("facts", {}).items():
+            pool.add_frame(frame, f"build_summary#{name}")
+        ver = verify(text, pool)
+        if ver.flagged:
+            raise HTTPException(422, {"code": "unverified", "message": "Your edit has a number no query supports, so it cannot be sent.", "removed": ver.flagged})
+        res = {**res, "draft": text, "verified_text": ver.verified_text, "flagged": ver.flagged, "badges": ver.badges()}
+        item["res"] = res
+    await run_in_threadpool(summary.save, res, "approved")
     drafts.approve(run_id)
-    return {"run_id": run_id, "status": "approved", "table": db.SUMMARIES}
+    return brief_json(res, "approved", item["writer"])
 
 
 @router.get("/brief/{run_id}")

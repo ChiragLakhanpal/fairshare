@@ -82,7 +82,7 @@ def genie_run(questions):
         gt = db.query(q["sql"])
         t0 = time.time()
         try:
-            text, df, sql = _genie_ask(q["question"])
+            text, df, sql, _conversation_id, _message_id = _genie_ask(q["question"])
             ok = matches(gt, df)
             err = None
         except Exception as e:

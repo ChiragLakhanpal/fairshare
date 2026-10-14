@@ -4,7 +4,7 @@ import { copy } from "../copy";
 import { api } from "../lib/api";
 import { copyText, emailDraft, printElement } from "../lib/export";
 import { monthLabel } from "../lib/format";
-import type { Brief as BriefT } from "../lib/types";
+import type { ApiError, Brief as BriefT } from "../lib/types";
 import { Check, ChevronDown, Copy, File as FileIcon, Link, Mail } from "./Icons";
 
 const item = "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink outline-none data-[highlighted]:bg-surface data-[disabled]:opacity-50";
@@ -14,16 +14,25 @@ export function Brief({ brief, onApproved }: { brief: BriefT; onApproved: (b: Br
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(brief.verified_text);
   const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   const scope = `${brief.region === "All" ? "all regions" : `the ${brief.region} region`}, ${monthLabel(brief.month)}`;
   const subject = `Monday brief: ${brief.region === "All" ? "all regions" : brief.region}, ${monthLabel(brief.month)}`;
   const link = `${location.origin}/brief/${brief.run_id}`;
   const approved = brief.status === "approved";
   const approve = async () => {
     setBusy(true);
+    setProblem(null);
     try {
-      await api.approveBrief(brief.run_id);
-      onApproved({ ...brief, status: "approved" });
-      emailDraft(subject, text);
+      const edited = text.trim() !== brief.verified_text.trim();
+      const approved = await api.approveBrief(brief.run_id, edited ? text : undefined);
+      setEditing(false);
+      setText(approved.verified_text);
+      onApproved(approved);
+      emailDraft(subject, approved.verified_text);
+    } catch (e) {
+      const err = e as ApiError & { removed?: { sentence: string; reason: string }[] };
+      const removed = err.removed?.map((r) => `"${r.sentence}" (${r.reason})`).join("; ");
+      setProblem(err.code === "unverified" ? `${err.message} ${removed ?? ""}`.trim() : err.code === "draft_expired" ? err.message : `The brief could not be approved. ${err.message ?? ""}`.trim());
     } finally {
       setBusy(false);
     }
@@ -68,6 +77,7 @@ export function Brief({ brief, onApproved }: { brief: BriefT; onApproved: (b: Br
           </Dropdown.Portal>
         </Dropdown.Root>
       </div>
+      {problem && <p className="mt-2.5 text-[13.5px] text-red">{problem}</p>}
       <p className="mt-2.5 text-[13px] text-ink-2">{approved ? <>{copy.approved} <a href={link}>{link}</a></> : copy.approveNote}</p>
     </div>
   );

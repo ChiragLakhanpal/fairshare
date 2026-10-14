@@ -1,7 +1,5 @@
 """The trust boundary: the only values that ever reach SQL are an allowlisted region, a month that exists in the
 data, and an agency name looked up from its id."""
-from functools import lru_cache
-
 from fastapi import HTTPException
 
 from fairshare import db
@@ -16,8 +14,8 @@ def scope(region: str, month: str) -> tuple[str, str]:
         raise HTTPException(422, {"code": "invalid_scope", "message": str(e)})
 
 
-@lru_cache(maxsize=1)
 def agencies() -> list[dict]:
+    """Read per call, never cached across viewers: with Unity Catalog row filters each viewer sees their own agencies."""
     return records(db.query("SELECT agency_id, agency_name, agency_type, region, account_manager FROM aa_demo.gold.dim_agency ORDER BY agency_name"), 1000)
 
 
