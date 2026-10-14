@@ -31,11 +31,11 @@ questions:
     question: What was Summit Travel Partners' AA share on DFW to ORD in Q3 2026 versus Q3 2025?
     tags: [share, quarter, yoy]
     sql: |
-      SELECT EXTRACT(YEAR FROM s.sales_month) AS yr, ROUND(SUM(s.aa_revenue) / SUM(s.market_revenue) * 100, 1) AS aa_share_pct
+      SELECT CONCAT('Q3 ', CAST(EXTRACT(YEAR FROM s.sales_month) AS INT)) AS quarter, ROUND(SUM(s.aa_revenue) / SUM(s.market_revenue) * 100, 1) AS aa_share_pct
       FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
       JOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id
       WHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'
-        AND EXTRACT(MONTH FROM s.sales_month) BETWEEN 7 AND 9 GROUP BY ALL ORDER BY yr
+        AND EXTRACT(MONTH FROM s.sales_month) BETWEEN 7 AND 9 GROUP BY ALL ORDER BY quarter
 
   - id: q05
     question: In Q3 2026, how far above or below fair share was Summit Travel Partners on DFW to ORD, in points?

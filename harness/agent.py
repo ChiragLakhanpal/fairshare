@@ -93,10 +93,14 @@ def make_client():
         # answers "passthrough is not supported" for every Free Edition model, Oct 13, 2026). Qwen3-Next instruct: plain content and
         # real tool calls; the reasoning models (gpt-oss, qwen3.5) return content as reasoning+text parts the framework drops, and
         # Llama 4 Maverick pasted a run_sql call as text instead of calling it. The token is the user's, inside the App the viewer's.
-        # api_key is the function, not its value: the OpenAI client calls it on every request, so one client serves every
-        # viewer and each call carries the token bound to the current request (fairshare/dbx.py).
+        # api_key is a function, not a value: the async OpenAI client awaits it on every request, so one client serves every
+        # viewer and each call carries the token bound to the current request (fairshare/dbx.py). It must be a coroutine
+        # function: AsyncOpenAI awaits the provider (a plain str cannot be awaited; the live App failed that way on Oct 14, 2026).
+        async def viewer_token() -> str:
+            return bearer_token()
+
         return OpenAIChatCompletionClient(model=os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct"), base_url=f"{host()}/serving-endpoints",
-                                          api_key=bearer_token)
+                                          api_key=viewer_token)
     if b == "openai":
         return OpenAIChatClient(model=os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"), api_key=os.environ["OPENAI_API_KEY"],
                                 base_url=os.environ.get("OPENAI_BASE_URL"))

@@ -128,12 +128,15 @@ def test_make_client_reads_the_viewer_token_per_request(monkeypatch):
     dbx._cached_client.cache_clear()
     client = harness_agent.make_client()
     inner = next(getattr(client, a) for a in ("client", "_client", "async_client") if getattr(client, a, None) is not None)
-    provider = inner._api_key_provider
-    assert callable(provider)
+    assert callable(inner._api_key_provider)
+
+    async def refresh():  # the async OpenAI client awaits the provider on every request (openai 3.29, _client.py:1024)
+        return await inner._refresh_api_key()
+
     with dbx.bind("tok-1"):
-        assert provider() == "tok-1"
+        assert asyncio.run(refresh()) == "tok-1"
     with dbx.bind("tok-2"):
-        assert provider() == "tok-2"
+        assert asyncio.run(refresh()) == "tok-2"
 
 
 class StubAgent:
