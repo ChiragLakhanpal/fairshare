@@ -1,5 +1,5 @@
-"""The Streamlit app as a Databricks App: the proof that it runs inside the lakehouse with the viewer's own permissions.
-The laptop (Foundry model) stays the demo path; this is the one-click "and here it is inside the workspace" in beat five.
+"""The app as a Databricks App: the FastAPI server (server/) over the React build (web/dist), running inside the lakehouse
+with the viewer's own permissions. Build the web app first (cd web && npm run build); deploy refuses to sync without it.
 
   python lakehouse/app_deploy.py create   # once: the app, its resources (warehouse, Genie space, model) and the user-authorization scopes
   python lakehouse/app_deploy.py update   # after changing DATABRICKS_MODEL or the scopes (then deploy)
@@ -25,11 +25,13 @@ from fairshare.dbx import warehouse_id, workspace_client  # noqa: E402
 NAME = "fairshare"
 MODEL = os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct")
 SCOPES = ["sql", "genie", "model-serving"]
-INCLUDE = ["app.yaml", "requirements.txt", "app", "harness", "fairshare", "data/contracts", "docs", "evals/results/latest.json", ".streamlit"]
-LINKS = ["DASHBOARD_URL", "GENIE_SPACE_URL", "JOB_URL", "MLFLOW_TRACES_URL", "FOUNDRY_PROJECT_URL", "REPO_URL", "DATABRICKS_APP_URL"]  # shown on Under the hood
+INCLUDE = ["app.yaml", "requirements.txt", "server", "harness", "fairshare", "data/contracts", "web/dist", "app/cache", "evals/results/latest.json"]
+LINKS = ["DASHBOARD_URL", "GENIE_SPACE_URL", "JOB_URL", "MLFLOW_TRACES_URL", "FOUNDRY_PROJECT_URL", "REPO_URL", "DATABRICKS_APP_URL"]  # /api/me hands them to the app
 # What the app needs, nothing more: the agent-framework metapackage drags in thirty integrations and its install failed in the
 # Apps runtime (Oct 13, 2026); mlflow, duckdb and pytest are laptop-only (tracing is off inside the app, the data is the warehouse).
-APP_REQUIREMENTS = """streamlit>=1.40
+APP_REQUIREMENTS = """fastapi
+uvicorn
+sse-starlette
 databricks-sdk
 databricks-sql-connector
 pandas
@@ -110,6 +112,8 @@ def update(w):
 
 def deploy(w):
     from databricks.sdk.service.apps import AppDeployment, AppDeploymentMode
+    if not (ROOT / "web" / "dist" / "index.html").exists():
+        sys.exit("web/dist/index.html is missing: run `cd web && npm run build` first")
     path = sync(w)
     app = w.apps.get(NAME)
     if not app.compute_status or app.compute_status.state.value != "ACTIVE":

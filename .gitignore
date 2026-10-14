@@ -8,3 +8,6 @@ data/out/*.duckdb.wal
 app/cache/*.parquet
 .streamlit/secrets.toml
 .DS_Store
+web/node_modules/
+web/dist/
+.superpowers/

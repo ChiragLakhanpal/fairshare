@@ -121,3 +121,17 @@ def test_aio_run_works_inside_a_running_loop():
         return aio.run(answer())  # called from inside a running loop
 
     assert asyncio.run(kernel()) == 42
+
+
+def test_app_deploy_ships_the_server_not_streamlit():
+    """The Databricks App runs the FastAPI server over the React build; the Streamlit pages never go up again."""
+    import yaml
+    sys.path.insert(0, str(ROOT / "lakehouse"))
+    import app_deploy
+    assert "server" in app_deploy.INCLUDE and "web/dist" in app_deploy.INCLUDE and "app/cache" in app_deploy.INCLUDE
+    assert "app" not in app_deploy.INCLUDE and ".streamlit" not in app_deploy.INCLUDE and "docs" not in app_deploy.INCLUDE
+    reqs = app_deploy.APP_REQUIREMENTS
+    assert "fastapi" in reqs and "uvicorn" in reqs and "sse-starlette" in reqs and "streamlit" not in reqs
+    manifest = yaml.safe_load((ROOT / "app.yaml").read_text())
+    assert manifest["command"] == ["python", "-m", "server.main"]
+    assert not any(e["name"].startswith("STREAMLIT") for e in manifest["env"])

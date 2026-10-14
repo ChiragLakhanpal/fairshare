@@ -4,7 +4,9 @@ databricks-sql-connector
 duckdb>=1.1
 pandas
 pyarrow
-streamlit>=1.40
+fastapi
+uvicorn
+sse-starlette
 mlflow>=3.6
 opentelemetry-exporter-otlp-proto-http
 pyyaml
