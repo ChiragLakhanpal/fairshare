@@ -34,7 +34,7 @@ export function createStore(storage: Storage) {
     conversations: read<Conversation[]>(storage, KEY, []),
     activeId: null,
     summaryExpanded: true,
-    sidebarCollapsed: read<boolean>(storage, SIDEBAR, false),
+    sidebarCollapsed: read<boolean>(storage, SIDEBAR, typeof window !== "undefined" && window.innerWidth < 900), // ponytail: narrow screens start collapsed; no slide-over sheet
   };
   const listeners = new Set<() => void>();
   const set = (patch: Partial<State>) => {

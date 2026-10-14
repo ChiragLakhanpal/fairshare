@@ -81,7 +81,8 @@ function Main() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       const typing = (document.activeElement?.tagName ?? "") in { INPUT: 1, TEXTAREA: 1, SELECT: 1 };
-      if (e.key === "Escape" && activeId && store.get().summaryExpanded) store.setSummaryExpanded(false);
+      const windowOpen = !!document.querySelector('[role="dialog"]');
+      if (e.key === "Escape" && !windowOpen && activeId && store.get().summaryExpanded) store.setSummaryExpanded(false);
       if (e.key === "/" && !typing) {
         e.preventDefault();
         inputRef.current?.focus();
