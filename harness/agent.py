@@ -15,13 +15,15 @@ from __future__ import annotations
 import re
 import os
 import sys
+import time
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 from dotenv import load_dotenv
 
 from fairshare.db import ROOT, is_databricks
 from harness import aio, facts, tracing
-from harness.tools import SCHEMA_NOTE, ask_metrics, explain_change, run_sql, search_contracts
+from harness.tools import PHASE_TEXT, SCHEMA_NOTE, ask_metrics, explain_change, run_sql, search_contracts
 from harness.verifier import Verification, verify
 
 load_dotenv(ROOT / ".env")
@@ -48,6 +50,7 @@ Keep answers short: the number, the comparison, the source. No preamble. Plain p
 Never paste SQL, column names or raw tool output into the answer: the app attaches the query and the table. Name the source in a few words.
 When you offer a proxy, describe its rule in words ("revenue down by more than a tenth year over year and behind pace"), not as a formula with numbers.
 Year over year from the metric view is only valid when the query groups by sales_month; for a quarter or a year, compare the two periods' revenue explicitly.
+Earlier turns of the conversation are context only: a number from an earlier answer must be queried again before you state it.
 """ + "\n" + SCHEMA_NOTE
 
 
@@ -59,6 +62,8 @@ class Answer:
     calls: list = field(default_factory=list)
     sources: list = field(default_factory=list)
     model: str = ""
+    genie_conversation_id: str | None = None
+    elapsed_ms: int = 0
 
     @property
     def flagged(self):
@@ -88,8 +93,10 @@ def make_client():
         # answers "passthrough is not supported" for every Free Edition model, Oct 13, 2026). Qwen3-Next instruct: plain content and
         # real tool calls; the reasoning models (gpt-oss, qwen3.5) return content as reasoning+text parts the framework drops, and
         # Llama 4 Maverick pasted a run_sql call as text instead of calling it. The token is the user's, inside the App the viewer's.
+        # api_key is the function, not its value: the OpenAI client calls it on every request, so one client serves every
+        # viewer and each call carries the token bound to the current request (fairshare/dbx.py).
         return OpenAIChatCompletionClient(model=os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct"), base_url=f"{host()}/serving-endpoints",
-                                          api_key=bearer_token())
+                                          api_key=bearer_token)
     if b == "openai":
         return OpenAIChatClient(model=os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"), api_key=os.environ["OPENAI_API_KEY"],
                                 base_url=os.environ.get("OPENAI_BASE_URL"))
@@ -107,16 +114,24 @@ def make_agent():
                  description="Answers agency and corporate sales performance questions with the number, the SQL, and the source.")
 
 
+@lru_cache(maxsize=1)
+def get_agent():
+    """The one agent for the process: the client reads the viewer's token per request, so nothing in it is per viewer."""
+    return make_agent()
+
+
 def ask(question: str, agent=None) -> Answer:
-    """One question through the harness: reset the run context, run the agent, verify the answer."""
+    """One question from the command line, the benchmark or the cache: a fresh run context, then the async path on the
+    process loop. The server calls ask_async itself on its own loop with the request's context already set up."""
+    facts.reset()
     if tracing.setup():
         import mlflow
         with mlflow.start_span(name="fairshare.ask") as sp:
             sp.set_inputs({"question": question})
-            a = _ask(question, agent)
+            a = aio.run(ask_async(question, agent))
             sp.set_outputs({"answer": a.text, "verified": a.verification.ok, "tools": [c.tool for c in a.calls]})
             return a
-    return _ask(question, agent)
+    return aio.run(ask_async(question, agent))
 
 
 PASTED_CALL = re.compile(r'(\{\s*"name"\s*:\s*"(ask_metrics|run_sql|explain_change|search_contracts)"|\b(ask_metrics|run_sql|explain_change|search_contracts)\s*\()')
@@ -126,24 +141,36 @@ def _clean(text: str) -> str:
     return (text or "").strip().replace(" \u2014 ", ", ").replace("\u2014", ", ").replace(" \u2013 ", ", ")
 
 
-def _ask(question: str, agent=None) -> Answer:
-    agent = agent or make_agent()
+async def ask_async(question: str, agent=None, *, history=()) -> Answer:
+    """One question on the caller's event loop, in the caller's run context (the server sets one up per request with the
+    viewer's token, the progress listener and the thread's Genie conversation). history is the browser's earlier turns,
+    [{"role": "user"|"assistant", "text": ...}], passed as prior messages."""
+    from agent_framework import Message
+    agent = agent or get_agent()
     if agent is None:
         raise RuntimeError("no model configured (FAIRSHARE_MODEL=none); use cached answers")
-    facts.reset()
-    text = _clean(aio.run(agent.run(question)).text)
+    ctx = facts.current()
+    t0 = time.monotonic()
+    prior = [Message(h["role"], [h["text"]]) for h in history if h.get("text")]
+
+    async def run(q: str) -> str:
+        resp = await agent.run(prior + [Message("user", [q])])
+        return _clean(resp.text)
+
+    text = await run(question)
     if PASTED_CALL.search(text):
         # open models (Llama 4 Maverick, Qwen3-Next; Oct 13, 2026) sometimes write the tool call as text instead of making it:
         # one retry with the instruction made explicit, then an honest refusal rather than a pasted query on screen
-        facts.reset()
-        text = _clean(aio.run(agent.run(question + "\n\nCall the tool; do not write the call out as text.")).text)
+        ctx.clear()
+        text = await run(question + "\n\nCall the tool; do not write the call out as text.")
         if PASTED_CALL.search(text):
             text = "Could not verify: the model wrote a query instead of running it. Ask again, or use the laptop model."
     if not text:
         text = "Could not verify: the model returned no answer text."
-    ctx = facts.current()
+    ctx.emit("status", phase="verify", text=PHASE_TEXT["verify"])
     return Answer(question=question, text=text, verification=verify(text, ctx.pool, question), calls=ctx.calls, sources=ctx.sources,
-                  model=model_backend() + ("/databricks" if is_databricks() else "/duckdb"))
+                  model=model_backend() + ("/databricks" if is_databricks() else "/duckdb"),
+                  genie_conversation_id=ctx.genie_conversation_id, elapsed_ms=int((time.monotonic() - t0) * 1000))
 
 
 def main(argv):

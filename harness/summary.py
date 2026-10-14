@@ -7,10 +7,12 @@ save(...)                   writes the run to aa_demo.ops.summaries with status 
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
 from datetime import datetime
+from functools import lru_cache
 
 import pandas as pd
 
@@ -19,27 +21,47 @@ from harness import aio, facts
 from harness.verifier import verify
 
 
+REGIONS = ("All", "Central", "East", "West")
+MONTH_RE = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])(-\d{2})?$")
+MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+
+@lru_cache(maxsize=1)
+def months() -> list[str]:
+    """Every month in the data, newest first (YYYY-MM). ponytail: cached for the process; the app restarts daily anyway."""
+    df = db.query("SELECT DISTINCT sales_month FROM aa_demo.gold.fact_agency_sales_monthly ORDER BY sales_month DESC")
+    return [str(m)[:7] for m in df["sales_month"]]
+
+
+def _check_scope(region: str, month: str) -> tuple[str, str]:
+    """The only two values that are ever formatted into SQL: an allowlisted region and a month that exists in the data."""
+    if region not in REGIONS:
+        raise ValueError(f"region must be one of {', '.join(REGIONS)}")
+    m = MONTH_RE.match(str(month).strip())
+    if not m or f"{m.group(1)}-{m.group(2)}" not in months():
+        raise ValueError("month must be a month in the data, like 2026-09")
+    return region, f"{m.group(1)}-{m.group(2)}"
+
+
+def _region_pred(region: str, alias: str = "a") -> str:
+    return "" if region == "All" else f"AND {alias}.region = '{region}'"
+
+
 def _mv(sql_mv: str, sql_twin: str) -> pd.DataFrame:
     return db.query(sql_mv if db.is_databricks() else sql_twin)
 
 
-def build_facts(region: str, month: str) -> dict:
-    """All the numbers the summary may use. Everything is a returned column; nothing is left to arithmetic."""
-    mo = f"{month[:7]}-01"
-    y, m = int(mo[:4]), int(mo[5:7])
-    prior = f"{y - 1:04d}-{m:02d}-01"
-    ctx = facts.current()
-    out = {}
-
-    region_sql_twin = f"""
+def region_block(region: str, mo: str, prior: str) -> tuple[pd.DataFrame, str, str]:
+    pred = _region_pred(region)
+    twin = f"""
         WITH cur AS (
           SELECT SUM(s.aa_revenue) AS aa_revenue, SUM(s.market_revenue) AS market_revenue, SUM(s.market_revenue * c.aa_seat_share) AS fair_revenue
           FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
           JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
-          WHERE a.region = '{region}' AND s.sales_month = DATE '{mo}'),
+          WHERE s.sales_month = DATE '{mo}' {pred}),
         pri AS (
           SELECT SUM(s.aa_revenue) AS aa_revenue_prior_year FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
-          WHERE a.region = '{region}' AND s.sales_month = DATE '{prior}')
+          WHERE s.sales_month = DATE '{prior}' {pred})
         SELECT ROUND(cur.aa_revenue, 0) AS aa_revenue, ROUND(pri.aa_revenue_prior_year, 0) AS aa_revenue_prior_year,
                ROUND((cur.aa_revenue - pri.aa_revenue_prior_year) / NULLIF(pri.aa_revenue_prior_year, 0) * 100, 1) AS yoy_pct,
                ROUND(cur.aa_revenue / NULLIF(cur.market_revenue, 0) * 100, 1) AS aa_share_pct,
@@ -47,25 +69,27 @@ def build_facts(region: str, month: str) -> dict:
                ROUND((cur.aa_revenue - cur.fair_revenue) / NULLIF(cur.market_revenue, 0) * 100, 1) AS share_gap_pts,
                ROUND(cur.aa_revenue - cur.fair_revenue, 0) AS share_gap_usd
         FROM cur, pri"""
-    region_sql_mv = f"""
+    mv_pred = "" if region == "All" else f"region = '{region}' AND"
+    mv = f"""
         SELECT ROUND(MEASURE(aa_revenue), 0) AS aa_revenue, ROUND(MEASURE(aa_revenue_prior_year), 0) AS aa_revenue_prior_year,
                ROUND(MEASURE(yoy_revenue_pct) * 100, 1) AS yoy_pct, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct,
                ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts,
                ROUND(MEASURE(share_gap_usd), 0) AS share_gap_usd
-        FROM aa_demo.gold.sales_metrics WHERE region = '{region}' AND sales_month = DATE '{mo}' GROUP BY ALL"""
-    out["region"] = _mv(region_sql_mv, region_sql_twin)
-    ctx.record("build_summary", {"region": region, "month": month, "block": "region"}, out["region"], sql=(region_sql_mv if db.is_databricks() else region_sql_twin).strip(),
-               source="sales_metrics" if db.is_databricks() else "gold.fact_agency_sales_monthly")
+        FROM aa_demo.gold.sales_metrics WHERE {mv_pred} sales_month = DATE '{mo}' GROUP BY ALL"""
+    sql = mv if db.is_databricks() else twin
+    return _mv(mv, twin), sql.strip(), "sales_metrics" if db.is_databricks() else "gold.fact_agency_sales_monthly"
 
-    agencies_sql = f"""
+
+def agencies_block(region: str, mo: str, prior: str) -> tuple[pd.DataFrame, str, str]:
+    sql = f"""
         WITH cur AS (
           SELECT a.agency_id, a.agency_name, SUM(s.aa_revenue) AS aa_revenue, SUM(s.market_revenue) AS market_revenue, SUM(s.market_revenue * c.aa_seat_share) AS fair_revenue
           FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
           JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
-          WHERE a.region = '{region}' AND s.sales_month = DATE '{mo}' GROUP BY ALL),
+          WHERE s.sales_month = DATE '{mo}' {_region_pred(region)} GROUP BY ALL),
         pri AS (
           SELECT agency_id, SUM(aa_revenue) AS aa_revenue_prior FROM aa_demo.gold.fact_agency_sales_monthly WHERE sales_month = DATE '{prior}' GROUP BY ALL)
-        SELECT cur.agency_name, ROUND(cur.aa_revenue, 0) AS aa_revenue,
+        SELECT cur.agency_id, cur.agency_name, ROUND(cur.aa_revenue, 0) AS aa_revenue,
                ROUND((cur.aa_revenue - pri.aa_revenue_prior) / NULLIF(pri.aa_revenue_prior, 0) * 100, 1) AS yoy_pct,
                ROUND(cur.aa_revenue / NULLIF(cur.market_revenue, 0) * 100, 1) AS aa_share_pct,
                ROUND((cur.aa_revenue - cur.fair_revenue) / NULLIF(cur.market_revenue, 0) * 100, 1) AS share_gap_pts,
@@ -74,14 +98,15 @@ def build_facts(region: str, month: str) -> dict:
         FROM cur LEFT JOIN pri ON pri.agency_id = cur.agency_id
         LEFT JOIN aa_demo.gold.agency_pace p ON p.agency_id = cur.agency_id AND p.sales_month = DATE '{mo}'
         ORDER BY cur.aa_revenue DESC"""
-    out["agencies"] = db.query(agencies_sql)
-    ctx.record("build_summary", {"region": region, "month": month, "block": "agencies"}, out["agencies"], sql=agencies_sql.strip(), source="gold.agency_pace")
+    return db.query(sql), sql.strip(), "gold.agency_pace"
 
-    streak_sql = f"""
+
+def streaks_block(region: str, mo: str) -> tuple[pd.DataFrame, str, str]:
+    sql = f"""
         WITH m AS (
           SELECT a.agency_name, s.sales_month, SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0) AS share
           FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
-          WHERE a.region = '{region}' AND s.sales_month <= DATE '{mo}' GROUP BY ALL),
+          WHERE s.sales_month <= DATE '{mo}' {_region_pred(region)} GROUP BY ALL),
         d AS (
           SELECT agency_name, sales_month, share, LAG(share) OVER (PARTITION BY agency_name ORDER BY sales_month) AS prev_share,
                  ROW_NUMBER() OVER (PARTITION BY agency_name ORDER BY sales_month DESC) AS rn
@@ -93,18 +118,81 @@ def build_facts(region: str, month: str) -> dict:
         SELECT f.agency_name, COALESCE(g.streak, MAX(f.rn)) AS months_share_down
         FROM f LEFT JOIN g ON g.agency_name = f.agency_name GROUP BY f.agency_name, g.streak
         HAVING COALESCE(g.streak, MAX(f.rn)) >= 3 ORDER BY months_share_down DESC"""
-    out["streaks"] = db.query(streak_sql)
-    ctx.record("build_summary", {"region": region, "month": month, "block": "share streaks"}, out["streaks"], sql=streak_sql.strip(), source="gold.fact_agency_sales_monthly")
+    return db.query(sql), sql.strip(), "gold.fact_agency_sales_monthly"
 
-    weekly_sql = f"""
+
+def weekly_block(mo: str) -> tuple[pd.DataFrame, str, str]:
+    sql = f"""
         SELECT week_start, ROUND(SUM(booked_revenue), 0) AS booked_revenue, SUM(tickets) AS tickets,
                ROUND((SUM(booked_revenue) - LAG(SUM(booked_revenue)) OVER (ORDER BY week_start)) / NULLIF(LAG(SUM(booked_revenue)) OVER (ORDER BY week_start), 0) * 100, 1) AS wow_pct
         FROM aa_demo.gold.fact_corporate_bookings_weekly
         WHERE week_start >= DATE '{mo}' - INTERVAL 35 DAY AND week_start + INTERVAL 6 DAY < DATE '{mo}' + INTERVAL 1 MONTH
         GROUP BY week_start ORDER BY week_start"""
-    out["weekly"] = db.query(weekly_sql)
-    ctx.record("build_summary", {"region": region, "month": month, "block": "corporate weekly bookings"}, out["weekly"], sql=weekly_sql.strip(), source="gold.fact_corporate_bookings_weekly")
+    return db.query(sql), sql.strip(), "gold.fact_corporate_bookings_weekly"
+
+
+def pace_block(region: str, mo: str) -> tuple[pd.DataFrame, str, str]:
+    sql = f"""
+        SELECT ROUND(SUM(p.ytd_revenue), 0) AS ytd_revenue, ROUND(SUM(p.ytd_goal), 0) AS ytd_goal,
+               ROUND(SUM(p.ytd_revenue) / NULLIF(SUM(p.ytd_goal), 0) * 100, 1) AS pace_pct
+        FROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id
+        WHERE p.sales_month = DATE '{mo}' {_region_pred(region)}"""
+    return db.query(sql), sql.strip(), "gold.agency_pace"
+
+
+def movers_block(region: str, mo: str) -> tuple[pd.DataFrame, str, str]:
+    sql = f"""
+        SELECT a.agency_id, a.agency_name AS agency, a.region,
+               ROUND(d.aa_share_now * 100, 1) AS share_now_pct, ROUND(d.aa_share_prior * 100, 1) AS share_prior_pct,
+               ROUND((d.aa_share_now - d.aa_share_prior) * 100, 1) AS share_chg_pts,
+               ROUND(d.revenue_now, 0) AS revenue_now, ROUND(d.delta_pct, 1) AS yoy_pct
+        FROM aa_demo.ops.decomposition d JOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id
+        WHERE d.sales_month = DATE '{mo}' {_region_pred(region)}
+        ORDER BY ABS(d.aa_share_now - d.aa_share_prior) DESC LIMIT 3"""
+    return db.query(sql), sql.strip(), "ops.decomposition"
+
+
+BRIEF_BLOCKS = ("region", "agencies", "streaks", "weekly")
+ALL_BLOCKS = BRIEF_BLOCKS + ("pace", "movers")
+
+
+def build_facts(region: str, month: str, blocks=ALL_BLOCKS) -> dict:
+    """All the numbers the summary may use. Everything is a returned column; nothing is left to arithmetic.
+    behind_pace is the agencies block filtered on its own pace column (a filter, not a computation)."""
+    region, month = _check_scope(region, month)
+    mo = f"{month}-01"
+    y, m = int(mo[:4]), int(mo[5:7])
+    prior = f"{y - 1:04d}-{m:02d}-01"
+    ctx = facts.current()
+    out = {}
+    runners = {
+        "region": lambda: region_block(region, mo, prior),
+        "agencies": lambda: agencies_block(region, mo, prior),
+        "streaks": lambda: streaks_block(region, mo),
+        "weekly": lambda: weekly_block(mo),
+        "pace": lambda: pace_block(region, mo),
+        "movers": lambda: movers_block(region, mo),
+    }
+    labels = {"streaks": "share streaks", "weekly": "corporate weekly bookings"}
+    for name in blocks:
+        df, sql, source = runners[name]()
+        out[name] = df
+        ctx.record("build_summary", {"region": region, "month": month, "block": labels.get(name, name)}, df, sql=sql, source=source)
+    if "agencies" in out:
+        out["behind_pace"] = out["agencies"][out["agencies"]["pace_pct"] < 100]
     return out
+
+
+def headline(f: dict, month: str) -> str:
+    """One deterministic sentence from the region block and the pace block; no model, no number it did not get from a query."""
+    r = f["region"].iloc[0]
+    pace = f["pace"].iloc[0]["pace_pct"] if "pace" in f and not f["pace"].empty else None
+    gap = r["share_gap_pts"]
+    name = MONTH_NAMES[int(month[5:7]) - 1]
+    pace_words = "ahead of pace" if pace is None or pace >= 100 else "behind pace"
+    side = "under" if gap < 0 else "over"
+    gap_words = f"a little {side} fair share" if abs(gap) < 2 else f"{side} fair share by {abs(gap):g} points"
+    return f"{name} closed {pace_words} and {gap_words}."
 
 
 def _clean(df: pd.DataFrame) -> pd.DataFrame:
@@ -121,7 +209,8 @@ def _clean(df: pd.DataFrame) -> pd.DataFrame:
 def facts_text(f: dict, region: str, month: str) -> str:
     def t(df):
         return _clean(df).to_string(index=False) if not df.empty else "(none)"
-    return (f"FACTS for the {region} region, month {month[:7]} (all numbers from queries; quote them exactly as shown, same rounding)\n\n"
+    scope = "all regions" if region == "All" else f"the {region} region"
+    return (f"FACTS for {scope}, month {month[:7]} (all numbers from queries; quote them exactly as shown, same rounding)\n\n"
             f"Region totals:\n{t(f['region'])}\n\nAgencies (pace_pct: 100 = on pace to the annual goal):\n{t(f['agencies'])}\n\n"
             f"Agencies whose AA share fell for 3+ consecutive months ending this month:\n{t(f['streaks'])}\n\n"
             f"Corporate account bookings by week (all regions; wow_pct = week over week change in booked revenue):\n{t(f['weekly'])}\n")
@@ -145,7 +234,8 @@ def template_draft(f: dict, region: str, month: str) -> str:
         sign = "-" if x < 0 else ""
         x = abs(x)
         return f"{sign}${x / 1e6:.1f}M" if x >= 1e6 else f"{sign}${x / 1e3:.0f}K"
-    lines = [f"{region} region, {month[:7]}: AA revenue {money(r['aa_revenue'])}, {r['yoy_pct']:+.1f}% year over year. "
+    scope = "All regions" if region == "All" else f"{region} region"
+    lines = [f"{scope}, {month[:7]}: AA revenue {money(r['aa_revenue'])}, {r['yoy_pct']:+.1f}% year over year. "
              f"AA share {r['aa_share_pct']}% against a fair share of {r['fair_share_pct']}%, a gap of {r['share_gap_pts']} points worth {money(r['share_gap_usd'])}."]
     behind = f["agencies"][f["agencies"]["pace_pct"] < 100]
     if not behind.empty:
@@ -198,35 +288,41 @@ def prettify(text: str) -> str:
     return text
 
 
-def draft(f: dict, region: str, month: str, writer=None) -> str:
-    text = facts_text(f, region, month)
+UNGUARDED_INSTRUCTIONS = ("Write a confident, insightful Monday performance summary for the Sales VP from the FACTS below. "
+                          "Add context, comparisons and interpretation where helpful. Six to nine sentences of plain prose.")
+
+
+async def run_async(region: str, month: str, writer=None) -> dict:
+    """Facts, draft, verification, on the caller's loop and in the caller's run context (the server's per request)."""
+    region, month = _check_scope(region, month)
+    ctx = facts.current()
+    ctx.clear()
+    f = await asyncio.to_thread(build_facts, region, month, BRIEF_BLOCKS)
     if writer is None:
-        return template_draft(f, region, month)
-    resp = aio.run(writer.run(text))
-    return prettify(resp.text.strip())
+        d = template_draft(f, region, month)
+    else:
+        ctx.emit("status", phase="model", text="I am writing the brief.")
+        resp = await writer.run(facts_text(f, region, month))
+        d = prettify(resp.text.strip())
+    ctx.emit("status", phase="verify", text="I am checking every number against the query.")
+    v = verify(d, ctx.pool)
+    return {"run_id": uuid.uuid4().hex[:12], "region": region, "month": month, "created_at": datetime.now().isoformat(timespec="seconds"),
+            "draft": d, "verified_text": v.verified_text, "flagged": v.flagged, "badges": v.badges(), "facts": f,
+            "calls": ctx.calls, "model": "template" if writer is None else "agent"}
 
 
 def run(region: str, month: str, writer=None) -> dict:
-    """Facts, draft, verification. Returns everything the Monday page and ops.summaries need."""
+    """The sync path for the command line and the job task: a fresh run context, then run_async on the process loop."""
     from harness import tracing
+    facts.reset()
     if tracing.setup():
         import mlflow
         with mlflow.start_span(name="fairshare.monday_summary") as sp:
             sp.set_inputs({"region": region, "month": month, "writer": "template" if writer is None else "agent"})
-            res = _run(region, month, writer)
+            res = aio.run(run_async(region, month, writer))
             sp.set_outputs({"sentences": len(res["badges"]), "flagged": len(res["flagged"])})
             return res
-    return _run(region, month, writer)
-
-
-def _run(region: str, month: str, writer=None) -> dict:
-    facts.reset()
-    f = build_facts(region, month)
-    d = draft(f, region, month, writer)
-    v = verify(d, facts.current().pool)
-    return {"run_id": uuid.uuid4().hex[:12], "region": region, "month": month[:7], "created_at": datetime.now().isoformat(timespec="seconds"),
-            "draft": d, "verified_text": v.verified_text, "flagged": v.flagged, "badges": v.badges(), "facts": f,
-            "calls": facts.current().calls, "model": "template" if writer is None else "agent"}
+    return aio.run(run_async(region, month, writer))
 
 
 def _q(s: str) -> str:
@@ -243,6 +339,22 @@ def save(result: dict, status: str = "draft") -> None:
         f"INSERT INTO {t} VALUES (" + ", ".join(_q(x) for x in [
             result["run_id"], result["region"], result["month"], result["created_at"], status, result["model"],
             result["draft"], result["verified_text"], json.dumps(result["flagged"]), json.dumps(result["badges"], default=str)]) + ")"])
+
+
+def load(run_id: str) -> dict | None:
+    """One saved brief (an approved one has a page of its own in the app). The id is validated before it meets SQL."""
+    if not re.fullmatch(r"[0-9a-f]{12}", str(run_id)):
+        return None
+    try:
+        df = db.state_query(f"SELECT * FROM {db.SUMMARIES} WHERE run_id = '{run_id}'")
+    except Exception:
+        return None
+    if df.empty:
+        return None
+    row = {k: (None if pd.isna(v) else v) for k, v in df.iloc[0].to_dict().items()}
+    row["flagged"] = json.loads(row.pop("flagged_json") or "[]")
+    row["badges"] = json.loads(row.pop("badges_json") or "[]")
+    return row
 
 
 def history(limit: int = 20) -> pd.DataFrame:

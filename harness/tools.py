@@ -8,6 +8,7 @@ search_contracts the four agency agreements, by file and page
 """
 from __future__ import annotations
 
+import functools
 import os
 import re
 import time
@@ -21,13 +22,37 @@ from fairshare import db
 from harness import facts, tracing
 
 
-def _traced(name):
-    """An MLflow span around a tool body when tracing is on; otherwise the function itself."""
+PHASE_TEXT = {
+    "genie": "I am asking Genie for the numbers.",
+    "sql": "I am running a query on your data.",
+    "explain": "I am working out what moved.",
+    "agreement": "I am reading the agreement.",
+    "warehouse": "I am waking up the warehouse. The first question after a quiet hour can take about a minute.",
+    "model": "I am writing the answer.",
+    "verify": "I am checking every number against the query.",
+}
+
+
+def _instrumented(name, phase):
+    """Around every tool body: a cancel checkpoint, a progress event before and after (the browser shows them as steps),
+    and an MLflow span when tracing is on. functools.wraps keeps the Annotated signature that @tool reads."""
     def deco(fn):
-        if not tracing.setup():
-            return fn
-        import mlflow
-        return mlflow.trace(name=name, span_type="TOOL")(fn)
+        body = fn
+        if tracing.setup():
+            import mlflow
+            body = mlflow.trace(name=name, span_type="TOOL")(fn)
+
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            ctx = facts.current()
+            ctx.check_cancel()
+            ctx.emit("status", phase=phase, tool=name, args=kwargs, text=PHASE_TEXT[phase])
+            t0 = time.monotonic()
+            try:
+                return body(*args, **kwargs)
+            finally:
+                ctx.emit("status", phase="model", tool=name, text=PHASE_TEXT["model"], ms=int((time.monotonic() - t0) * 1000))
+        return wrapper
     return deco
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,31 +78,55 @@ def _genie_space() -> str | None:
     return os.environ.get("GENIE_SPACE_ID") if db.is_databricks() else None
 
 
-def _genie_ask(question: str) -> tuple[str, pd.DataFrame | None, str | None]:
-    """Chat-mode Genie through the SDK, called as the user (PAT), never as a service principal."""
+def _genie_url(space: str, conversation_id: str) -> str:
+    from fairshare.dbx import host
+    return f"{host()}/genie/rooms/{space}/chats/{conversation_id}"
+
+
+def _genie_ask(question: str, conversation_id: str | None = None) -> tuple[str, pd.DataFrame | None, str | None, str, str]:
+    """Chat-mode Genie through the SDK, called as the user (PAT), never as a service principal. Continues the thread's
+    conversation when one is given (a gone or foreign conversation falls back to a fresh one). Returns
+    (text, rows, sql, conversation_id, message_id)."""
+    from datetime import timedelta
     from fairshare.dbx import warm_warehouse, workspace_client
+    ctx = facts.current()
     w = workspace_client()
     space = _genie_space()
+    ctx.emit("status", phase="warehouse", text=PHASE_TEXT["warehouse"])
     warm_warehouse()  # Free Edition stops the warehouse after 10 idle minutes; Genie then waits in PENDING_WAREHOUSE far longer than a direct start (8 s)
-    delay = 2.0
-    from datetime import timedelta
-    for attempt in range(4):
+    timeout = timedelta(seconds=int(os.environ.get("GENIE_TIMEOUT_S", "150")))
+
+    def start():
+        delay = 2.0
+        for attempt in range(4):
+            try:
+                return w.genie.start_conversation(space_id=space, content=question)
+            except Exception as e:  # 429 RATE_LIMIT_EXCEEDED or a transient error: back off and retry
+                if attempt == 3 or "429" not in str(e) and "RATE_LIMIT" not in str(e):
+                    raise
+                time.sleep(delay)
+                delay *= 2
+
+    wait = None
+    if conversation_id:
         try:
-            msg = w.genie.start_conversation_and_wait(space_id=space, content=question, timeout=timedelta(seconds=int(os.environ.get("GENIE_TIMEOUT_S", "150"))))
-            break
-        except Exception as e:  # 429 RATE_LIMIT_EXCEEDED or a transient error: back off and retry
-            if attempt == 3 or "429" not in str(e) and "RATE_LIMIT" not in str(e):
+            wait = w.genie.create_message(space_id=space, conversation_id=conversation_id, content=question)
+        except Exception as e:
+            if not any(code in str(e) for code in ("400", "403", "404", "NOT_FOUND", "PERMISSION", "INVALID")):
                 raise
-            time.sleep(delay)
-            delay *= 2
+    if wait is None:
+        wait = start()
+    cid, mid = wait.conversation_id, wait.message_id
+    ctx.emit("status", phase="genie", text=PHASE_TEXT["genie"], genie={"conversation_id": cid, "message_id": mid, "url": _genie_url(space, cid)})
+    ctx.check_cancel()
+    msg = wait.result(timeout=timeout, callback=lambda _m: ctx.check_cancel())
     text, df, sql = "", None, None
     for att in msg.attachments or []:
         if att.text and att.text.content:
             text += att.text.content + "\n"
         if att.query:
             sql = att.query.query
-            res = w.genie.get_message_attachment_query_result(space_id=space, conversation_id=msg.conversation_id,
-                                                              message_id=msg.message_id, attachment_id=att.attachment_id)
+            res = w.genie.get_message_attachment_query_result(space_id=space, conversation_id=cid, message_id=mid, attachment_id=att.attachment_id)
             sr = res.statement_response
             cols = [c.name for c in sr.manifest.schema.columns] if sr and sr.manifest and sr.manifest.schema else []
             rows = list(sr.result.data_array) if sr and sr.result and sr.result.data_array else []
@@ -92,26 +141,31 @@ def _genie_ask(question: str) -> tuple[str, pd.DataFrame | None, str | None]:
                     df[c] = pd.to_numeric(df[c])
                 except (ValueError, TypeError):
                     pass
-    return text.strip(), df, sql
+    return text.strip(), df, sql, cid, mid
 
 
 @tool(name="ask_metrics",
       description="Ask the governed sales metrics agent (Genie over the sales_metrics metric view) a question about AA revenue, "
                   "share, fair share, share gap, year over year, passengers, by agency, market, region, month, quarter or year. "
                   "Returns the SQL it ran and the result table. Use this first for any number.")
-@_traced("ask_metrics")
+@_instrumented("ask_metrics", "genie")
 def ask_metrics(question: Annotated[str, "The business question, in plain English, with the agency, market and period spelled out."]) -> str:
     ctx = facts.current()
     if not _genie_space():
         ctx.record("ask_metrics", {"question": question}, None, note="Genie not configured in this environment; use run_sql")
         return ("Genie is not available in this environment. Write the query yourself with run_sql against the documented tables "
                 "(use MEASURE() on aa_demo.gold.sales_metrics when on Databricks).")
+    t0 = time.monotonic()
     try:
-        text, df, sql = _genie_ask(question)
+        text, df, sql, cid, mid = _genie_ask(question, conversation_id=ctx.genie_conversation_id)
+    except facts.Cancelled:
+        raise
     except Exception as e:
         ctx.record("ask_metrics", {"question": question}, None, note=f"Genie failed: {e}")
         return f"Genie failed ({type(e).__name__}). Fall back to run_sql with your own query."
-    ctx.record("ask_metrics", {"question": question}, df, sql=sql, note=text, source="Genie: sales_metrics")
+    ctx.genie_conversation_id = cid
+    ctx.record("ask_metrics", {"question": question}, df, sql=sql, note=text, source="Genie: sales_metrics",
+               genie={"conversation_id": cid, "message_id": mid, "url": _genie_url(_genie_space(), cid)}, ms=int((time.monotonic() - t0) * 1000))
     body = f"Genie said: {text}\n" if text else ""
     if sql:
         body += f"SQL:\n{sql}\n"
@@ -141,7 +195,7 @@ Data covers Jan 2025 to Sep 2026. Return percentages and deltas as columns; neve
       description="Run one read-only SQL SELECT against the aa_demo catalog (gold and ops schemas) and return up to 200 rows. "
                   "Use when ask_metrics is unavailable or for a join it cannot do. Compute every percentage, difference "
                   "and ratio inside the SQL so the answer only quotes returned columns.")
-@_traced("run_sql")
+@_instrumented("run_sql", "sql")
 def run_sql(sql: Annotated[str, "A single SELECT or WITH statement. No DDL or DML."]) -> str:
     ctx = facts.current()
     s = "\n".join(l for l in (sql or "").strip().splitlines() if not l.strip().startswith("--")).strip().rstrip(";").strip()
@@ -174,7 +228,7 @@ def _month(month: str) -> str:
                   "volume (the agency sold more or less travel overall), mix (it shifted which markets it sells), and share "
                   "(AA won or lost share within markets), plus a fair-share diagnostic (how much AA's own capacity change explains). "
                   "The three parts sum to the total change exactly. Also lists the markets that moved most.")
-@_traced("explain_change")
+@_instrumented("explain_change", "explain")
 def explain_change(agency: Annotated[str, "Agency name, or a distinctive part of it, e.g. 'Harbor'"],
                    month: Annotated[str, "The month to explain, e.g. '2026-08' (compared with 2025-08)"]) -> str:
     ctx = facts.current()
@@ -235,18 +289,16 @@ def _paragraphs(page_text: str):
     return [p.strip() for p in re.split(r"\n\s*\n", page_text) if p.strip() and not p.strip().startswith("#")]
 
 
-@tool(name="search_contracts",
-      description="Find what an agency's agreement says about a topic (share maintenance, incentive tiers, goals, termination, "
-                  "data sharing, volume commitment, reporting). Returns the clause text with file name and page. Quote it; do not paraphrase numbers.")
-@_traced("search_contracts")
-def search_contracts(agency: Annotated[str, "Agency name or part of it, e.g. 'Summit'"],
-                     topic: Annotated[str, "What to look for, e.g. 'share falls below 45% for two quarters'"]) -> str:
-    ctx = facts.current()
+def _files(agency: str) -> list[Path]:
     key = agency.lower().split()[0] if agency.strip() else ""
-    files = [p for p in sorted(CONTRACTS.glob("*.md")) if key and key in p.stem.lower()] or sorted(CONTRACTS.glob("*.md"))
+    return [p for p in sorted(CONTRACTS.glob("*.md")) if key and key in p.stem.lower()] or sorted(CONTRACTS.glob("*.md"))
+
+
+def _search(agency: str, topic: str) -> list[tuple[int, str, int, str]]:
+    """Keyword overlap over the agreement paragraphs: (score, file, page, paragraph), best first."""
     words = {w for w in re.findall(r"[a-z0-9%]+", topic.lower()) if len(w) > 2}
     hits = []
-    for f in files:
+    for f in _files(agency):
         for page, text in _pages(f):
             for para in _paragraphs(text):
                 pw = set(re.findall(r"[a-z0-9%]+", para.lower()))
@@ -254,6 +306,18 @@ def search_contracts(agency: Annotated[str, "Agency name or part of it, e.g. 'Su
                 if score:
                     hits.append((score, f.name, page, para))
     hits.sort(key=lambda h: (-h[0], h[1], h[2]))
+    return hits
+
+
+@tool(name="search_contracts",
+      description="Find what an agency's agreement says about a topic (share maintenance, incentive tiers, goals, termination, "
+                  "data sharing, volume commitment, reporting). Returns the clause text with file name and page. Quote it; do not paraphrase numbers.")
+@_instrumented("search_contracts", "agreement")
+def search_contracts(agency: Annotated[str, "Agency name or part of it, e.g. 'Summit'"],
+                     topic: Annotated[str, "What to look for, e.g. 'share falls below 45% for two quarters'"]) -> str:
+    ctx = facts.current()
+    files = _files(agency)
+    hits = _search(agency, topic)
     if not hits:
         ctx.record("search_contracts", {"agency": agency, "topic": topic}, None, note="no clause matched")
         return f"No clause about '{topic}' in {', '.join(f.name for f in files)}. Say the agreement does not cover it."
