@@ -4,6 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sse_starlette.sse import EventSourceResponse
 from starlette.concurrency import run_in_threadpool
 
 from fairshare import db, dbx
@@ -13,6 +14,7 @@ from harness.tools import explain_change
 from server import drafts, validate
 from server.context import Viewer, viewer
 from server.serialize import brief_json, calls_json, records
+from server.stream import AskIn, ask_events
 
 router = APIRouter()
 SCOPES = ["sql", "genie", "model-serving"]
@@ -149,3 +151,8 @@ async def get_brief(run_id: str, v: Viewer = Depends(viewer)):
     if row is None:
         raise HTTPException(404, {"code": "not_found", "message": "No brief with that id."})
     return brief_json(row, row["status"])
+
+
+@router.post("/ask")
+async def ask(body: AskIn, v: Viewer = Depends(viewer)):
+    return EventSourceResponse(ask_events(v, body), ping=15, send_timeout=30, headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
