@@ -71,7 +71,7 @@ SHARE, FAIR_SHARE = f"{REV} / {MKT}", f"{FAIR} / {MKT}"
 CHG_PTS = "AVG(`share_chg_pts`)"  # one row per agency and month in the dataset, so the average is the value; the widget expression parser rejects the two-ratio form
 USD = {"type": "number-currency", "currencyCode": "USD", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 1}}
 PCT = {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}
-RED, BLUE, GREY = "#B3261E", "#2E6FD6", "#8A8F98"
+RED, BLUE, GREY = "#C30019", "#0078D2", "#9DA6AB"  # AA palette, as the app theme
 
 
 def pos(x, y, w, h):
@@ -151,7 +151,7 @@ def filt(name, kind, title, bindings, position, default=None):
 
 def build() -> dict:
     app_url = os.environ.get("DATABRICKS_APP_URL")
-    app_url = f"[the fairshare app]({app_url})" if app_url else "the fairshare app (streamlit run app/app.py)"
+    app_url = f"[the fairshare app]({app_url})" if app_url else "the fairshare app (streamlit run app/Home.py)"
     layout = [
         text("header", ["## Agency sales: share, fair share, pace",
                         "Every number on this page is a `MEASURE()` on `aa_demo.gold.sales_metrics`, the metric view the agent and Genie use; "

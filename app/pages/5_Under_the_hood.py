@@ -10,7 +10,7 @@ setup("Under the hood")
 from fairshare import db  # noqa: E402
 
 st.title("Under the hood")
-st.caption("What Austin sees. Three layers, then one deeper only if asked.")
+st.caption("Three layers, then one deeper on request.")
 
 st.image(str(ROOT / "docs" / "architecture.svg"), use_container_width=True)
 
@@ -24,7 +24,7 @@ The agent: Genie for numbers, a deterministic decomposition for "why", the agree
 c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown("**Links**")
-    for label, var in [("Databricks workspace", "DATABRICKS_HOST"), ("AI/BI dashboard (the Power BI stand-in)", "DASHBOARD_URL"), ("Genie Agent", "GENIE_SPACE_URL"),
+    for label, var in [("Databricks workspace", "DATABRICKS_HOST"), ("AI/BI dashboard (network view)", "DASHBOARD_URL"), ("Genie Agent", "GENIE_SPACE_URL"),
                        ("This app inside Databricks", "DATABRICKS_APP_URL"), ("MLflow traces", "MLFLOW_TRACES_URL"),
                        ("Foundry project", "FOUNDRY_PROJECT_URL"), ("Repository", "REPO_URL")]:
         v = os.environ.get(var)

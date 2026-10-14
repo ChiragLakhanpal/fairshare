@@ -55,7 +55,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python data/make_data.py            # CSVs (synthetic fair share until data/t100/aa_seat_share.csv exists; see data/t100.py)
 .venv/bin/python lakehouse/run.py             # local DuckDB lakehouse: silver, gold, definitions, decomposition
 .venv/bin/pytest evals -q                     # identity of the decomposition, the silver traps, the verifier, the contracts
-.venv/bin/streamlit run app/app.py            # the five screens, offline (template writer, no model)
+.venv/bin/streamlit run app/Home.py            # the five screens, offline (template writer, no model)
 ```
 
 With Databricks and a model (`cp .env.example .env`, fill it in):

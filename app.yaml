@@ -1,7 +1,7 @@
 # Databricks App manifest: the same Streamlit app, running inside the workspace (lakehouse/app_deploy.py uploads and deploys it).
 # Resources (warehouse, genie, model) are declared on the app and injected here by name; nothing workspace-specific is hardcoded.
 # The viewer's own token does the work (user authorization: sql, genie, model-serving), never the app's service principal.
-command: ["streamlit", "run", "app/app.py", "--server.port", "8000", "--server.address", "0.0.0.0", "--server.headless", "true"]
+command: ["streamlit", "run", "app/Home.py", "--server.port", "8000", "--server.address", "0.0.0.0", "--server.headless", "true"]
 env:
   - name: FAIRSHARE_BACKEND
     value: databricks

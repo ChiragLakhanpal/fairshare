@@ -14,7 +14,7 @@ st.caption("Fixed metric calls, a model writes the prose, the verifier matches e
 col1, col2, col3 = st.columns([1, 1, 2])
 region = col1.selectbox("Region", ["Central", "East", "West"], index=0)
 month = col2.selectbox("Month", MONTHS[::-1], index=0)
-mode = col3.radio("Writer", ["Agent (guarded prompt)", "Agent (unguarded prompt: for the demo, shows what the verifier catches)", "Template (no model)"],
+mode = col3.radio("Writer", ["Agent (guarded prompt)", "Agent (unguarded prompt: shows what the verifier catches)", "Template (no model)"],
                   index=0 if get_agent() else 2, horizontal=False)
 
 UNGUARDED = ("Write a confident, insightful Monday performance summary for the Sales VP from the FACTS below. "

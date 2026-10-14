@@ -59,13 +59,16 @@ def _cached_client():
 def workspace_client():
     if _user_token:  # a fresh client per call: the app forwards a new token on every request, construction is free
         from databricks.sdk import WorkspaceClient
-        return WorkspaceClient(host=host(), token=_user_token)
+        # auth_type is not optional here: the Apps runtime also exports the app's own DATABRICKS_CLIENT_ID and
+        # DATABRICKS_CLIENT_SECRET, and the SDK refuses a config with two methods ("oauth and pat") unless one is named.
+        return WorkspaceClient(host=host(), token=_user_token, auth_type="pat")
     return _cached_client()
 
 
 def header_factory():
-    """For databricks-sql-connector: a callable returning the current auth headers, resolved on every request."""
-    return lambda: workspace_client().config.authenticate()
+    """For databricks-sql-connector: a callable returning the current auth headers, resolved on every request
+    (the token the app forwards rotates, so it is read at request time, never baked into the connection)."""
+    return lambda: {"Authorization": f"Bearer {_user_token}"} if _user_token else _cached_client().config.authenticate()
 
 
 def bearer_token() -> str:

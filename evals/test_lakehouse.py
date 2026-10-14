@@ -67,3 +67,21 @@ def test_template_summary_verifies_clean():
     assert res["badges"] and not res["flagged"]
     res = summary.run("East", "2026-08")
     assert res["badges"] and not res["flagged"], res["flagged"]
+
+
+def test_viewer_token_wins_inside_the_apps_runtime(monkeypatch):
+    """The Apps runtime exports the app's own client id and secret next to the viewer's forwarded token; the SDK must be
+    told which to use, or every page dies with RequestError (Oct 13, 2026)."""
+    from fairshare import dbx
+    monkeypatch.setenv("DATABRICKS_CLIENT_ID", "the-app")
+    monkeypatch.setenv("DATABRICKS_CLIENT_SECRET", "not-a-real-secret")
+    monkeypatch.setenv("DATABRICKS_HOST", "https://example.cloud.databricks.com")
+    monkeypatch.delenv("DATABRICKS_TOKEN", raising=False)
+    monkeypatch.setattr("databricks.sdk.config.Config._resolve_host_metadata", lambda self: None)  # offline: skip the SDK's host probe
+    dbx.set_user_token("viewer-token")
+    try:
+        assert dbx.workspace_client().config.auth_type == "pat"
+        assert dbx.header_factory()() == {"Authorization": "Bearer viewer-token"}
+        assert dbx.bearer_token() == "viewer-token"
+    finally:
+        dbx.set_user_token(None)

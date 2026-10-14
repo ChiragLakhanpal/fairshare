@@ -22,19 +22,22 @@ MONTHS = [f"2026-{m:02d}" for m in range(1, 10)]
 
 def setup(title: str):
     st.set_page_config(page_title=f"fairshare | {title}", page_icon="✈", layout="wide")
+    # AA palette (see .streamlit/config.toml): blue is "as it should be", red is "below", as on the dashboard
     st.markdown("""<style>
+        .brand{font-size:0.85rem;color:#6f7f8c;border-bottom:1px solid #D0DAE0;padding:0 0 6px;margin:-28px 0 10px}
+        .brand b{color:#0078D2;font-size:1rem;margin-right:10px}
         .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.8rem;margin-right:6px}
-        .ok{background:#e4f3e8;color:#1e6b36}.bad{background:#fdecec;color:#a12626}.muted{color:#6b7280}
-        .sent{line-height:1.7}.flag{border-left:3px solid #c0392b;background:#fff5f5;padding:8px 12px;margin:6px 0}
-        .verified{border-left:3px solid #1e6b36;background:#f3faf5;padding:8px 12px;margin:6px 0}
-        </style>""", unsafe_allow_html=True)
+        .ok{background:#e6f1fb;color:#00467F}.bad{background:#fbe9eb;color:#C30019}.muted{color:#6f7f8c}
+        .sent{line-height:1.7}.flag{border-left:3px solid #C30019;background:#fdf4f5;padding:8px 12px;margin:6px 0}
+        .verified{border-left:3px solid #0078D2;background:#f3f8fd;padding:8px 12px;margin:6px 0}
+        </style><div class="brand"><b>fairshare</b>Agency sales performance, every number with its query</div>""", unsafe_allow_html=True)
     headers = getattr(st.context, "headers", {}) or {}
     dbx.set_user_token(headers.get("x-forwarded-access-token"))  # inside a Databricks App: act as the viewer (user authorization)
     with st.sidebar:
         model = harness_agent.model_backend()
         if model == "databricks":
             model += "/" + os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct")
-        st.markdown(f"**Data:** `{db.backend()}`  \n**Model:** `{model}`")
+        st.markdown(f"**Data:** {db.backend()}  \n**Model:** {model}")
         if dbx.user_token():
             st.caption(f"Running inside Databricks as {headers.get('x-forwarded-email', 'you')}: SQL, Genie and the model run with your permissions.")
         if db.backend() == "duckdb":

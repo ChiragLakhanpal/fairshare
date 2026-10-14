@@ -27,6 +27,6 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 .venv/bin/python data/make_data.py && .venv/bin/python lakehouse/run.py     # rebuild locally (stop the app first)
 .venv/bin/pytest evals -q                                                 # checks
 .venv/bin/python evals/run_benchmark.py --check                           # ground-truth SQL runs
-.venv/bin/streamlit run app/app.py                                        # the app
+.venv/bin/streamlit run app/Home.py                                        # the app
 FAIRSHARE_BACKEND=databricks .venv/bin/python lakehouse/run.py            # build on Databricks (needs .env)
 ```

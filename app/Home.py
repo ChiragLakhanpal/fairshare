@@ -1,6 +1,6 @@
 """fairshare: one sales agent, one semantic layer, every number with its query.
 
-  streamlit run app/app.py
+  streamlit run app/Home.py
 """
 import streamlit as st
 
