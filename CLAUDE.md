@@ -11,6 +11,8 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 5. Portable SQL. Everything except `00_bronze.sql` and `03_metric_view.sql` runs on both DuckDB and Databricks SQL: three-part names (`aa_demo.schema.table`), `NULLIF` for every division, `EXTRACT` for date parts, `CAST(x AS STRING)`, `QUALIFY`, `GROUP BY ALL`. Column aliases are case-insensitive: never reuse a name with different case (the `T_now` / `t_now` bug).
 6. The gate runs before every commit (`.githooks/pre-commit`): the 20 ground-truth queries must run and `pytest evals` must pass. `FAIRSHARE_FULL_GATE=1` adds the Genie benchmark when Databricks is configured.
 7. Secrets stay in `.env` (gitignored). The Databricks token is a personal token: Genie is called as the user, never as a service principal.
+   Inside the App the viewer's forwarded token is bound per request (fairshare/dbx.py `bind`); nothing about a viewer lives in a module global.
+9. Copy in the app (web/src/copy.ts) is full sentences a 12th grader follows; buttons are short verb phrases; no em dashes.
 8. Dummy data stays dummy. Agencies, corporates and contracts are fictional; only the BTS T-100 seat data is real. Do not add anything that looks like a real customer, price list, or airline-internal figure.
 
 ## Layout
@@ -19,7 +21,9 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 - `lakehouse/` SQL in run order, `run.py` (local or Databricks), `parity.py`, `job_tasks.py` (the job's Python tasks); `databricks.yml` at the root is the nightly job as a bundle (every `0*.sql` file is a task, in order; a test checks that)
 - `harness/` agent, tools, verifier, summary, tracing, `foundry/` hosting
 - `evals/` benchmark questions with ground truth, runner, tests
-- `app/` Streamlit pages; `docs/` architecture, walkthrough, failure modes, limits
+- `server/` FastAPI: the viewer's identity per request, the /api routes, the SSE stream for questions, the SPA fallback
+- `web/` the React app (Vite, TypeScript, Tailwind v4, Radix, Motion); `web/dist` is the build the App serves; `app/cache/` the offline answers
+- `docs/` architecture, walkthrough, failure modes, limits; `docs/superpowers/specs/` the design spec (the canvas link is in it)
 
 ## Commands
 
@@ -27,7 +31,9 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 .venv/bin/python data/make_data.py && .venv/bin/python lakehouse/run.py     # rebuild locally (stop the app first)
 .venv/bin/pytest evals -q                                                 # checks
 .venv/bin/python evals/run_benchmark.py --check                           # ground-truth SQL runs
-.venv/bin/streamlit run app/Home.py                                        # the app
+.venv/bin/uvicorn server.main:app --reload --port 8000                    # the API; then: cd web && npm run dev (proxies /api)
+cd web && npm run build && cd .. && .venv/bin/python lakehouse/app_deploy.py deploy   # the Databricks App (deploy refuses without web/dist)
+cd web && npm test && npx playwright test                                 # the front-end checks (dev server on 5173 for Playwright)
 FAIRSHARE_BACKEND=databricks .venv/bin/python lakehouse/run.py            # build on Databricks (needs .env)
 databricks bundle deploy && databricks bundle run fairshare_nightly        # the job (CLI default profile); --params summary_weekday=<today> forces the drafts
 ```
