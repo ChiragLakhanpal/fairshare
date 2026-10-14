@@ -86,6 +86,13 @@ def test_definitions_offline(client):
     assert d["parity"]["source"] == "app/cache/kpi_parity.csv" and d["parity"]["rows"] > 0 and d["runs"]
 
 
+def test_evals_lists_the_golden_set_with_the_newest_result_of_each_kind(client):
+    e = client.get("/api/evals").json()
+    assert [q["id"] for q in e["questions"]] == [f"q{i:02d}" for i in range(1, 21)]
+    assert all(q["genie"] is not None and q["space"] in ("GOOD", "BAD", "NEEDS_REVIEW") and q["judge"] in ("CORRECT", "PARTIAL", "WRONG") for q in e["questions"])
+    assert e["space"]["run_at"] >= "2026-10-14" and e["space"]["n"] == 20 and e["harness"]["model"] and 0 <= e["harness"]["backed"] <= 1
+
+
 def test_brief_template_approve_get(client, monkeypatch, tmp_path):
     monkeypatch.setattr(db, "STATE_FILE", tmp_path / "state.duckdb")
     b = client.post("/api/brief", json={"region": "Central", "month": "2026-09", "writer": "template"}).json()

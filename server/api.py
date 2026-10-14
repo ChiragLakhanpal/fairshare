@@ -116,6 +116,30 @@ async def definitions(v: Viewer = Depends(viewer)):
     return {"kpis": kpis, **await run_in_threadpool(_parity)}
 
 
+def _evals() -> dict:
+    """The golden set (evals/benchmark.yaml) with the newest result of each kind: Genie alone (the repo matcher), Genie inside the
+    space (Databricks's judge, lakehouse/genie.py eval), the harness (the checker, then a judge model). Files only, nothing is rerun here."""
+    import json
+    import yaml
+    questions = yaml.safe_load((ROOT / "evals" / "benchmark.yaml").read_text())["questions"]
+    runs = [json.loads(p.read_text()) for p in sorted((ROOT / "evals" / "results").glob("2*.json"))]  # names start with the timestamp; latest.json is a copy
+    newest = lambda key: next((r for r in reversed(runs) if key in r), {})
+    genie, space, harness = newest("genie"), newest("eval_run_id"), newest("harness")
+    g, s, h = ({x["id"]: x for x in run.get(key, [])} for run, key in ((genie, "genie"), (space, "results"), (harness, "harness")))
+    return {"questions": [{"id": q["id"], "question": q["question"], "hard": bool(q.get("hard")),
+                           "genie": g.get(q["id"], {}).get("pass"), "space": s.get(q["id"], {}).get("assessment"), "space_reasons": s.get(q["id"], {}).get("reasons", []),
+                           "backed": h.get(q["id"], {}).get("supported"), "judge": h.get(q["id"], {}).get("judge")} for q in questions],
+            "genie": {"run_at": genie.get("run_at"), "rate": genie.get("genie_pass_rate")},
+            "space": {"run_at": space.get("run_at"), "correct": space.get("correct"), "n": space.get("n")},
+            "harness": {"run_at": harness.get("run_at"), "model": harness.get("model"), "backed": harness.get("harness_supported_rate"), "correct": harness.get("harness_correct_rate")},
+            "runs": len(runs)}
+
+
+@router.get("/evals")
+async def evals(v: Viewer = Depends(viewer)):
+    return await run_in_threadpool(_evals)
+
+
 class BriefIn(BaseModel):
     region: str = Field(max_length=20)
     month: str = Field(max_length=10)

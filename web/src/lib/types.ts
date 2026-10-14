@@ -6,6 +6,19 @@ export type Me = {
   links: Record<string, string>;
 };
 
+export type EvalQuestion = {
+  id: string; question: string; hard: boolean;
+  genie: boolean | null; space: "GOOD" | "BAD" | "NEEDS_REVIEW" | null; space_reasons: string[];
+  backed: boolean | null; judge: "CORRECT" | "PARTIAL" | "WRONG" | null;
+};
+export type Evals = {
+  questions: EvalQuestion[];
+  genie: { run_at: string | null; rate: number | null };
+  space: { run_at: string | null; correct: number | null; n: number | null };
+  harness: { run_at: string | null; model: string | null; backed: number | null; correct: number | null };
+  runs: number;
+};
+
 export type Kpis = {
   aa_revenue: number; aa_revenue_prior_year: number | null; yoy_pct: number | null; aa_share_pct: number; fair_share_pct: number;
   share_gap_pts: number; share_gap_usd: number; pace_pct: number | null; ytd_revenue?: number; ytd_goal?: number;

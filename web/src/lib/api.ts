@@ -1,5 +1,5 @@
 import { readSse } from "./sse";
-import type { Agency, Answer, ApiError, Brief, Definitions, Explain, Me, Scope, Step, Summary } from "./types";
+import type { Agency, Answer, ApiError, Brief, Definitions, Evals, Explain, Me, Scope, Step, Summary } from "./types";
 
 async function get<T>(url: string): Promise<T> {
   const r = await fetch(url, { headers: { Accept: "application/json" } });
@@ -28,6 +28,7 @@ export const api = {
   agreements: (agency_id: number | null, topic: string) =>
     get<{ hits: { file: string; page: number; text: string; score: number }[] }>(`/api/agreements?topic=${encodeURIComponent(topic)}${agency_id ? `&agency_id=${agency_id}` : ""}`),
   definitions: () => get<Definitions>("/api/definitions"),
+  evals: () => get<Evals>("/api/evals"),
   brief: (s: Scope, writer: "guarded" | "unguarded" | "template" = "guarded") => post<Brief>("/api/brief", { ...s, writer }),
   approveBrief: (run_id: string, text?: string) => post<Brief>(`/api/brief/${run_id}/approve`, text ? { text } : {}),
   getBrief: (run_id: string) => get<Brief>(`/api/brief/${run_id}`),
