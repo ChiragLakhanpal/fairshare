@@ -10,6 +10,7 @@ SQL is written once with three-part names (aa_demo.gold.table) and runs on all t
 Databricks only (warehouse or spark); callers check `is_databricks()` before using them.
 """
 import os
+import threading
 from pathlib import Path
 
 import pandas as pd
@@ -20,7 +21,9 @@ load_dotenv(ROOT / ".env")
 DUCKDB_FILE = ROOT / "data" / "out" / "fairshare.duckdb"
 STATE_FILE = ROOT / "data" / "out" / "app_state.duckdb"   # local stand-in for aa_demo.ops.summaries (DuckDB allows one writer per file)
 
-_conn = None
+_duck = None                      # the one DuckDB session (queries use a cursor each, so threads can share it)
+_conns: dict = {}                 # viewer token -> (warehouse connection, lock); None is the laptop's own connection
+_conns_lock = threading.Lock()
 
 
 def backend() -> str:
@@ -39,24 +42,40 @@ def _spark():
 def _duckdb():
     """Read-only unless FAIRSHARE_WRITE=1 (lakehouse/run.py sets it), so the app, tests and the benchmark can share the file.
     A rebuild needs the app stopped: DuckDB gives a writer exclusive access."""
-    global _conn
-    if _conn is None:
+    global _duck
+    if _duck is None:
         import duckdb
-        _conn = duckdb.connect()  # in-memory session, the file is attached as the catalog name the SQL uses
+        _duck = duckdb.connect()  # in-memory session, the file is attached as the catalog name the SQL uses
         mode = "" if os.environ.get("FAIRSHARE_WRITE") else " (READ_ONLY)"
-        _conn.execute(f"ATTACH '{DUCKDB_FILE}' AS aa_demo{mode}")
-    return _conn
+        _duck.execute(f"ATTACH '{DUCKDB_FILE}' AS aa_demo{mode}")
+    return _duck
 
 
 def _databricks():
-    global _conn
-    if _conn is None:
+    """The warehouse connection for the current identity: one per viewer token (the token is baked in, the connector
+    is not documented thread-safe, so each connection carries a lock), one for the laptop. ponytail: at most 8 kept,
+    the oldest viewer's is closed; a pool if the app ever has more viewers than that at once."""
+    from fairshare.dbx import header_factory, http_path, server_hostname, user_token
+    token = user_token()
+    with _conns_lock:
+        hit = _conns.get(token)
+        if hit:
+            return hit
         from databricks import sql
-        from fairshare.dbx import header_factory, http_path, server_hostname, user_token
-        token = os.environ.get("DATABRICKS_TOKEN", "").strip()
-        kw = {"access_token": token} if token and not token.startswith("FILL") and not user_token() else {"credentials_provider": header_factory}
-        _conn = sql.connect(server_hostname=server_hostname(), http_path=http_path(), **kw)
-    return _conn
+        if token:
+            kw = {"access_token": token}
+        else:
+            pat = os.environ.get("DATABRICKS_TOKEN", "").strip()
+            kw = {"access_token": pat} if pat and not pat.startswith("FILL") else {"credentials_provider": header_factory}
+        conn = sql.connect(server_hostname=server_hostname(), http_path=http_path(), **kw)
+        if len(_conns) >= 8:
+            old, _ = _conns.pop(next(iter(_conns)))
+            try:
+                old.close()
+            except Exception:
+                pass
+        _conns[token] = (conn, threading.Lock())
+        return _conns[token]
 
 
 def query(sql: str) -> pd.DataFrame:
@@ -64,11 +83,12 @@ def query(sql: str) -> pd.DataFrame:
     if backend() == "spark":
         return _spark().sql(sql).toPandas()
     if is_databricks():
-        with _databricks().cursor() as cur:
+        conn, lock = _databricks()
+        with lock, conn.cursor() as cur:
             cur.execute(sql)
             cols = [d[0] for d in cur.description]
             return pd.DataFrame(cur.fetchall(), columns=cols)
-    return _duckdb().execute(sql).df()
+    return _duckdb().cursor().execute(sql).df()
 
 
 def execute(sql: str) -> None:
