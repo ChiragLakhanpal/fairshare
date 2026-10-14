@@ -1,0 +1,25 @@
+// The few icons the app uses, as inline stroke SVGs (lucide-react is available, but these stay tiny and on-brand).
+import type { SVGProps } from "react";
+const base = (p: SVGProps<SVGSVGElement>) => ({ width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true, ...p });
+export const Plus = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 5v14M5 12h14" /></svg>;
+export const ChevronDown = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M6 9l6 6 6-6" /></svg>;
+export const ChevronRight = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M9 6l6 6-6 6" /></svg>;
+export const ChevronsLeft = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" /></svg>;
+export const ChevronsRight = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M13 7l5 5-5 5M6 7l5 5-5 5" /></svg>;
+export const ArrowUp = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 19V5M5 12l7-7 7 7" /></svg>;
+export const External = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M7 17L17 7M8 7h9v9" /></svg>;
+export const Check = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M5 13l4 4L19 7" /></svg>;
+export const Info = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>;
+export const Close = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M6 6l12 12M18 6L6 18" /></svg>;
+export const Stop = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)} fill="currentColor" stroke="none"><rect x="5" y="5" width="14" height="14" rx="2" /></svg>;
+export const Dots = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)} fill="currentColor" stroke="none"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>;
+export const Chart = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 19V5M4 19h16M8 15V9M12 15v-3M16 15V7" /></svg>;
+export const Pen = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>;
+export const Phone = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" /></svg>;
+export const File = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M8 13h8M8 17h8" /></svg>;
+export const Clock = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+export const ShareIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 15V3M8 7l4-4 4 4" /></svg>;
+export const Copy = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>;
+export const Mail = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>;
+export const Link = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11 4.93" /><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07L13 19.07" /></svg>;
+export const Trash = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3" /></svg>;

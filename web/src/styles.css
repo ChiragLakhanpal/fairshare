@@ -42,3 +42,9 @@ pre.sql { margin: 0; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monos
   .print-only { display: block !important; }
 }
 .print-only { display: none; }
+
+@media print {
+  body.printing > * { display: none !important; }
+  body.printing .print-target, body.printing .print-target * { display: revert !important; }
+  body.printing .print-target { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; }
+}
