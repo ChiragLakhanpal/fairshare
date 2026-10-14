@@ -55,7 +55,9 @@ and a verifier that refuses to show a number no query returned. The harness is t
 Twenty benchmark questions with known answers: Genie passed 14 the first time, 19 after two trusted examples and a column it kept
 asking for, all 20 on the third run; every run is logged. The same twenty sit in the space's own Benchmarks tab, so Databricks
 grades Genie too: its judge gave 15 the first time, and it caught a percent multiplied by 100 that my matcher had let through;
-three instruction lines later, 20 under both judges." Open the MLflow experiment: one trace per answer, model calls and tool calls in order.
+three instruction lines later, 20 under both judges." Open How it works in the app: the twenty questions, one row each, with
+the four marks (Genie, Databricks's judge, backed, judged) and the links out to the Benchmarks tab, MLflow and the job. Then the
+MLflow experiment: one trace per answer, model calls and tool calls in order.
 Then one click: the same app running inside the workspace as a Databricks App, signed in as you (the sidebar says so). "SQL, Genie and the model run
 with the viewer's permissions, never a service principal's, so an agency user would only ever see their own rows. The model in
 there is Databricks-hosted Qwen3-Next, because a Free Edition app cannot reach Foundry; same harness, same verifier, and
