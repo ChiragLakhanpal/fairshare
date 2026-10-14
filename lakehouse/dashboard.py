@@ -151,7 +151,7 @@ def filt(name, kind, title, bindings, position, default=None):
 
 def build() -> dict:
     app_url = os.environ.get("DATABRICKS_APP_URL")
-    app_url = f"[the fairshare app]({app_url})" if app_url else "the fairshare app (streamlit run app/Home.py)"
+    app_url = f"[the fairshare app]({app_url})" if app_url else "the fairshare app (python -m server.main)"
     layout = [
         text("header", ["## Agency sales: share, fair share, pace",
                         "Every number on this page is a `MEASURE()` on `aa_demo.gold.sales_metrics`, the metric view the agent and Genie use; "

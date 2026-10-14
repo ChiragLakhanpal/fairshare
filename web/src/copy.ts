@@ -43,6 +43,8 @@ export const copy = {
   waitHint: "This usually takes 15 to 30 seconds. The first question after a quiet hour can take about a minute while the warehouse wakes up.",
   verified: (n: number) => (n === 0 ? "This answer has no numbers to check." : n === 1 ? "The 1 number in this answer came from the query results." : `All ${n} numbers in this answer came from the query results.`),
   removedSome: (n: number) => (n === 1 ? "I removed one sentence before showing you this answer." : `I removed ${n} sentences before showing you this answer.`),
+  verifiedShown: (n: number) => (n === 0 ? "The sentences you can see have no numbers to check." : n === 1 ? "The 1 number you can see came from the query results." : `The ${n} numbers you can see came from the query results.`),
+  allRemoved: "I could not show this answer. Every sentence in it carried a number that no query returned, so I removed them all. You can open the query to see what came back, or ask again more narrowly.",
   howChecked: "How was that checked?",
   showNumbers: "Show the numbers",
   hideNumbers: "Hide the numbers",
