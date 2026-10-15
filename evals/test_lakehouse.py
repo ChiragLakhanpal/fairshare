@@ -193,3 +193,19 @@ def test_harbor_commitment_and_summit_share_clauses():
     s = db.query("""SELECT status, quarters_below FROM aa_demo.ops.agreement_checks
                     WHERE agency_id = 1 AND clause_type = 'share_floor_quarters' AND as_of = DATE '2026-09-01'""").iloc[0]
     assert s["status"] == "ok" and s["quarters_below"] == 0
+
+
+def test_app_deploy_thinker_switch_puts_the_key_in_a_secret_resource(monkeypatch):
+    """FAIRSHARE_APP_THINKER=azure names the thinking model in the App's env and reads the key from a secret scope resource;
+    the key itself never appears in the manifest."""
+    sys.path.insert(0, str(ROOT / "lakehouse"))
+    import app_deploy
+    monkeypatch.delenv("FAIRSHARE_APP_THINKER", raising=False)
+    assert "FAIRSHARE_THINKER" not in app_deploy.manifest().decode() and not any(r.name == "azure_key" for r in app_deploy.resources())
+    monkeypatch.setenv("FAIRSHARE_APP_THINKER", "azure")
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://example.openai.azure.com/openai/v1")
+    monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "not-a-real-key")
+    m = app_deploy.manifest().decode()
+    assert "FAIRSHARE_THINKER" in m and "valueFrom: azure_key" in m and "gpt-5-mini" in m and "not-a-real-key" not in m
+    assert any(r.name == "azure_key" and r.secret.scope == "fairshare" and r.secret.key == "azure-openai-key" for r in app_deploy.resources())
