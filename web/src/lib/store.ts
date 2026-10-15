@@ -7,13 +7,15 @@ import type { Conversation, Scope, Turn } from "./types";
 export type { Conversation, Scope, Turn };
 
 export type Mode = "ask" | "delegate";
-export type State = { conversations: Conversation[]; activeId: string | null; summaryExpanded: boolean; sidebarCollapsed: boolean; mode: Mode; runId: string | null };
+/** Where Delegate is: the inbox (agent null), an agent, its selected run, and the page open beside the list. */
+export type DelegateView = { agent: string | null; runId: string | null; itemId: string | null };
+export type State = { conversations: Conversation[]; activeId: string | null; summaryExpanded: boolean; sidebarCollapsed: boolean; mode: Mode; delegate: DelegateView };
 
 type Storage = { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void };
 const KEY = "fairshare.conversations";
 const SIDEBAR = "fairshare.sidebar";
 const MODE = "fairshare.mode";
-const RUN = "fairshare.run";
+const DELEGATE = "fairshare.delegate";
 const MAX = 50;
 const DAY = 86_400_000;
 
@@ -40,7 +42,7 @@ export function createStore(storage: Storage) {
     summaryExpanded: true,
     sidebarCollapsed: read<boolean>(storage, SIDEBAR, typeof window !== "undefined" && window.innerWidth < 900), // ponytail: narrow screens start collapsed; no slide-over sheet
     mode: read<Mode>(storage, MODE, "ask") === "delegate" ? "delegate" : "ask",
-    runId: read<string | null>(storage, RUN, null),
+    delegate: { agent: null, runId: null, itemId: null, ...read<Partial<DelegateView>>(storage, DELEGATE, {}) },
   };
   const listeners = new Set<() => void>();
   const set = (patch: Partial<State>) => {
@@ -48,7 +50,7 @@ export function createStore(storage: Storage) {
     if (patch.conversations) write(storage, KEY, state.conversations);
     if (patch.sidebarCollapsed !== undefined) write(storage, SIDEBAR, state.sidebarCollapsed);
     if (patch.mode !== undefined) write(storage, MODE, state.mode);
-    if (patch.runId !== undefined) write(storage, RUN, state.runId);
+    if (patch.delegate !== undefined) write(storage, DELEGATE, state.delegate);
     listeners.forEach((l) => l());
   };
   const update = (id: string, fn: (c: Conversation) => Conversation) =>
@@ -94,8 +96,8 @@ export function createStore(storage: Storage) {
     setMode(mode: Mode) {
       set({ mode });
     },
-    setRun(runId: string | null) {
-      set({ runId });
+    setDelegate(patch: Partial<DelegateView>) {
+      set({ delegate: { ...state.delegate, ...patch } });
     },
   };
 }

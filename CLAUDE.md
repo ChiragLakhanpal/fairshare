@@ -12,7 +12,7 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 6. The gate runs before every commit (`.githooks/pre-commit`): the 20 ground-truth queries must run and `pytest evals` must pass. `FAIRSHARE_FULL_GATE=1` adds the Genie benchmark when Databricks is configured.
 7. Secrets stay in `.env` (gitignored). The Databricks token is a personal token: Genie is called as the user, never as a service principal.
    Inside the App the viewer's forwarded token is bound per request (fairshare/dbx.py `bind`); nothing about a viewer lives in a module global.
-9. Copy in the app (web/src/copy.ts) is full sentences a 12th grader follows; buttons are short verb phrases; no em dashes.
+9. Copy in the app (web/src/copy.ts) is full sentences a 10th grader follows (short words, no jargon, nothing that sounds like a model wrote it); buttons are short verb phrases; no em dashes.
 8. Dummy data stays dummy. Agencies, corporates and contracts are fictional; only the BTS T-100 seat data is real. Do not add anything that looks like a real customer, price list, or airline-internal figure.
 
 ## Layout

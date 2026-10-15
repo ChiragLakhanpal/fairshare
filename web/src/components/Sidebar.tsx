@@ -1,15 +1,16 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { copy } from "../copy";
+import { sidebarLine } from "../lib/runs";
 import { groupByRecency, type Mode } from "../lib/store";
-import type { Conversation } from "../lib/types";
-import { Agents, Chart, ChatIcon, ChevronsLeft, ChevronsRight, Clock, File, Pen, Phone, Plus, Trash } from "./Icons";
+import type { AgentDef, Conversation } from "../lib/types";
+import { Agents, Chart, ChatIcon, ChevronsLeft, ChevronsRight, Clock, File, Inbox as InboxIcon, Pen, Phone, Plus, Trash } from "./Icons";
 
 export type QuickAction = "summary" | "brief" | "call" | "agreement";
 
 type Props = {
   collapsed: boolean; onToggle: () => void; conversations: Conversation[]; activeId: string | null; onSelect: (id: string) => void;
   onRemove: (id: string) => void; onNew: () => void; onAction: (a: QuickAction) => void; email: string | null; inSummary: boolean;
-  mode: Mode; onMode: (m: Mode) => void; agents: { key: string; name: string }[]; onAgent: (key: string) => void; focusKey: string | null;
+  mode: Mode; onMode: (m: Mode) => void; agents: AgentDef[]; inboxCount: number; view: string | null; onInbox: () => void; onAgent: (key: string) => void;
 };
 
 const ACTIONS: { key: QuickAction; label: string; Icon: typeof Chart }[] = [
@@ -34,8 +35,14 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, onAgent, focusKey }: Props) {
+function Dot({ tone }: { tone: "running" | "waiting" | "quiet" | "none" | "failed" }) {
+  const look = tone === "running" ? "animate-pulse bg-blue" : tone === "waiting" ? "bg-blue" : tone === "failed" ? "bg-red" : "bg-line";
+  return <span aria-hidden="true" className={`mt-2 h-2 w-2 shrink-0 rounded-full ${look}`} />;
+}
+
+export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, inboxCount, view, onInbox, onAgent }: Props) {
   const initials = (email ?? "You").split("@")[0].split(/[._-]/).map((s) => s[0]?.toUpperCase() ?? "").join("").slice(0, 2) || "Y";
+  const anyRunning = agents.some((a) => a.running);
   if (collapsed) {
     return (
       <Tooltip.Provider>
@@ -45,11 +52,14 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
           <div role="group" aria-label={copy.modeSwitch} className="flex flex-col gap-0.5 rounded-lg bg-line-2 p-0.5">
             {MODES.map(({ key, label, Icon }) => (
               <Tip key={key} label={label}>
-                <button type="button" aria-pressed={mode === key} aria-label={label} onClick={() => onMode(key)} className={`press flex h-9 w-9 items-center justify-center rounded-md ${mode === key ? "bg-white text-navy shadow-sm" : "text-ink-2 hover:text-ink"}`}><Icon width={17} height={17} /></button>
+                <button type="button" aria-pressed={mode === key} aria-label={label} onClick={() => onMode(key)} className={`press relative flex h-9 w-9 items-center justify-center rounded-md ${mode === key ? "bg-white text-navy shadow-sm" : "text-ink-2 hover:text-ink"}`}>
+                  <Icon width={17} height={17} />
+                  {key === "delegate" && anyRunning && <span aria-hidden="true" className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-blue" />}
+                </button>
               </Tip>
             ))}
           </div>
-          {mode === "ask" && (
+          {mode === "ask" ? (
             <>
               <Tip label={copy.newChat}><button type="button" onClick={onNew} aria-label={copy.newChat} className="press flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white text-ink"><Plus /></button></Tip>
               <span className="h-2" />
@@ -60,6 +70,22 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
               ))}
               <span className="h-2" />
               <Tip label={copy.recent}><button type="button" onClick={onToggle} aria-label={copy.recent} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${activeId ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2"}`}><Clock width={18} height={18} /></button></Tip>
+            </>
+          ) : (
+            <>
+              <span className="h-2" />
+              <Tip label={`${copy.inboxTitle}: ${inboxCount}`}><button type="button" onClick={onInbox} aria-label={`${copy.inboxTitle}: ${inboxCount}`} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${view === null ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2 hover:text-ink"}`}><InboxIcon width={18} height={18} /></button></Tip>
+              {agents.map((a) => {
+                const s = sidebarLine(a);
+                return (
+                  <Tip key={a.key} label={`${a.name}: ${s.text}`}>
+                    <button type="button" onClick={() => onAgent(a.key)} aria-label={`${a.name}: ${s.text}`} className={`press relative flex h-10 w-10 items-center justify-center rounded-lg ${view === a.key ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2 hover:text-ink"}`}>
+                      <Agents width={18} height={18} />
+                      {(s.tone === "running" || s.tone === "waiting") && <span aria-hidden="true" className={`absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue ${s.tone === "running" ? "animate-pulse" : ""}`} />}
+                    </button>
+                  </Tip>
+                );
+              })}
             </>
           )}
           <span className="flex-1" />
@@ -80,18 +106,36 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
       </div>
       <div role="group" aria-label={copy.modeSwitch} className="mb-2 grid grid-cols-2 rounded-lg bg-line-2 p-0.5">
         {MODES.map(({ key, label, Icon }) => (
-          <button key={key} type="button" aria-pressed={mode === key} onClick={() => onMode(key)} className={`press inline-flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-semibold ${mode === key ? "bg-white text-navy shadow-sm" : "text-ink-2 hover:text-ink"}`}><Icon width={15} height={15} />{label}</button>
+          <button key={key} type="button" aria-pressed={mode === key} onClick={() => onMode(key)} className={`press relative inline-flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-semibold ${mode === key ? "bg-white text-navy shadow-sm" : "text-ink-2 hover:text-ink"}`}>
+            <Icon width={15} height={15} />{label}
+            {key === "delegate" && anyRunning && mode !== "delegate" && <span aria-hidden="true" className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 animate-pulse rounded-full bg-blue" />}
+          </button>
         ))}
       </div>
       {mode === "delegate" ? (
         <>
           <div className="t-label mx-2.5 mb-1.5 mt-2">{copy.agentsLabel}</div>
-          {agents.map((a) => (
-            <button key={a.key} type="button" onClick={() => onAgent(a.key)}
-              className={`press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-sm ${focusKey === a.key ? "bg-white font-semibold text-navy shadow-sm" : "text-ink hover:bg-line-2"}`}>
-              <Agents className={focusKey === a.key ? "text-blue" : "text-ink-2"} />{a.name}
-            </button>
-          ))}
+          <button type="button" onClick={onInbox} aria-current={view === null ? "page" : undefined}
+            className={`press flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left ${view === null ? "bg-white shadow-sm" : "hover:bg-line-2"}`}>
+            <Dot tone={inboxCount > 0 ? "waiting" : "none"} />
+            <span className="min-w-0">
+              <span className={`block text-sm ${view === null ? "font-semibold text-navy" : "font-medium text-ink"}`}>{copy.inboxTitle}</span>
+              <span className="block text-[12.5px] text-ink-2">{inboxCount === 1 ? "1 item" : `${inboxCount} items`}</span>
+            </span>
+          </button>
+          {agents.map((a) => {
+            const s = sidebarLine(a);
+            return (
+              <button key={a.key} type="button" onClick={() => onAgent(a.key)} aria-current={view === a.key ? "page" : undefined}
+                className={`press flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left ${view === a.key ? "bg-white shadow-sm" : "hover:bg-line-2"}`}>
+                <Dot tone={s.tone} />
+                <span className="min-w-0">
+                  <span className={`block text-sm ${view === a.key ? "font-semibold text-navy" : "font-medium text-ink"}`}>{a.name}</span>
+                  <span className={`block text-[12.5px] ${s.tone === "running" ? "text-blue" : "text-ink-2"}`}>{s.text}</span>
+                </span>
+              </button>
+            );
+          })}
           <div className="min-h-0 flex-1" />
         </>
       ) : (

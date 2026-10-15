@@ -504,6 +504,16 @@ def _from_row(row: dict) -> Run:
               model=row.get("model") or "", created_at=row.get("created_at") or "", finished_at=row.get("finished_at") or None,
               items=[Item.from_json(i) for i in payload.get("items", [])], progress=payload.get("progress") or {"done": 0, "total": 0, "text": ""},
               error=row.get("error") or None)
+    a = AGENTS.get(run.agent)
+    if a:  # runs saved before summaries and section titles existed get them from their stored facts
+        for item in run.items:
+            if not item.titles:
+                item.titles = list(a.section_titles)
+            if not item.summary:
+                try:
+                    item.summary = a.summarize(item.seed, item.facts)
+                except Exception:
+                    pass
     return run
 
 

@@ -1,9 +1,9 @@
 // Copy, email, print (the browser's own "Save as PDF") and CSV. No library: the platform does all four.
 import { copy } from "../copy";
 
-/** A short confirmation at the bottom of the screen; App.tsx shows it. */
-export function toast(message: string): void {
-  window.dispatchEvent(new CustomEvent("fairshare:toast", { detail: message }));
+/** A short confirmation at the bottom of the screen; App.tsx shows it for `ms` milliseconds. */
+export function toast(message: string, ms = 1800): void {
+  window.dispatchEvent(new CustomEvent("fairshare:toast", { detail: { message, ms } }));
 }
 /** Plain text always; with html too, rich targets (Mail, Teams, Slack) keep bold and lists. Says "Copied." either way. */
 export async function copyText(text: string, html?: string): Promise<boolean> {

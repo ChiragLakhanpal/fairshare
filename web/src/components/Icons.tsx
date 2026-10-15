@@ -4,6 +4,8 @@ const base = (p: SVGProps<SVGSVGElement>) => ({ width: 16, height: 16, viewBox: 
 export const Plus = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 5v14M5 12h14" /></svg>;
 export const ChevronDown = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M6 9l6 6 6-6" /></svg>;
 export const ChevronRight = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M9 6l6 6-6 6" /></svg>;
+export const ChevronLeft = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M15 18l-6-6 6-6" /></svg>;
+export const Inbox = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M3 13l2.5-7h13L21 13v6a1 1 0 01-1 1H4a1 1 0 01-1-1zM3 13h5l2 3h4l2-3h5" /></svg>;
 export const ChevronsLeft = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" /></svg>;
 export const ChevronsRight = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M13 7l5 5-5 5M6 7l5 5-5 5" /></svg>;
 export const ArrowUp = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 19V5M5 12l7-7 7 7" /></svg>;

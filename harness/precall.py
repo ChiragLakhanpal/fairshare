@@ -203,16 +203,19 @@ def template(seed: dict, fs: list[Fact]) -> str:
     if not w:
         p2 = "There is no comparison with the same month last year, so the change cannot be split into volume, mix and share."
     else:
-        p2 = (f"Against the same month last year, revenue moved {money(w['delta_revenue'])} ({num(w['delta_pct'])}%): volume {money(w['volume_effect'])}, "
-              f"mix {money(w['mix_effect'])} and share {money(w['share_effect'])}, which add up to the change. AA share went from {num(w['aa_share_prior_pct'])}% to "
-              f"{num(w['aa_share_now_pct'])}%, a move of {num(w['share_chg_pts'])} points, while fair share went from {num(w['fair_share_prior_pct'])}% to {num(w['fair_share_now_pct'])}%.")
+        gave = lambda v: f"{'added' if v >= 0 else 'took'} {money(abs(v))}"
+        p2 = (f"Against the same month last year, revenue {'fell' if w['delta_revenue'] < 0 else 'rose'} {money(abs(w['delta_revenue']))} ({num(abs(w['delta_pct']))}%): "
+              f"volume {gave(w['volume_effect'])}, mix {gave(w['mix_effect'])} and share {gave(w['share_effect'])}; the three add up to the change. "
+              f"AA share went from {num(w['aa_share_prior_pct'])}% to {num(w['aa_share_now_pct'])}%, {'down' if w['share_chg_pts'] < 0 else 'up'} {num(abs(w['share_chg_pts']))} points, "
+              f"while fair share went from {num(w['fair_share_prior_pct'])}% to {num(w['fair_share_now_pct'])}%.")
         if not mk.empty:
-            p2 += " The markets that moved most on share were " + ", ".join(f"{r.market} ({money(r.share_effect)})" for r in mk.itertuples()) + "."
+            p2 += " The markets that moved most on share were " + ", ".join(f"{r.market} ({'lost' if r.share_effect < 0 else 'gained'} {money(abs(r.share_effect))})" for r in mk.itertuples()) + "."
     if cl.df.empty:
         p3 = f"There is no agreement on file for {agency}." if "No agreement" in cl.note else "The agreement has no check for this month."
     else:
         lines = []
-        for r in cl.df.head(2).itertuples():
+        flagged = cl.df[cl.df["status"].isin(["breached", "watch"])]
+        for r in (flagged if not flagged.empty else cl.df.head(1)).head(2).itertuples():
             kind = WORDS.get(r.clause_type, r.clause_type.replace("_", " "))
             if r.clause_type == "annual_commitment":
                 lines.append(f"The agreement's {kind} (clause {r.section}) puts the agency at {num(r.value)}% of its commitment at this pace, against a line of "
@@ -239,10 +242,10 @@ def template(seed: dict, fs: list[Fact]) -> str:
     if moved.empty:
         p5 = "There is no seat comparison with last year for the agency's top markets this month."
     else:
-        p5 = "On the agency's top markets, AA seats versus last year: " + ", ".join(f"{r.market} {num(r.seats_change_pct)}%" for r in moved.head(3).itertuples()) + "."
+        p5 = "On the agency's top markets, AA seats versus last year: " + ", ".join(f"{r.market} {'up' if r.seats_change_pct >= 0 else 'down'} {num(abs(r.seats_change_pct))}%" for r in moved.head(3).itertuples()) + "."
     points = [f"the share gap is worth {money(abs(n.get('share_gap_usd') or 0))} {'below' if gap < 0 else 'above'} fair share"]
     if not mk.empty:
-        points.append(f"{mk.iloc[0]['market']} carried {money(mk.iloc[0]['share_effect'])} of share effect")
+        points.append(f"{mk.iloc[0]['market']} {'lost' if mk.iloc[0]['share_effect'] < 0 else 'gained'} {money(abs(mk.iloc[0]['share_effect']))} of share")
     elif not sched.empty:
         points.append(f"{sched.iloc[0]['market']} is their biggest market at {money(sched.iloc[0]['aa_revenue'])} of AA revenue")
     points.append(f"pace is {num(n['pace_pct'])}% of goal" if n.get("pace_pct") is not None else "the annual goal needs a check")
@@ -253,7 +256,7 @@ def template(seed: dict, fs: list[Fact]) -> str:
              f"Your AA share was {num(n.get('aa_share_pct'))}% against a fair share of {num(n.get('fair_share_pct'))}%. "
              f"I would like to walk through what moved and what we can do together on your largest markets. "
              f"Could we find thirty minutes next week? Best regards, {n.get('account_manager') or seed['manager']}")
-    return "\n\n".join([p1, p2, p3, p4, p5, p6, email, "Could not verify: whether the agency changed a preferred-carrier setting or lost a client; that is not in the data."])
+    return "\n\n".join([p1, p2, p3, p4, p5, p6, email, "Could not verify: whether the agency changed a preferred-carrier setting or lost a client."])
 
 
 def action(seed: dict, fs: list[Fact], verified_text: str) -> dict:

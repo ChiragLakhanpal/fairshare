@@ -49,3 +49,6 @@ pre.sql { margin: 0; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monos
   body.printing .print-target, body.printing .print-target * { visibility: visible; }
   body.printing .print-target { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; }
 }
+
+/* a checked number on a Delegate page: a dotted underline, the fact on hover */
+.num { border-bottom: 1px dotted var(--color-grey); cursor: help; }

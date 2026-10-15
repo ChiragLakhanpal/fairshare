@@ -74,7 +74,7 @@ agents.register(AgentDef(
     scope_kind="region", kind="mismatch", noun="note",
     plan=plan, facts=facts, instructions=INSTRUCTIONS, template=template, action=action,
     severity=lambda seed, fs: "risk",
-    title=lambda seed, fs: f"{seed['agency_name']}: {seed['opp_name']}",
+    title=lambda seed, fs: f"{seed['agency_name']}: {str(seed['opp_name']).replace(seed['agency_name'] + ' ', '')}",
     subtitle=lambda seed, fs: f"{month_label(seed['month'])}, {str(row(fact(fs, 'opportunity').df).get('mismatch') or '').rstrip('.')}",
     empty_text="The CRM stand-in and the data agree on every open opportunity.",
     one_liner="Finds deals where the CRM says one thing and the numbers say another, and drafts the fix.",

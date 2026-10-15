@@ -16,7 +16,7 @@ import { copy } from "./copy";
 import { api, ask, lastAnswerOf } from "./lib/api";
 import { monthLabel } from "./lib/format";
 import { store, useStore } from "./lib/store";
-import type { Agency, AgentsCatalog, Brief as BriefT, Me, Mover, Scope, Summary as SummaryT, Turn } from "./lib/types";
+import type { Agency, AgentsCatalog, Brief as BriefT, Inbox, Me, Mover, Scope, Summary as SummaryT, Turn } from "./lib/types";
 
 const SPRING = { type: "spring" as const, bounce: 0, duration: 0.35 };
 
@@ -45,7 +45,8 @@ function Main() {
   const [busy, setBusy] = useState(false);
   const [catalog, setCatalog] = useState<AgentsCatalog | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [inbox, setInbox] = useState<Inbox | null>(null);
+  const [inboxLoading, setInboxLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -54,12 +55,27 @@ function Main() {
   const summaryExpanded = useStore((s) => s.summaryExpanded);
   const collapsed = useStore((s) => s.sidebarCollapsed);
   const mode = useStore((s) => s.mode);
+  const delegateView = useStore((s) => s.delegate);
   const active = conversations.find((c) => c.id === activeId) ?? null;
 
-  const loadCatalog = useCallback(() => api.agents().then((c) => { setCatalog(c); setCatalogError(null); }).catch((e) => setCatalogError(e.message ?? "The agents did not load.")), []);
+  // The agents and what is waiting: loaded when Delegate opens, refreshed after a run starts or a decision lands, and
+  // polled every two seconds while any agent is running, so the sidebar's dot pulses even from Ask.
+  const loadDelegate = useCallback(() => {
+    setInboxLoading(true);
+    return Promise.all([
+      api.agents().then((c) => { setCatalog(c); setCatalogError(null); }).catch((e) => setCatalogError(e.message ?? "The agents did not load.")),
+      api.inbox().then(setInbox).catch(() => {}),
+    ]).finally(() => setInboxLoading(false));
+  }, []);
   useEffect(() => {
-    if (mode === "delegate" && !catalog) void loadCatalog();
-  }, [mode, catalog, loadCatalog]);
+    if (mode === "delegate" && !catalog) void loadDelegate();
+  }, [mode, catalog, loadDelegate]);
+  const anyRunning = !!catalog?.agents.some((a) => a.running);
+  useEffect(() => {
+    if (!anyRunning) return;
+    const id = setInterval(() => void loadDelegate(), 2000);
+    return () => clearInterval(id);
+  }, [anyRunning, loadDelegate]);
 
   const setScope = useCallback((s: Scope) => {
     setScopeState(s);
@@ -185,12 +201,14 @@ function Main() {
         <motion.div className="sticky top-0 h-screen shrink-0 overflow-hidden" animate={{ width: collapsed ? 56 : 256 }} transition={reduced ? { duration: 0 } : SPRING} initial={false}>
           <Sidebar collapsed={collapsed} onToggle={() => store.setSidebarCollapsed(!collapsed)} conversations={conversations} activeId={activeId}
             onSelect={(id) => store.setActive(id)} onRemove={(id) => store.remove(id)} onNew={() => store.newChat()} onAction={onAction} email={me?.email ?? null} inSummary={!activeId || summaryExpanded}
-            mode={mode} onMode={(m) => { store.setMode(m); if (m === "ask") setFocusKey(null); }} agents={catalog?.agents.map((a) => ({ key: a.key, name: a.name })) ?? []} onAgent={(k) => { setFocusKey(k); store.setMode("delegate"); }} focusKey={focusKey} />
+            mode={mode} onMode={(m) => store.setMode(m)} agents={catalog?.agents ?? []} inboxCount={inbox?.waiting ?? 0} view={delegateView.agent}
+            onInbox={() => { store.setDelegate({ agent: null, runId: null, itemId: null }); store.setMode("delegate"); }}
+            onAgent={(k) => { store.setDelegate({ agent: k, runId: null, itemId: null }); store.setMode("delegate"); }} />
         </motion.div>
         <section className="flex min-w-0 flex-1 flex-col">
           <TopBar me={me} scope={scope} onScope={setScope} />
           {mode === "delegate" ? (
-            <div className="flex-1"><Delegate catalog={catalog} catalogError={catalogError} scope={scope} focusKey={focusKey} onRefreshCatalog={loadCatalog} /></div>
+            <div className="flex-1"><Delegate catalog={catalog} catalogError={catalogError} inbox={inbox} inboxLoading={inboxLoading} scope={scope} onRefresh={loadDelegate} /></div>
           ) : (
             <>
               {active && <SummaryStrip summary={summary} expanded={summaryExpanded} onToggle={() => store.setSummaryExpanded(!summaryExpanded)} />}
@@ -231,9 +249,10 @@ function Toast() {
   useEffect(() => {
     let timer: number | undefined;
     const h = (e: Event) => {
-      setMsg((e as CustomEvent<string>).detail);
+      const d = (e as CustomEvent<string | { message: string; ms?: number }>).detail;
+      setMsg(typeof d === "string" ? d : d.message);
       clearTimeout(timer);
-      timer = window.setTimeout(() => setMsg(null), 1800);
+      timer = window.setTimeout(() => setMsg(null), typeof d === "string" ? 1800 : d.ms ?? 1800);
     };
     window.addEventListener("fairshare:toast", h);
     return () => {
