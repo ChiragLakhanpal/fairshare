@@ -264,3 +264,20 @@ def test_ready_made_phrases_travel_with_the_facts(state):
     summit = next(i for i in w.items if "Summit" in i.title)
     ph = fact(summit, "phrases").df.iloc[0]
     assert ph["distance"] == "2.2 points below the line" and ph["dollars"].startswith("$188K") and not summit.flagged
+
+
+def test_sql_literals_keep_backslashes_on_databricks(monkeypatch):
+    """Spark SQL string literals process backslash escapes, so a JSON payload must have its backslashes doubled there; DuckDB's
+    literals do not, so locally the text goes in as is (Oct 15, 2026: every run saved in the workspace came back unreadable)."""
+    from harness import summary
+    monkeypatch.setenv("FAIRSHARE_BACKEND", "databricks")
+    assert agents._q('a "q" and\\nline') == "'a \"q\" and\\\\nline'" and summary._q("it's") == "'it''s'"
+    monkeypatch.setenv("FAIRSHARE_BACKEND", "duckdb")
+    assert agents._q('a\\nline') == "'a\\nline'"
+
+
+def test_an_unreadable_saved_run_shows_as_failed_not_a_crash():
+    run = agents._from_row({"run_id": "0123456789ab", "agent": "precall", "scope_json": "{}", "status": "needs_approval", "requested_by": "x",
+                            "model": "template", "created_at": "2026-10-15T09:00:00", "finished_at": "2026-10-15T09:01:00", "error": None,
+                            "payload_json": '{"items": [{"draft": "a\n b"}]}'})
+    assert run.status == "failed" and run.items == [] and "could not be read" in run.error

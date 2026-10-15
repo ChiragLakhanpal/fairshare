@@ -327,7 +327,10 @@ def run(region: str, month: str, writer=None) -> dict:
 
 
 def _q(s: str) -> str:
-    return "'" + str(s).replace("'", "''") + "'"
+    s = str(s).replace("'", "''")
+    if db.is_databricks():  # Spark SQL literals process backslash escapes, DuckDB's do not (harness/agents.py says why)
+        s = s.replace("\\", "\\\\")
+    return "'" + s + "'"
 
 
 def save(result: dict, status: str = "draft") -> None:

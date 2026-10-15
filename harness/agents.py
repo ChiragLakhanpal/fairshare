@@ -254,7 +254,12 @@ def _now() -> str:
 
 
 def _q(s) -> str:
-    return "'" + str(s).replace("'", "''") + "'"
+    """A SQL string literal. Spark SQL literals process backslash escapes (a JSON "\\n" would land as a newline and "\\"" as a
+    quote, which broke every saved run on Oct 15, 2026); DuckDB's do not, so the doubling is Databricks-only."""
+    s = str(s).replace("'", "''")
+    if db.is_databricks():
+        s = s.replace("\\", "\\\\")
+    return "'" + s + "'"
 
 
 # ---------------------------------------------------------------- words the templates share
@@ -499,7 +504,11 @@ def save(run: Run) -> None:
 
 
 def _from_row(row: dict) -> Run:
-    payload = json.loads(row.get("payload_json") or "{}")
+    try:
+        payload = json.loads(row.get("payload_json") or "{}")
+    except ValueError:  # a row saved before the literal escaping fix: unreadable, shown as failed rather than breaking the list
+        payload = {"items": [], "progress": {"done": 0, "total": 0, "text": "The saved run could not be read."}}
+        row = {**row, "error": row.get("error") or "ValueError: the saved run could not be read"}
     run = Run(run_id=row["run_id"], agent=row["agent"], scope=json.loads(row.get("scope_json") or "{}"), requested_by=row.get("requested_by") or "",
               model=row.get("model") or "", created_at=row.get("created_at") or "", finished_at=row.get("finished_at") or None,
               items=[Item.from_json(i) for i in payload.get("items", [])], progress=payload.get("progress") or {"done": 0, "total": 0, "text": ""},
