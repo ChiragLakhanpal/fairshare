@@ -251,3 +251,16 @@ def test_registry_carries_the_words_the_catalog_needs():
         a = agents.AGENTS[key]
         assert a.one_liner.endswith(".") and a.cadence.endswith(".") and 5 <= len(a.steps) <= 7
         assert [t for t, _ in a.steps][-2:] == ["Check", "Approve"] and a.section_titles
+
+
+def test_ready_made_phrases_travel_with_the_facts(state):
+    from harness import precall, watch  # noqa: F401
+    run = agents.run("precall", {"manager": "Marcus Lee", "month": "2026-09"}, "tester", mode="template")
+    harbor = next(i for i in run.items if i.title.startswith("Harbor"))
+    ph = fact(harbor, "phrases").df.iloc[0]
+    assert ph["gap"] == "a gap of 5.9 points worth $57K below fair share" and ph["share_move"].endswith("down 10.1 points") and ph["volume"] == "volume added $33K"
+    assert ph["gap"] in harbor.draft and ph["crm"] in harbor.draft and not harbor.flagged
+    w = agents.run("watch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
+    summit = next(i for i in w.items if "Summit" in i.title)
+    ph = fact(summit, "phrases").df.iloc[0]
+    assert ph["distance"] == "2.2 points below the line" and ph["dollars"].startswith("$188K") and not summit.flagged

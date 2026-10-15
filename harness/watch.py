@@ -84,6 +84,16 @@ def facts(scope: dict, seed: dict) -> list[Fact]:
         out.append(Fact("quarters", "The last four closed quarters", db.query(qsql), qsql.strip(), "gold.fact_agency_sales_monthly"))
     csql2 = f"SELECT contact_name, title, email FROM aa_demo.gold.crm_contacts WHERE agency_id = {aid} ORDER BY contact_id"
     out.append(Fact("contacts", "Contacts at the agency (the CRM stand-in)", db.query(csql2), csql2.strip(), "gold.crm_contacts (the CRM stand-in)"))
+    c = row(out[0].df)
+    unit = "%" if c.get("unit") == "pct" else (" points" if c.get("unit") == "pts" else "")
+    d = c.get("distance")
+    ph = {"alert": clause_summary(c),
+          "value": f"{num(c.get('value'))}{unit}" if c.get("value") is not None else "no value",
+          "line": f"{num(c.get('threshold'))}{unit}" if c.get("threshold") is not None else "no line",
+          "distance": f"{num(abs(d))}{unit} {'below' if d < 0 else 'above'} the line" if d is not None and not pd.isna(d) else "no distance",
+          "dollars": (money(c.get("dollars")) + " " + str(c.get("dollars_label") or "at stake")) if c.get("dollars") is not None and not pd.isna(c.get("dollars")) and float(c.get("dollars")) > 0 else "no dollars attached",
+          "contact": f"{out[-1].df.iloc[0]['contact_name']} ({out[-1].df.iloc[0]['email']})" if not out[-1].df.empty else "no contact on file"}
+    out.append(Fact("phrases", "Ready-made phrases, already worded the right way: copy them", pd.DataFrame([ph]), "", "derived from the facts above"))
     return out
 
 
@@ -101,8 +111,9 @@ $ and % and K or M are fine). Never compute. Write shares as 40.1%, distances in
 $; a decline reads "down", never a minus sign. Put the clause in your own plain words: if its quote is a table row with vertical
 bars, say what the tier means in a sentence instead of copying the row. Never write a column name, a code such as share_floor_quarters,
 or NA. The draft to the agency is courteous and factual: it states the clause, the numbers and a next step, and never threatens.
-No ISO dates, no em dashes, no bullet points, no numbered lists. End with one line starting "Could not verify:" naming what the facts
-do not cover, without numbers."""
+No ISO dates, no em dashes, no bullet points, no numbered lists. The "Ready-made phrases" row says the value, the line, the distance
+and the dollars the right way: copy those phrases. End with one line starting "Could not verify:" naming what the facts do not cover,
+without numbers."""
 
 
 def _consequence(text) -> str:
