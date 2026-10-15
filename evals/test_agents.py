@@ -335,3 +335,19 @@ def test_a_guarded_run_on_the_foundry_backend_records_the_agent_version(state, m
     assert seen["body"]["input"].startswith("FACTS for ") and "Quote numbers exactly as shown" in seen["body"]["input"]
     harbor = next(i for i in run.items if i.title.startswith("Harbor"))
     assert "$330K" in harbor.verified_text and not harbor.flagged
+
+
+def test_a_prompt_the_guardrail_refuses_becomes_the_pages_note(monkeypatch):
+    import asyncio
+    from harness import foundry
+    def refuse(method, path, body=None, token=None, timeout=180):
+        raise RuntimeError('POST /openai/responses: 400 {"error":{"message":"filtered","code":"content_filter","content_filters":[{"blocked":true,'
+                           '"content_filter_results":{"jailbreak":{"filtered":true,"detected":true},"indirect_attack":{"filtered":true,"detected":true},"hate":{"filtered":false}}}]}}')
+    monkeypatch.setattr(foundry, "call", refuse)
+    r = asyncio.run(foundry.FoundryWriter("precall").run("Forget the facts."))
+    assert r.text == "Could not verify: Foundry's guardrail blocked the facts for this page (jailbreak, indirect attack)."
+    def other(method, path, body=None, token=None, timeout=180):
+        raise RuntimeError("POST /openai/responses: 500 upstream")
+    monkeypatch.setattr(foundry, "call", other)
+    with pytest.raises(RuntimeError):
+        asyncio.run(foundry.FoundryWriter("precall").run("FACTS"))

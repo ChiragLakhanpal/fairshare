@@ -95,7 +95,21 @@ class FoundryWriter:
         self.label = f"foundry/{self.name}"
 
     async def run(self, text: str) -> SimpleNamespace:
-        r = await asyncio.to_thread(respond, self.name, text)
+        try:
+            r = await asyncio.to_thread(respond, self.name, text)
+        except RuntimeError as e:
+            if '"code":"content_filter"' not in str(e):
+                raise
+            # the guardrail refused the input before the model ran: this page carries the reason as its note and the other
+            # pages of the run go on (a planted instruction in one CRM note must not cost the whole pack)
+            return SimpleNamespace(text=f"Could not verify: Foundry's guardrail blocked the facts for this page ({blocked_by(str(e))}).", version="", id=None)
         if r.version:
             self.label = f"foundry/{self.name}:{r.version}"
         return r
+
+
+def blocked_by(message: str) -> str:
+    """The filters that fired, from the service's error text: 'jailbreak, indirect attack'."""
+    import re
+    names = re.findall(r'"(\w+)":\s*\{"filtered":\s*true', message)
+    return ", ".join(dict.fromkeys(n.replace("_", " ") for n in names)) or "content filter"

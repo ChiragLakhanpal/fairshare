@@ -3,12 +3,13 @@
   python lakehouse/foundry.py sync                 # a new version for every agent whose instructions or guardrail changed
   python lakehouse/foundry.py list                 # what the project has, newest version each
   python lakehouse/foundry.py run precall < facts.txt   # one call through the Responses API, the way the App does it
-  python lakehouse/foundry.py login                # sign in once (device code); evaluations and the guardrail need a person, not a key
-  python lakehouse/foundry.py guardrail            # the content filter policy with prompt shields, then FOUNDRY_RAI_POLICY in .env
+  python lakehouse/foundry.py login                # sign in once (device code); the evaluation API needs a person, not a key
   python lakehouse/foundry.py eval [precall watch prospect mismatch]   # dataset from local template runs, run in Foundry against each agent
 
-The key (AZURE_OPENAI_API_KEY) creates and runs agents. Evaluations and the policy go through the signed-in identity: the
-device-code sign-in keeps its tokens in the macOS keychain and a record (no secret) in data/out/foundry_auth.json.
+The key (AZURE_OPENAI_API_KEY) creates and runs agents. Evaluations go through the signed-in identity: the device-code sign-in
+keeps its tokens in the macOS keychain and a record (no secret) in data/out/foundry_auth.json. The guardrail is a policy made in
+the portal (Build > Guardrails: the defaults plus indirect prompt injections, blocking); its full resource id in FOUNDRY_RAI_POLICY
+is what sync attaches to every version.
 """
 import json
 import os
@@ -26,7 +27,7 @@ load_dotenv(ROOT / ".env")
 from harness import foundry as fx  # noqa: E402
 
 RECORD = ROOT / "data" / "out" / "foundry_auth.json"
-SCOPE, ARM_SCOPE = "https://ai.azure.com/.default", "https://management.azure.com/.default"
+SCOPE = "https://ai.azure.com/.default"
 QUALITY = ["groundedness", "relevance", "coherence", "fluency"]
 SAFETY = ["violence", "sexual", "self_harm", "hate_unfairness", "indirect_attack", "protected_material"]
 
@@ -56,28 +57,6 @@ def token(scope: str = SCOPE) -> str:
         sys.exit("not signed in: run `python lakehouse/foundry.py login` first")
     cred = DeviceCodeCredential(cache_persistence_options=_cache(), authentication_record=AuthenticationRecord.deserialize(RECORD.read_text()))
     return cred.get_token(scope).token
-
-
-# ---------------------------------------------------------------- the guardrail (a content filter policy on the account)
-def guardrail():
-    """fairshare-guardrails on the account: the default filters on both sides plus prompt shields (jailbreak and indirect
-    attack) and protected material, all blocking. Needs the signed-in identity with write access to the account."""
-    import urllib.request
-    base = os.environ["FOUNDRY_RAI_POLICY"].split("/raiPolicies/")[0]  # the default policy's id names the account
-    if not base.startswith("/subscriptions/"):
-        sys.exit("FOUNDRY_RAI_POLICY must be a policy's full resource id (sync with the default one first)")
-    sev = lambda name, source: {"name": name, "severityThreshold": "Medium", "blocking": True, "enabled": True, "source": source}
-    on = lambda name, source: {"name": name, "blocking": True, "enabled": True, "source": source}
-    filters = [sev(n, s) for n in ("Hate", "Sexual", "Violence", "Selfharm") for s in ("Prompt", "Completion")]
-    filters += [on("Jailbreak", "Prompt"), on("Indirect Attack", "Prompt"), on("Protected Material Text", "Completion"), on("Protected Material Code", "Completion")]
-    body = {"properties": {"basePolicyName": "Microsoft.DefaultV2", "mode": "Default", "contentFilters": filters, "customBlocklists": []}}
-    url = f"https://management.azure.com{base}/raiPolicies/fairshare-guardrails?api-version=2025-06-01"
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="PUT",
-                                 headers={"Authorization": f"Bearer {token(ARM_SCOPE)}", "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        out = json.loads(r.read())
-    print("policy", out.get("name"), out.get("properties", {}).get("provisioningState", ""))
-    print(f"next: FOUNDRY_RAI_POLICY={base}/raiPolicies/fairshare-guardrails in .env, then `python lakehouse/foundry.py sync`")
 
 
 # ---------------------------------------------------------------- evaluations
@@ -176,8 +155,6 @@ def main(argv: list[str]):
         print(f"\n[{fx.NAMES[args[0]]} v{r.version}]", file=sys.stderr)
     elif cmd == "login":
         login()
-    elif cmd == "guardrail":
-        guardrail()
     elif cmd == "eval":
         tok = token()
         for key in (args or list(fx.NAMES)):
