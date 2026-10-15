@@ -73,6 +73,14 @@ class Item:
         pool = FactPool()
         for f in self.facts:
             pool.add_frame(f.df, f.name)
+            if "unit" in f.df.columns:  # a clause row says what its value, line and distance are measured in (pts, pct, usd)
+                for r in f.df.to_dict("records"):
+                    units = {"pts": ("pts", "pct"), "pct": ("pct", "pts"), "usd": ("usd",)}.get(str(r.get("unit")), ())
+                    for col in ("value", "threshold", "distance"):
+                        v = r.get(col)
+                        if v is not None and not (isinstance(v, float) and pd.isna(v)):
+                            for u in units:
+                                pool.add(float(v), u, f.name, f"{col}={v}")
         for i, s in enumerate(self.sources, 1):
             src = f"web: {s.get('url', '')}"
             for n in extract_numbers(s.get("snippet", "") or ""):
@@ -188,6 +196,47 @@ def _now() -> str:
 
 def _q(s) -> str:
     return "'" + str(s).replace("'", "''") + "'"
+
+
+# ---------------------------------------------------------------- words the templates share
+MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+
+def money(x) -> str:
+    """$4.29M, $330K, $412: the same display rounding the verifier matches at."""
+    if x is None or (isinstance(x, float) and pd.isna(x)):
+        return "n/a"
+    v = abs(float(x))
+    s = "-" if float(x) < 0 else ""
+    if v >= 1e6:
+        return f"{s}${v / 1e6:.2f}M"
+    if v >= 1e3:
+        return f"{s}${v / 1e3:.0f}K"
+    return f"{s}${v:,.0f}"
+
+
+def num(x, digits: int = 1) -> str:
+    return "n/a" if x is None or pd.isna(x) else f"{float(x):.{digits}f}"
+
+
+def month_label(ym: str) -> str:
+    return f"{MONTH_NAMES[int(ym[5:7]) - 1]} {ym[:4]}"
+
+
+def prior_year(ym: str) -> str:
+    return f"{int(ym[:4]) - 1}-{ym[5:7]}"
+
+
+def latest_month() -> str:
+    from harness.summary import months
+    return months()[0]
+
+
+def row(df: pd.DataFrame) -> dict:
+    """The first row as plain Python values (NaN as None); {} when the frame is empty."""
+    if df is None or df.empty:
+        return {}
+    return {k: (None if (isinstance(v, float) and pd.isna(v)) else (v.item() if hasattr(v, "item") else v)) for k, v in df.iloc[0].to_dict().items()}
 
 
 # ---------------------------------------------------------------- the writer

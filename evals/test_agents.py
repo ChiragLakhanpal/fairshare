@@ -108,3 +108,46 @@ def test_run_records_a_failed_block(state):
 def test_a_run_is_running_until_it_finishes():
     run = agents.new_run("fake", SCOPE, "tester", "template")
     assert run.status == "running" and run.to_json()["status"] == "running" and run.progress["total"] == 0
+
+
+# ---------------------------------------------------------------- the Monday pre-call pack
+def fact(item, name):
+    return next(f for f in item.facts if f.name == name)
+
+
+def test_pack_marcus_lee_offline(state):
+    from harness import precall  # noqa: F401  (registers the agent)
+    run = agents.run("precall", {"manager": "Marcus Lee", "month": "2026-09"}, "tester", mode="template")
+    assert run.status == "needs_approval" and run.error is None
+    assert {i.title for i in run.items} == {"BlueSky Corporate Travel", "Harbor Business Travel", "Capitol Corporate Travel", "Atlantic Premier Travel"}
+    harbor = next(i for i in run.items if i.title.startswith("Harbor"))
+    assert harbor.severity == "risk" and harbor.kind == "page" and "Marcus Lee" in harbor.subtitle
+    assert {f.name for f in harbor.facts} >= {"numbers", "why", "markets", "clauses", "opportunities", "last_touch", "contacts", "schedule", "mismatch"}
+    assert not fact(harbor, "mismatch").df.empty and not fact(harbor, "clauses").df.empty and fact(harbor, "numbers").df.iloc[0]["aa_revenue"] == 330114
+    assert harbor.action["type"] == "email" and harbor.action["subject"].startswith("Pre-call pack") and harbor.action["crm"]["activity_type"] == "Pre-call pack"
+    assert harbor.action["crm"]["agency_id"] == 5 and "Subject:" not in harbor.action["body"] and harbor.action["body"]
+    for item in run.items:
+        assert not item.flagged, (item.title, item.flagged)
+        assert "Could not verify" in item.draft
+    assert "crm stand-in" in harbor.verified_text.lower() and "share" in harbor.verified_text.lower()
+
+
+def test_pack_agency_without_agreement(state):
+    from harness import precall  # noqa: F401
+    run = agents.run("precall", {"manager": "Dana Whitfield", "month": "2026-09"}, "tester", mode="template")
+    north = next(i for i in run.items if i.title.startswith("Northstar"))
+    assert fact(north, "clauses").df.empty and "no agreement on file" in north.verified_text.lower() and not north.flagged
+
+
+def test_pack_month_without_prior_year(state):
+    from harness import precall  # noqa: F401
+    run = agents.run("precall", {"manager": "Marcus Lee", "month": "2025-09"}, "tester", mode="template")
+    assert run.status == "needs_approval", run.error
+    harbor = next(i for i in run.items if i.title.startswith("Harbor"))
+    assert fact(harbor, "why").df.empty and "no comparison" in harbor.verified_text.lower() and not harbor.flagged
+
+
+def test_pack_rejects_an_unknown_manager(state):
+    from harness import precall  # noqa: F401
+    run = agents.run("precall", {"manager": "Nobody", "month": "2026-09"}, "tester", mode="template")
+    assert run.status == "failed" and "manager" in run.error.lower()
