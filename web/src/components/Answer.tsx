@@ -7,28 +7,11 @@ import { money, pct } from "../lib/format";
 import { answerBody, answerHtml, answerText, shownSentences, trustLine } from "../lib/share";
 import type { Answer as AnswerT, Call } from "../lib/types";
 import { Check, Chart, Close, Copy, Dots, File as FileIcon, Info, Mail } from "./Icons";
+import { Table } from "./Table";
 
 const btn = "press rounded-lg border border-line bg-white px-3 py-1.5 text-[13px] font-medium text-ink hover:border-blue hover:text-blue";
 const btnOn = "press rounded-lg border border-tint-line bg-tint px-3 py-1.5 text-[13px] font-medium text-navy";
 const item = "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink outline-none data-[highlighted]:bg-surface";
-
-function Table({ rows }: { rows: Record<string, unknown>[] }) {
-  if (!rows.length) return <p className="text-[13px] text-ink-2">The query returned no rows.</p>;
-  const cols = Object.keys(rows[0]);
-  const num = (v: unknown) => typeof v === "number";
-  return (
-    <div className="overflow-x-auto">
-      <table className="mt-2.5 w-full border-collapse text-[13px]">
-        <thead><tr>{cols.map((c) => <th key={c} className={`border-b border-line px-2 py-1.5 font-semibold text-ink-2 ${num(rows[0][c]) ? "text-right" : "text-left"}`}>{c}</th>)}</tr></thead>
-        <tbody>
-          {rows.slice(0, 50).map((r, i) => (
-            <tr key={i}>{cols.map((c) => <td key={c} className={`border-b hairline px-2 py-1.5 tabular-nums ${num(r[c]) ? "text-right" : ""}`}>{r[c] === null || r[c] === undefined ? "" : typeof r[c] === "number" ? (Number.isInteger(r[c]) ? (r[c] as number).toLocaleString("en-US") : (r[c] as number).toLocaleString("en-US", { maximumFractionDigits: 2 })) : String(r[c])}</td>)}</tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 function Breakdown({ call, markets }: { call: Call; markets?: Call }) {
   const s = call.preview[0] as Record<string, number> | undefined;

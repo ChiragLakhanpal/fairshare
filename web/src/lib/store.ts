@@ -6,11 +6,14 @@ import type { Conversation, Scope, Turn } from "./types";
 
 export type { Conversation, Scope, Turn };
 
-export type State = { conversations: Conversation[]; activeId: string | null; summaryExpanded: boolean; sidebarCollapsed: boolean };
+export type Mode = "ask" | "delegate";
+export type State = { conversations: Conversation[]; activeId: string | null; summaryExpanded: boolean; sidebarCollapsed: boolean; mode: Mode; runId: string | null };
 
 type Storage = { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void };
 const KEY = "fairshare.conversations";
 const SIDEBAR = "fairshare.sidebar";
+const MODE = "fairshare.mode";
+const RUN = "fairshare.run";
 const MAX = 50;
 const DAY = 86_400_000;
 
@@ -36,12 +39,16 @@ export function createStore(storage: Storage) {
     activeId: null,
     summaryExpanded: true,
     sidebarCollapsed: read<boolean>(storage, SIDEBAR, typeof window !== "undefined" && window.innerWidth < 900), // ponytail: narrow screens start collapsed; no slide-over sheet
+    mode: read<Mode>(storage, MODE, "ask") === "delegate" ? "delegate" : "ask",
+    runId: read<string | null>(storage, RUN, null),
   };
   const listeners = new Set<() => void>();
   const set = (patch: Partial<State>) => {
     state = { ...state, ...patch };
     if (patch.conversations) write(storage, KEY, state.conversations);
     if (patch.sidebarCollapsed !== undefined) write(storage, SIDEBAR, state.sidebarCollapsed);
+    if (patch.mode !== undefined) write(storage, MODE, state.mode);
+    if (patch.runId !== undefined) write(storage, RUN, state.runId);
     listeners.forEach((l) => l());
   };
   const update = (id: string, fn: (c: Conversation) => Conversation) =>
@@ -83,6 +90,12 @@ export function createStore(storage: Storage) {
     },
     setSidebarCollapsed(v: boolean) {
       set({ sidebarCollapsed: v });
+    },
+    setMode(mode: Mode) {
+      set({ mode });
+    },
+    setRun(runId: string | null) {
+      set({ runId });
     },
   };
 }

@@ -1,14 +1,15 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { copy } from "../copy";
-import { groupByRecency } from "../lib/store";
+import { groupByRecency, type Mode } from "../lib/store";
 import type { Conversation } from "../lib/types";
-import { Chart, ChevronsLeft, ChevronsRight, Clock, File, Pen, Phone, Plus, Trash } from "./Icons";
+import { Agents, Chart, ChatIcon, ChevronsLeft, ChevronsRight, Clock, File, Pen, Phone, Plus, Trash } from "./Icons";
 
 export type QuickAction = "summary" | "brief" | "call" | "agreement";
 
 type Props = {
   collapsed: boolean; onToggle: () => void; conversations: Conversation[]; activeId: string | null; onSelect: (id: string) => void;
   onRemove: (id: string) => void; onNew: () => void; onAction: (a: QuickAction) => void; email: string | null; inSummary: boolean;
+  mode: Mode; onMode: (m: Mode) => void; agents: { key: string; name: string }[]; onAgent: (key: string) => void; focusKey: string | null;
 };
 
 const ACTIONS: { key: QuickAction; label: string; Icon: typeof Chart }[] = [
@@ -16,6 +17,10 @@ const ACTIONS: { key: QuickAction; label: string; Icon: typeof Chart }[] = [
   { key: "brief", label: copy.actionBrief, Icon: Pen },
   { key: "call", label: copy.actionCall, Icon: Phone },
   { key: "agreement", label: copy.actionAgreement, Icon: File },
+];
+const MODES: { key: Mode; label: string; Icon: typeof Chart }[] = [
+  { key: "ask", label: copy.modeAsk, Icon: ChatIcon },
+  { key: "delegate", label: copy.modeDelegate, Icon: Agents },
 ];
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
@@ -29,7 +34,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary }: Props) {
+export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, onAgent, focusKey }: Props) {
   const initials = (email ?? "You").split("@")[0].split(/[._-]/).map((s) => s[0]?.toUpperCase() ?? "").join("").slice(0, 2) || "Y";
   if (collapsed) {
     return (
@@ -37,15 +42,26 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
         <nav aria-label="Sidebar, collapsed" className="flex h-full w-14 shrink-0 flex-col items-center gap-1.5 bg-surface px-2 py-4">
           <img src="/aa-mark.svg" alt={copy.brand} className="h-[30px] w-[30px]" />
           <Tip label={copy.expandSidebar}><button type="button" onClick={onToggle} aria-label={copy.expandSidebar} className="press flex h-10 w-10 items-center justify-center rounded-lg text-ink-2 hover:bg-line-2 hover:text-ink"><ChevronsRight /></button></Tip>
-          <Tip label={copy.newChat}><button type="button" onClick={onNew} aria-label={copy.newChat} className="press flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white text-ink"><Plus /></button></Tip>
-          <span className="h-2" />
-          {ACTIONS.map(({ key, label, Icon }) => (
-            <Tip key={key} label={label}>
-              <button type="button" onClick={() => onAction(key)} aria-label={label} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${key === "summary" && inSummary ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2 hover:text-ink"}`}><Icon width={18} height={18} /></button>
-            </Tip>
-          ))}
-          <span className="h-2" />
-          <Tip label={copy.recent}><button type="button" onClick={onToggle} aria-label={copy.recent} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${activeId ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2"}`}><Clock width={18} height={18} /></button></Tip>
+          <div role="group" aria-label={copy.modeSwitch} className="flex flex-col gap-0.5 rounded-lg bg-line-2 p-0.5">
+            {MODES.map(({ key, label, Icon }) => (
+              <Tip key={key} label={label}>
+                <button type="button" aria-pressed={mode === key} aria-label={label} onClick={() => onMode(key)} className={`press flex h-9 w-9 items-center justify-center rounded-md ${mode === key ? "bg-white text-navy shadow-sm" : "text-ink-2 hover:text-ink"}`}><Icon width={17} height={17} /></button>
+              </Tip>
+            ))}
+          </div>
+          {mode === "ask" && (
+            <>
+              <Tip label={copy.newChat}><button type="button" onClick={onNew} aria-label={copy.newChat} className="press flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white text-ink"><Plus /></button></Tip>
+              <span className="h-2" />
+              {ACTIONS.map(({ key, label, Icon }) => (
+                <Tip key={key} label={label}>
+                  <button type="button" onClick={() => onAction(key)} aria-label={label} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${key === "summary" && inSummary ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2 hover:text-ink"}`}><Icon width={18} height={18} /></button>
+                </Tip>
+              ))}
+              <span className="h-2" />
+              <Tip label={copy.recent}><button type="button" onClick={onToggle} aria-label={copy.recent} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${activeId ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2"}`}><Clock width={18} height={18} /></button></Tip>
+            </>
+          )}
           <span className="flex-1" />
           <Tip label={copy.signedIn(email)}><span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-tint text-xs font-bold text-navy" aria-label={copy.signedIn(email)}>{initials}</span></Tip>
         </nav>
@@ -62,28 +78,48 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
         </span>
         <button type="button" onClick={onToggle} aria-label={copy.collapseSidebar} className="press rounded p-1 text-ink-2 hover:bg-line-2 hover:text-ink"><ChevronsLeft /></button>
       </div>
-      <button type="button" onClick={onNew} className="press flex w-full items-center gap-2 rounded-md border border-line bg-white px-3 py-2 text-sm font-medium text-ink hover:border-blue hover:text-blue"><Plus />{copy.newChat}</button>
-      <div className="t-label mx-2.5 mb-1.5 mt-4">{copy.quickActions}</div>
-      {ACTIONS.map(({ key, label, Icon }) => (
-        <button key={key} type="button" onClick={() => onAction(key)}
-          className={`press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-sm ${key === "summary" && inSummary ? "bg-white font-semibold text-navy shadow-sm" : "text-ink hover:bg-line-2"}`}>
-          <Icon className={key === "summary" && inSummary ? "text-blue" : "text-ink-2"} />{label}
-        </button>
-      ))}
-      {groups.length > 0 && <div className="t-label mx-2.5 mb-1.5 mt-4">{copy.recent}</div>}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {groups.map((g) => (
-          <div key={g.label}>
-            {groups.length > 1 && <div className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-grey">{g.label}</div>}
-            {g.items.map((c) => (
-              <div key={c.id} className={`group flex items-center rounded-md ${c.id === activeId ? "bg-white font-semibold text-navy shadow-sm" : "text-ink hover:bg-line-2"}`}>
-                <button type="button" onClick={() => onSelect(c.id)} className="min-w-0 flex-1 truncate px-2.5 py-[7px] text-left text-sm" title={c.title}>{c.title}</button>
-                <button type="button" onClick={() => onRemove(c.id)} aria-label={`Delete the chat "${c.title}"`} className="mr-1 hidden rounded p-1 text-ink-2 hover:text-red group-hover:block"><Trash width={14} height={14} /></button>
+      <div role="group" aria-label={copy.modeSwitch} className="mb-2 grid grid-cols-2 rounded-lg bg-line-2 p-0.5">
+        {MODES.map(({ key, label, Icon }) => (
+          <button key={key} type="button" aria-pressed={mode === key} onClick={() => onMode(key)} className={`press inline-flex items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-semibold ${mode === key ? "bg-white text-navy shadow-sm" : "text-ink-2 hover:text-ink"}`}><Icon width={15} height={15} />{label}</button>
+        ))}
+      </div>
+      {mode === "delegate" ? (
+        <>
+          <div className="t-label mx-2.5 mb-1.5 mt-2">{copy.agentsLabel}</div>
+          {agents.map((a) => (
+            <button key={a.key} type="button" onClick={() => onAgent(a.key)}
+              className={`press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-sm ${focusKey === a.key ? "bg-white font-semibold text-navy shadow-sm" : "text-ink hover:bg-line-2"}`}>
+              <Agents className={focusKey === a.key ? "text-blue" : "text-ink-2"} />{a.name}
+            </button>
+          ))}
+          <div className="min-h-0 flex-1" />
+        </>
+      ) : (
+        <>
+          <button type="button" onClick={onNew} className="press flex w-full items-center gap-2 rounded-md border border-line bg-white px-3 py-2 text-sm font-medium text-ink hover:border-blue hover:text-blue"><Plus />{copy.newChat}</button>
+          <div className="t-label mx-2.5 mb-1.5 mt-4">{copy.quickActions}</div>
+          {ACTIONS.map(({ key, label, Icon }) => (
+            <button key={key} type="button" onClick={() => onAction(key)}
+              className={`press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-sm ${key === "summary" && inSummary ? "bg-white font-semibold text-navy shadow-sm" : "text-ink hover:bg-line-2"}`}>
+              <Icon className={key === "summary" && inSummary ? "text-blue" : "text-ink-2"} />{label}
+            </button>
+          ))}
+          {groups.length > 0 && <div className="t-label mx-2.5 mb-1.5 mt-4">{copy.recent}</div>}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {groups.map((g) => (
+              <div key={g.label}>
+                {groups.length > 1 && <div className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-grey">{g.label}</div>}
+                {g.items.map((c) => (
+                  <div key={c.id} className={`group flex items-center rounded-md ${c.id === activeId ? "bg-white font-semibold text-navy shadow-sm" : "text-ink hover:bg-line-2"}`}>
+                    <button type="button" onClick={() => onSelect(c.id)} className="min-w-0 flex-1 truncate px-2.5 py-[7px] text-left text-sm" title={c.title}>{c.title}</button>
+                    <button type="button" onClick={() => onRemove(c.id)} aria-label={`Delete the chat "${c.title}"`} className="mr-1 hidden rounded p-1 text-ink-2 hover:text-red group-hover:block"><Trash width={14} height={14} /></button>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
       <div className="mt-2 flex items-center gap-2.5 border-t border-line px-2 pt-3.5">
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-tint text-xs font-bold text-navy">{initials}</span>
         <span className="text-[12.5px] leading-snug text-ink-2">{copy.signedIn(email)}</span>

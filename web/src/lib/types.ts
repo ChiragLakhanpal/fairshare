@@ -53,6 +53,28 @@ export type Definitions = {
   runs: { run_id: string; run_at: string; kpis: number; rows: number; drift: number }[];
 };
 
+export type RunStatus = "running" | "needs_approval" | "approved" | "rejected" | "failed";
+export type ItemStatus = "draft" | "approved" | "rejected";
+export type AgentScope = { manager?: string; region?: string; month?: string; market?: string };
+export type AgentDef = {
+  key: string; name: string; summary: string; reads: string[]; writes: string[]; approver: string; scope_kind: "manager" | "region" | "market";
+  last_run: { run_id: string; status: RunStatus; created_at: string } | null;
+};
+export type AgentsCatalog = { agents: AgentDef[]; managers: string[]; markets: { market_id: number; market: string }[]; crm_label: string };
+export type RunHeader = { run_id: string; agent: string; agent_name: string; scope: AgentScope; status: RunStatus; created_at: string; finished_at: string | null; items: number; needs_approval: number };
+export type ItemFact = { name: string; label: string; sql: string | null; source: string | null; rows: Record<string, unknown>[] };
+export type ItemSource = { title: string; url: string; published: string | null; snippet: string };
+export type ItemAction = { type: "email" | "crm" | "none"; subject: string; body: string; crm: { agency_id: number; activity_type: string; subject: string } | null };
+export type Item = {
+  item_id: string; kind: "page" | "clause" | "prospect" | "mismatch" | string; title: string; subtitle: string; severity: "ok" | "watch" | "risk" | null; status: ItemStatus;
+  sentences: Sentence[]; removed: { sentence: string; reason: string }[]; verified_text: string; draft: string; facts: ItemFact[]; sources: ItemSource[];
+  action: ItemAction; decided_at: string | null; decided_by: string | null;
+};
+export type Run = {
+  run_id: string; agent: string; agent_name: string; scope: AgentScope; status: RunStatus; requested_by: string | null; model: string; created_at: string; finished_at: string | null;
+  progress: { done: number; total: number; text: string }; items: Item[]; error: string | null;
+};
+
 export type Turn = {
   role: "user" | "assistant"; text: string; at: number;
   answer?: Answer; brief?: Brief; error?: ApiError; steps?: Step[]; pending?: boolean;

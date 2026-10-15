@@ -5,6 +5,7 @@ import { AgencyPicker } from "./components/AgencyPicker";
 import { BriefPage } from "./components/BriefPage";
 import { Conversation } from "./components/Conversation";
 import { DefinitionWindow } from "./components/DefinitionWindow";
+import { Delegate } from "./components/Delegate";
 import { FloatingBar } from "./components/FloatingBar";
 import { HowItWorks } from "./components/HowItWorks";
 import { Sidebar, type QuickAction } from "./components/Sidebar";
@@ -15,7 +16,7 @@ import { copy } from "./copy";
 import { api, ask } from "./lib/api";
 import { monthLabel } from "./lib/format";
 import { store, useStore } from "./lib/store";
-import type { Agency, Brief as BriefT, Me, Mover, Scope, Summary as SummaryT, Turn } from "./lib/types";
+import type { Agency, AgentsCatalog, Brief as BriefT, Me, Mover, Scope, Summary as SummaryT, Turn } from "./lib/types";
 
 const SPRING = { type: "spring" as const, bounce: 0, duration: 0.35 };
 
@@ -42,6 +43,9 @@ function Main() {
   const [kpi, setKpi] = useState<string | null>(null);
   const [prefill, setPrefill] = useState<{ text: string; n: number } | undefined>();
   const [busy, setBusy] = useState(false);
+  const [catalog, setCatalog] = useState<AgentsCatalog | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [focusKey, setFocusKey] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -49,7 +53,13 @@ function Main() {
   const activeId = useStore((s) => s.activeId);
   const summaryExpanded = useStore((s) => s.summaryExpanded);
   const collapsed = useStore((s) => s.sidebarCollapsed);
+  const mode = useStore((s) => s.mode);
   const active = conversations.find((c) => c.id === activeId) ?? null;
+
+  const loadCatalog = useCallback(() => api.agents().then((c) => { setCatalog(c); setCatalogError(null); }).catch((e) => setCatalogError(e.message ?? "The agents did not load.")), []);
+  useEffect(() => {
+    if (mode === "delegate" && !catalog) void loadCatalog();
+  }, [mode, catalog, loadCatalog]);
 
   const setScope = useCallback((s: Scope) => {
     setScopeState(s);
@@ -83,7 +93,7 @@ function Main() {
       const typing = (document.activeElement?.tagName ?? "") in { INPUT: 1, TEXTAREA: 1, SELECT: 1 };
       const windowOpen = !!document.querySelector('[role="dialog"]');
       if (e.key === "Escape" && !windowOpen && activeId && store.get().summaryExpanded) store.setSummaryExpanded(false);
-      if (e.key === "/" && !typing) {
+      if (e.key === "/" && !typing && store.get().mode === "ask") {
         e.preventDefault();
         inputRef.current?.focus();
       }
@@ -173,29 +183,36 @@ function Main() {
       <div className="flex min-h-screen">
         <motion.div className="sticky top-0 h-screen shrink-0 overflow-hidden" animate={{ width: collapsed ? 56 : 256 }} transition={reduced ? { duration: 0 } : SPRING} initial={false}>
           <Sidebar collapsed={collapsed} onToggle={() => store.setSidebarCollapsed(!collapsed)} conversations={conversations} activeId={activeId}
-            onSelect={(id) => store.setActive(id)} onRemove={(id) => store.remove(id)} onNew={() => store.newChat()} onAction={onAction} email={me?.email ?? null} inSummary={!activeId || summaryExpanded} />
+            onSelect={(id) => store.setActive(id)} onRemove={(id) => store.remove(id)} onNew={() => store.newChat()} onAction={onAction} email={me?.email ?? null} inSummary={!activeId || summaryExpanded}
+            mode={mode} onMode={(m) => { store.setMode(m); if (m === "ask") setFocusKey(null); }} agents={catalog?.agents.map((a) => ({ key: a.key, name: a.name })) ?? []} onAgent={(k) => { setFocusKey(k); store.setMode("delegate"); }} focusKey={focusKey} />
         </motion.div>
         <section className="flex min-w-0 flex-1 flex-col">
           <TopBar me={me} scope={scope} onScope={setScope} />
-          {active && <SummaryStrip summary={summary} expanded={summaryExpanded} onToggle={() => store.setSummaryExpanded(!summaryExpanded)} />}
-          <div className={`flex-1 ${active ? "pb-28" : "pb-52"}`}>
-            {active ? (
-              <>
-                <AnimatePresence initial={false}>
-                  {summaryExpanded && (
-                    <motion.div key="summary" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={reduced ? { duration: 0.15 } : SPRING} style={{ overflow: "hidden" }}>
-                      {summaryBlock}
-                      <div className="mx-auto max-w-[760px] px-6"><div className="border-b border-line" /></div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <Conversation c={active} onFollowUp={(q) => void send(q)} onHow={() => setHow(true)} onApproved={onApproved} />
-              </>
-            ) : (
-              summaryBlock
-            )}
-          </div>
-          <FloatingBar ref={inputRef} busy={busy} showChips={!active} followUp={!!active} onSend={(q) => void send(q)} onStop={() => abortRef.current?.abort()} onHow={() => setHow(true)} prefill={prefill} />
+          {mode === "delegate" ? (
+            <div className="flex-1"><Delegate catalog={catalog} catalogError={catalogError} scope={scope} focusKey={focusKey} onRefreshCatalog={loadCatalog} /></div>
+          ) : (
+            <>
+              {active && <SummaryStrip summary={summary} expanded={summaryExpanded} onToggle={() => store.setSummaryExpanded(!summaryExpanded)} />}
+              <div className={`flex-1 ${active ? "pb-28" : "pb-52"}`}>
+                {active ? (
+                  <>
+                    <AnimatePresence initial={false}>
+                      {summaryExpanded && (
+                        <motion.div key="summary" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={reduced ? { duration: 0.15 } : SPRING} style={{ overflow: "hidden" }}>
+                          {summaryBlock}
+                          <div className="mx-auto max-w-[760px] px-6"><div className="border-b border-line" /></div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <Conversation c={active} onFollowUp={(q) => void send(q)} onHow={() => setHow(true)} onApproved={onApproved} />
+                  </>
+                ) : (
+                  summaryBlock
+                )}
+              </div>
+              <FloatingBar ref={inputRef} busy={busy} showChips={!active} followUp={!!active} onSend={(q) => void send(q)} onStop={() => abortRef.current?.abort()} onHow={() => setHow(true)} prefill={prefill} />
+            </>
+          )}
         </section>
       </div>
       <HowItWorks open={how} onOpenChange={setHow} me={me} />
