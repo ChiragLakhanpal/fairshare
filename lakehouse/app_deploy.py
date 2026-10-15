@@ -151,7 +151,11 @@ def deploy(w):
     app = w.apps.get(NAME)
     if not app.compute_status or app.compute_status.state.value != "ACTIVE":
         start(w)  # a stopped app (24-hour stop) refuses a deployment
-    while w.apps.get(NAME).pending_deployment is not None:  # a start redeploys the last snapshot first; the API refuses a second deployment meanwhile
+    def busy(app) -> bool:  # a start or a resource update redeploys the last snapshot first; the API refuses a second deployment meanwhile
+        active = app.active_deployment
+        return app.pending_deployment is not None or bool(active and active.status and active.status.state.value == "IN_PROGRESS")
+
+    while busy(w.apps.get(NAME)):
         time.sleep(10)
     d = w.apps.deploy_and_wait(NAME, AppDeployment(source_code_path=path, mode=AppDeploymentMode.SNAPSHOT), timeout=timedelta(minutes=20))
     print("deployment", d.status.state.value if d.status else "", (d.status.message if d.status else "")[:400])

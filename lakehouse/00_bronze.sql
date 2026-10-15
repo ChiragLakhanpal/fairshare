@@ -44,8 +44,9 @@ SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing
 CREATE OR REPLACE TABLE aa_demo.bronze.crm_opportunities AS
 SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing/crm_opportunities.csv', format => 'csv', header => true);
 
+-- an explicit schema has no _rescued_data column, so this one is a plain SELECT *
 CREATE OR REPLACE TABLE aa_demo.bronze.crm_activities AS
-SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing/crm_activities.csv', format => 'csv', header => true,
+SELECT * FROM read_files('/Volumes/aa_demo/bronze/landing/crm_activities.csv', format => 'csv', header => true,
   schema => 'activity_id INT, agency_id INT, contact_id INT, activity_type STRING, subject STRING, happened_at DATE, owner STRING, notes STRING');
 
 -- The agreements as a table: the thinking model's extraction (lakehouse/clauses.py), reviewed and committed with the data.
