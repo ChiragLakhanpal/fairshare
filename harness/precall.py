@@ -95,7 +95,9 @@ def crm_block(aid: int, mo: str) -> tuple[Fact, Fact, Fact]:
     if not touch.empty:
         touch["happened_at"] = pd.to_datetime(touch["happened_at"]).dt.date
         touch = touch.sort_values("happened_at", ascending=False).head(1).reset_index(drop=True)
-        ref = pd.Timestamp(mo) + pd.DateOffset(months=1)   # the month after the as-of month: the Monday the pack is read
+        # "days ago" counts from the later of the real today and the month after the as-of month, so a touch the app recorded
+        # today never reads as negative against the data's own clock (the data stops in September 2026)
+        ref = max(pd.Timestamp(mo) + pd.DateOffset(months=1), pd.Timestamp.today().normalize())
         touch["days_since_touch"] = (ref - pd.to_datetime(touch["happened_at"])).dt.days
         touch = touch.rename(columns={"happened_at": "last_touch"})
     return (Fact("opportunities", "Open opportunities in the CRM stand-in", opps, osql.strip(), "gold.crm_opportunities (the CRM stand-in)"),
@@ -237,7 +239,7 @@ def template(seed: dict, fs: list[Fact]) -> str:
         when = pd.Timestamp(touch["last_touch"]).strftime("%B %d").replace(" 0", " ")
         p4 += f" The last touch was a {str(touch['activity_type']).lower()} on {when} ({touch['subject']}), {int(touch['days_since_touch'])} days ago."
     for r in mis.itertuples():
-        p4 += f" The CRM says the {r.opp_name} is {r.health}, but AA share moved {num(r.share_chg_pts)} points against last year, so the record needs a correction."
+        p4 += f" The CRM says the {r.opp_name} is {r.health}, but AA share is {'down' if r.share_chg_pts < 0 else 'up'} {num(abs(r.share_chg_pts))} points against last year, so the record needs a correction."
     moved = sched.dropna(subset=["seats_change_pct"]) if not sched.empty else sched
     if moved.empty:
         p5 = "There is no seat comparison with last year for the agency's top markets this month."

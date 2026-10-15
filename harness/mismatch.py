@@ -6,6 +6,8 @@ note in the CRM stand-in (at an airline, a Dynamics activity through Dataverse).
 """
 from __future__ import annotations
 
+import pandas as pd
+
 from fairshare import db
 from harness import agents
 from harness.agents import AgentDef, Fact, money, month_label, num, row
@@ -48,15 +50,22 @@ points" and revenue changes as "down 16.4%", never with a minus sign; money with
 no em dashes. End with one line starting "Could not verify:" naming what the facts do not cover, without numbers."""
 
 
+def moved(x, unit: str = " points") -> str:
+    """-10.1 reads as "down 10.1 points"; 4.3 as "up 4.3 points"."""
+    if x is None or pd.isna(x):
+        return "n/a"
+    return f"{'down' if float(x) < 0 else 'up'} {num(abs(float(x)))}{unit}"
+
+
 def template(seed: dict, fs: list[Fact]) -> str:
     o, w = row(fact(fs, "opportunity").df), row(fact(fs, "why").df)
     chg, yoy = o.get("share_chg_pts"), o.get("revenue_yoy_pct")
     new_health = "At risk" if str(o.get("health")) == "On track" else "On track"
     p1 = (f"The CRM stand-in says the {o['opp_name']}, worth {money(o.get('amount_usd'))} in the {o['stage']} stage, is {o['health']}. "
-          f"The data says AA share moved {num(chg)} points against the same month last year and revenue moved {num(yoy)}%. "
+          f"The data says AA share is {moved(chg)} against the same month last year and revenue is {moved(yoy, '%')}. "
           f"The record should say {new_health}, with a note on the share move.")
-    note = (f"CRM note: AA share moved {num(chg)} points year over year in {month_label(seed['month'])}, and revenue was {money(w.get('revenue_now'))}, "
-            f"{num(yoy)}% against last year. Health changed to {new_health} after review.")
+    note = (f"CRM note: AA share is {moved(chg)} year over year in {month_label(seed['month'])}, and revenue was {money(w.get('revenue_now'))}, "
+            f"{moved(yoy, '%')} against last year. Health changed to {new_health} after review.")
     return "\n\n".join([p1, note, f"Could not verify: why the opportunity was marked {o['health']}; the CRM stand-in holds no note on it."])
 
 
@@ -82,4 +91,4 @@ agents.register(AgentDef(
     steps=[("Deals", "Open opportunities in the CRM stand-in"), ("Compare", "Health against the share move"), ("Draft", "What to change, and the note"),
            ("Check", "Every number against its query"), ("Approve", "Waits for you")],
     section_titles=["What the CRM says, and what the data says", "The note for the record"],
-    summarize=lambda seed, fs: (lambda o: f"The CRM says {o.get('health')}; share moved {num(o.get('share_chg_pts'))} points against last year.")(row(fact(fs, "opportunity").df))))
+    summarize=lambda seed, fs: (lambda o: f"The CRM says {o.get('health')}; share is {moved(o.get('share_chg_pts'))} against last year.")(row(fact(fs, "opportunity").df))))
