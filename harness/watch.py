@@ -58,8 +58,11 @@ def facts(scope: dict, seed: dict) -> list[Fact]:
                       ROUND(SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0) * 100, 1) AS fair_share_pct
                FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
                WHERE s.agency_id = {aid} AND s.sales_month <= DATE '{mo}' AND s.sales_month > DATE '{mo}' - INTERVAL 6 MONTH GROUP BY ALL ORDER BY s.sales_month"""
+    clause = db.query(xsql)
+    if not clause.empty:  # a tier quoted from the agreement's table reads as a sentence, not a row with vertical bars
+        clause["quote"] = clause["quote"].map(lambda q: re.sub(r"\s*\|\s*", ", ", str(q)).strip(", "))
     out = [Fact("check", "The check for this clause and month", db.query(csql), csql.strip(), "ops.agreement_checks"),
-           Fact("clause", "The clause as extracted from the agreement, with its page", db.query(xsql), xsql.strip(), "gold.contract_clauses"),
+           Fact("clause", "The clause as extracted from the agreement, with its page", clause, xsql.strip(), "gold.contract_clauses"),
            Fact("trend", "The agency's last six months", db.query(tsql), tsql.strip(), "gold.fact_agency_sales_monthly")]
     if seed["clause_type"].endswith("_tiers"):
         tiers_sql = f"""SELECT threshold, value, distance, unit, dollars, status FROM aa_demo.ops.agreement_checks
@@ -94,8 +97,12 @@ to the line, and the consecutive quarters where the facts give them), and what i
 draft to the agency: a line "Subject: ..." then a blank line, then "Hello <first name>," and five sentences. For a breached or
 threatened clause the draft is a notice that states the clause, the numbers and the next step; for a tier within reach it is an
 upsell note that says what a higher tier would pay. Every number you write must appear in the FACTS exactly as shown (same rounding;
-$ and % and K or M are fine). Never compute. No column names, no ISO dates, no em dashes, no bullet points. End with one line
-starting "Could not verify:" naming what the facts do not cover, without numbers."""
+$ and % and K or M are fine). Never compute. Write shares as 40.1%, distances in points as "0.1 points above the line", money with a
+$; a decline reads "down", never a minus sign. Put the clause in your own plain words: if its quote is a table row with vertical
+bars, say what the tier means in a sentence instead of copying the row. Never write a column name, a code such as share_floor_quarters,
+or NA. The draft to the agency is courteous and factual: it states the clause, the numbers and a next step, and never threatens.
+No ISO dates, no em dashes, no bullet points, no numbered lists. End with one line starting "Could not verify:" naming what the facts
+do not cover, without numbers."""
 
 
 def _consequence(text) -> str:

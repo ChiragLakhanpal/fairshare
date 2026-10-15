@@ -74,8 +74,9 @@ Three short paragraphs: where the headroom is (the agencies selling AA below fai
 first, and the market's totals); what the public sources say about the route (quote them word for word, each with its number in
 brackets like [1], and never add a fact that is not in a source); a suggested play in two sentences (which agency to start with and
 why, and what to offer, in words). Every number comes from the FACTS exactly as shown or is quoted verbatim from a source. Never
-compute. No column names, no ISO dates, no em dashes, no bullet points. End with one line starting "Could not verify:" naming what
-neither the facts nor the sources cover, without numbers."""
+compute. Write shares as 38.8%, gaps as "$1.82M below fair share", never with a minus sign. No column names, no codes, no NA, no ISO
+dates, no em dashes, no bullet points. End with one line starting "Could not verify:" naming what neither the facts nor the sources
+cover, without numbers."""
 
 
 def template(seed: dict, fs: list[Fact]) -> str:

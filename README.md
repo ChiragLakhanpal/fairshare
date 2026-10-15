@@ -22,6 +22,13 @@ it, built for people who do not write SQL.
    twin, with a nightly check that shows where they disagree. In the app they are a hover and a click away, never a page.
 5. **How this app gets an answer**: one window with the path a question takes, the benchmark scores, and the links to the
    Genie space, the dashboard, the traces and the code.
+6. **Delegate**: the second mode. Four agents on one runtime, each a set of fixed queries, a tool-less writer (the frontier
+   model when one is named), the same verifier on every sentence, and a person's approval before anything is sent or
+   recorded: the Monday pre-call pack (one page per agency an account manager owns, with a drafted email), Agreement watch
+   (every measurable clause in the agreements checked against the month, with a drafted notice or upsell), Prospect research
+   (where the headroom is on a market, and what public sources say about the route, quoted with links), and CRM versus
+   reality (open opportunities whose CRM health disagrees with the data, with a drafted correction). The nightly job writes
+   the runs; the app shows them waiting. The CRM is a synthetic stand-in shaped like Dynamics 365 Sales.
 
 ## Data
 
@@ -44,8 +51,13 @@ BTS T-100 + synthetic agency layer + 4 agreements
   -> harness (Microsoft Agent Framework): ask_metrics | run_sql | explain_change | search_contracts
      three rules (numbers only from tools; cite the SQL; "Could not verify" for the rest), a deterministic verifier
      on every answer, OpenTelemetry traces to MLflow, 20 benchmark questions in a pre-commit hook
+  -> the agreements read once by the thinking model into gold.contract_clauses (page citations), checked monthly by SQL
+     into ops.agreement_checks; a CRM stand-in (contacts, opportunities, activities) in gold; the app's own writes in ops
+  -> Delegate (harness/agents.py): precall | watch | prospect | mismatch, each facts (SQL) -> prose (a writer with no tools,
+     FAIRSHARE_THINKER for the frontier model) -> the verifier -> a person's approval (an email draft, a CRM row); runs in ops.agent_runs
   -> Lakeflow job (databricks.yml, a Databricks Asset Bundle): nightly bronze to gold, metric view, definitions, decomposition,
-     parity as tasks; on Mondays a task drafts and verifies the summaries that wait for approval on the Monday page
+     the agreement checks, parity as tasks; on Mondays a task drafts and verifies the summaries; every night the agents
+     write their runs, which wait for approval in the app
   -> AI/BI dashboard on the metric view (lakehouse/dashboard.py, the leadership view; Ask Genie goes to the same Genie Agent)
   -> the app (web/ React + server/ FastAPI, one process with the harness): on the laptop with the Foundry model, and as a
      Databricks App with the viewer's own identity and a Databricks-hosted model (app.yaml, lakehouse/app_deploy.py);
@@ -79,8 +91,16 @@ FAIRSHARE_BACKEND=databricks .venv/bin/python lakehouse/genie.py update && FAIRS
 .venv/bin/python -m harness.cache                                     # record the scripted answers for the offline fallback
 .venv/bin/python lakehouse/dashboard.py push                          # the dashboard from lakehouse/dashboard.lvdash.json (build regenerates it, pull captures UI edits)
 .venv/bin/python lakehouse/app_deploy.py create && .venv/bin/python lakehouse/app_deploy.py deploy   # the app inside the workspace; start before a demo
-databricks bundle deploy && databricks bundle run fairshare_nightly   # the nightly job (databricks.yml): bronze to parity as tasks, the Monday drafts on Mondays
+databricks bundle deploy && databricks bundle run fairshare_nightly   # the nightly job (databricks.yml): bronze to parity as tasks, the Monday drafts on Mondays, the agents every night
+FAIRSHARE_MODEL=azure .venv/bin/python lakehouse/clauses.py extract   # the agreements -> data/out/contract_clauses.csv (reviewed, committed); `review` re-checks the quotes
+FAIRSHARE_SEARCH=brave SEARCH_API_KEY=... .venv/bin/python -m harness.research fetch CLT-LGA   # public sources for a market into data/research
+FAIRSHARE_BACKEND=duckdb .venv/bin/python lakehouse/job_tasks.py agents none   # every agent's run for the latest month, offline, waiting in the app
 ```
+
+Delegate runs on the laptop against DuckDB with the template writers (`FAIRSHARE_MODEL=none`) or with a model; `FAIRSHARE_THINKER`
+names the backend the writers use when it should differ from the chat loop's (azure for gpt-5-mini while the loop stays on a
+cheaper model). Approving an item re-verifies any edit, writes a row in `ops.crm_activities` (the CRM stand-in) and opens the
+mail draft; the app itself sends nothing.
 
 ## Why these choices
 

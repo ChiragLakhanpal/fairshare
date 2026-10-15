@@ -17,11 +17,11 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 
 ## Layout
 
-- `data/` generator, T-100 filter, contracts; `data/out/` the CSVs (committed) and the local DuckDB file (ignored)
-- `lakehouse/` SQL in run order, `run.py` (local or Databricks), `parity.py`, `job_tasks.py` (the job's Python tasks); `databricks.yml` at the root is the nightly job as a bundle (every `0*.sql` file is a task, in order; a test checks that)
-- `harness/` agent, tools, verifier, summary, tracing, `foundry/` hosting
+- `data/` generator (sales, goals, bookings, and the CRM stand-in), T-100 filter, contracts; `data/out/` the CSVs (committed, including `contract_clauses.csv`, the thinking model's extraction, reviewed) and the local DuckDB file (ignored); `data/research/` public sources per market for prospect research, quoted with links
+- `lakehouse/` SQL in run order (`07_agreement_watch.sql` checks every clause every month), `run.py` (local or Databricks), `parity.py`, `clauses.py` (extract and review the agreements), `job_tasks.py` (the job's Python tasks: parity, summary, agents); `databricks.yml` at the root is the nightly job as a bundle (every `0*.sql` file is a task, in order; a test checks that)
+- `harness/` agent, tools, verifier, summary, tracing, `foundry/` hosting; `agents.py` the Delegate runtime (facts, prose, check, approval; runs in `ops.agent_runs`) and the four agents `precall.py`, `watch.py`, `prospect.py`, `mismatch.py`; `research.py` the public-source providers
 - `evals/` benchmark questions with ground truth, runner, tests
-- `server/` FastAPI: the viewer's identity per request, the /api routes, the SSE stream for questions, the SPA fallback
+- `server/` FastAPI: the viewer's identity per request, the /api routes, the SSE stream for questions, `router.py` (meta, general, data), `agents_api.py` (the Delegate routes), the SPA fallback
 - `web/` the React app (Vite, TypeScript, Tailwind v4, Radix, Motion); `web/dist` is the build the App serves; `app/cache/` the offline answers
 - `docs/` architecture, walkthrough, failure modes, limits; `docs/superpowers/specs/` the design spec (the canvas link is in it)
 
@@ -36,4 +36,8 @@ cd web && npm run build && cd .. && .venv/bin/python lakehouse/app_deploy.py dep
 cd web && npm test && npx playwright test                                 # the front-end checks (dev server on 5173 for Playwright)
 FAIRSHARE_BACKEND=databricks .venv/bin/python lakehouse/run.py            # build on Databricks (needs .env)
 databricks bundle deploy && databricks bundle run fairshare_nightly        # the job (CLI default profile); --params summary_weekday=<today> forces the drafts
+FAIRSHARE_BACKEND=duckdb .venv/bin/python lakehouse/job_tasks.py agents none   # every agent's run for the latest month, offline (the app lists them under Delegate)
+FAIRSHARE_MODEL=azure .venv/bin/python lakehouse/clauses.py extract        # re-read the agreements into data/out/contract_clauses.csv; `review` re-checks a committed file
 ```
+
+The laptop's `.env` points at Databricks and Foundry: local builds and tests take `FAIRSHARE_BACKEND=duckdb` on the command line.

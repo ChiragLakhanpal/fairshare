@@ -99,3 +99,25 @@ director should want: rules, a review loop, a gate.
 - Why React and FastAPI and not Streamlit? Granular control of the experience for non-technical people: progressive disclosure, a floating chat bar, windows where the information is needed, exports; and a per-request identity so two viewers never share a token or a fact pool.
 - What about Genie App Builder? It would let a sales team describe a view and get an app inside an App Space, one governance boundary for identities, scopes and cost. It is in Beta and not on Free Edition, so this app is a classic Databricks App. The harness and the verifier are what would make those self-built views trustworthy.
 - Why the AI/BI dashboard and not Power BI? No Fabric tenant on a personal account. The dashboard plays Power BI's part: at American it is Power BI on the mirrored catalog, and the parity job keeps the DAX twin honest.
+
+## Delegate (two minutes, between Ask and Definitions, when the slot allows)
+
+The sidebar switch. "Everything so far was a question and an answer. This is the other half: work that runs on its own and
+waits for a person." The four cards: the Monday pre-call pack, Agreement watch, Prospect research, CRM versus reality. Each
+says what it reads, what it writes, who approves. The runs list already holds last night's runs (the job wrote them; or press
+Run now for Marcus Lee before the room fills: four pages take about two minutes with gpt-5-mini).
+
+Open the pack for Marcus Lee and go to Harbor's page: the numbers, the decomposition, the revenue commitment at 96% of pace with
+$46K of advanced incentive at stake, the CRM stand-in's renewal marked On track against a ten-point share drop, three talking
+points, the email. Every sentence has a check; the red box shows anything the writer made up. "A person presses Approve: that
+records an activity in the CRM stand-in and opens the email. The agent never sends." Then Agreement watch: BlueSky one tenth of a
+point above its share floor, Summit two points from a tier worth $188K, Harbor's commitment. "The model read the agreements once
+and pulled every promise into a table with the page; SQL checks them every month; the model only writes the alert." One click
+on Show the query under any item.
+
+Say what is fake: the CRM is a stand-in shaped like Dynamics 365 Sales; at American the row goes through Dataverse. Say what
+is real: the public sources in Prospect research are real pages about real routes, quoted with their links, and every number
+in the brief is either a query result or a quoted line from a cited page.
+
+The split to name for Matthew: the chat loop runs on the cheap model; ranking, clause reading and the "so what" run on the
+frontier model (FAIRSHARE_THINKER); the verifier and fixed tools are what make the cheap model safe in the loop.

@@ -273,11 +273,31 @@ def make_writer(instructions: str):
     return _writers[instructions]
 
 
+USD_COLS = ("revenue", "usd", "dollars", "amount", "effect", "goal", "commitment", "delta_revenue", "market_now", "market_prior", "ytd")
+
+
+def _display(df: pd.DataFrame) -> pd.DataFrame:
+    """Money columns as $1,234 (the model copies what it sees), other floats trimmed, empty cells blank."""
+    out = _clean(df.copy())
+    for c in out.columns:
+        name = str(c).lower()
+        if pd.api.types.is_numeric_dtype(out[c]) and not pd.api.types.is_bool_dtype(out[c]):
+            if any(h in name for h in USD_COLS) and "pct" not in name and "pts" not in name:
+                out[c] = out[c].map(lambda v: "" if pd.isna(v) else (f"-${abs(v):,.0f}" if v < 0 else f"${v:,.0f}"))
+            else:
+                out[c] = out[c].map(lambda v: "" if pd.isna(v) else (f"{v:g}" if isinstance(v, float) else str(v)))
+        else:
+            out[c] = out[c].map(lambda v: "" if (v is None or (isinstance(v, float) and pd.isna(v))) else str(v))
+    return out
+
+
 def facts_text(item: Item) -> str:
     """The FACTS block for one item: every frame as a table, every source numbered, nothing else."""
     def table(df: pd.DataFrame) -> str:
-        return _clean(df).to_string(index=False) if not df.empty else "(none)"
-    parts = [f"FACTS for {item.title}" + (f" ({item.subtitle})" if item.subtitle else "") + ". Quote numbers exactly as shown, same rounding.\n"]
+        return _display(df).to_string(index=False) if not df.empty else "(none)"
+    parts = [f"FACTS for {item.title}" + (f" ({item.subtitle})" if item.subtitle else "") + ". Quote numbers exactly as shown, same rounding. "
+             "Columns ending in _pct are percentages (write them with %), columns ending in _pts are points (write 'points'), dollar amounts carry a $ "
+             "(you may shorten $330,114 to $330K and $4,290,000 to $4.29M). A blank cell is a fact that is not available: do not mention it and never write NA or NaN.\n"]
     for f in item.facts:
         parts.append(f"{f.label}:\n{table(f.df)}" + (f"\nNote: {f.note}" if f.note else ""))
     if item.sources:

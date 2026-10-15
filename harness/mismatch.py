@@ -43,7 +43,8 @@ def fact(fs: list[Fact], name: str) -> Fact:
 INSTRUCTIONS = """You write a CRM correction for an account manager from the FACTS block only. Three sentences: what the CRM stand-in
 says about the opportunity (its name, stage, amount and health), what the data says (the share move in points and the revenue
 change against the same month last year), and what to change. Then a blank line and a line starting "CRM note:" with two sentences
-the account manager can paste into the record. Every number exactly as in the facts; never compute; no column names, no ISO dates,
+the account manager can paste into the record. Every number exactly as in the facts; never compute; write share moves as "down 10.1
+points" and revenue changes as "down 16.4%", never with a minus sign; money with a $. No column names, no codes, no NA, no ISO dates,
 no em dashes. End with one line starting "Could not verify:" naming what the facts do not cover, without numbers."""
 
 

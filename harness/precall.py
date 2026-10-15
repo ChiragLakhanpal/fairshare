@@ -173,9 +173,11 @@ points, each tied to a number, and what the CRM stand-in shows: open opportuniti
 the CRM and the data). Then a blank line and an email to the first contact named in the facts: a line "Subject: ..." followed by a
 blank line, then "Hello <first name>," and five sentences, signed with the account manager's name.
 Every number you write must appear in the FACTS exactly as shown (same rounding; you may add $ and % and write thousands as K and
-millions as M). Never compute, estimate or infer a number. No column names, no table jargon, no dates in ISO form. Plain prose with
-plain punctuation: no em dashes, no bullet points, no headings. End with one line starting "Could not verify:" naming what the facts
-do not cover, without numbers."""
+millions as M). Never compute, estimate or infer a number. Write a decline as "down $65K" or "a loss of $65K", never with a minus
+sign; write shares as 34.2%, changes in share as 10.1 points, money with a $. Never write a column name, a code such as
+annual_commitment, or NA: say "the revenue commitment", "the share floor", "the incentive tier" in words. No table jargon, no dates
+in ISO form, no numbered lists. Plain prose with plain punctuation: no em dashes, no bullet points, no headings. End with one line
+starting "Could not verify:" naming what the facts do not cover, without numbers."""
 
 
 def _yoy_words(n: dict, month: str) -> str:
