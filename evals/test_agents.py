@@ -50,7 +50,7 @@ def test_run_offline_two_items_one_flagged_sentence(state):
     a = run.items[0]
     assert a.title == "Item a" and a.severity == "watch" and a.status == "draft"
     assert a.verified_text.startswith("Revenue was $330K") and a.flagged and "12%" in a.flagged[0]["reason"]
-    assert a.action["crm"]["agency_id"] == 5 and run.progress == {"done": 2, "total": 2, "text": agents.progress_text(run)}
+    assert a.action["crm"]["agency_id"] == 5 and run.progress == {"done": 2, "total": 2, "text": agents.progress_text(run), "phase": "done", "item": None}
 
 
 def test_save_and_load_round_trip(state):
@@ -216,3 +216,38 @@ def test_prospect_unknown_market_fails_honestly(state):
     from harness import prospect  # noqa: F401
     run = agents.run("prospect", {"market": "XXX-YYY", "month": "2026-09"}, "tester", mode="template")
     assert run.status == "failed" and "market" in run.error.lower()
+
+
+# ---------------------------------------------------------------- the document view: sections, the email, the note, a summary
+def test_item_sections_email_note_and_summary(state):
+    from harness import precall  # noqa: F401
+    run = agents.run("precall", {"manager": "Marcus Lee", "month": "2026-09"}, "tester", mode="template")
+    harbor = next(i for i in run.items if i.title.startswith("Harbor"))
+    j = harbor.to_json()
+    assert [s["title"] for s in j["sections"]] == ["Where they stand", "What moved", "The agreement", "The CRM stand-in", "The schedule", "For the call"]
+    assert all(s["sentences"] for s in j["sections"]) and j["sections"][0]["sentences"][0]["text"].startswith("Harbor Business Travel sold")
+    assert j["email"] and j["email"]["subject"].startswith("Harbor Business Travel, September 2026") and j["email"]["to"].endswith("@harborbusinesstravel.example")
+    assert j["email"]["to_name"] and j["email"]["sentences"][0]["text"].startswith("Hello ") and "Best regards" in j["email"]["sentences"][-1]["text"]
+    assert j["note"].startswith("whether the agency changed") and "Could not verify" not in j["note"]
+    assert "10.1 points" in j["summary"] and "renewal" in j["summary"] and j["numbers_checked"] > 10
+    assert run.progress["phase"] == "done" and run.progress["item"] is None
+    north = next(i for i in agents.run("precall", {"manager": "Dana Whitfield", "month": "2026-09"}, "tester", mode="template").items if i.title.startswith("Northstar"))
+    assert "no agreement on file" in north.to_json()["summary"].lower()
+
+
+def test_watch_and_mismatch_items_have_summaries_and_sections(state):
+    from harness import mismatch, watch  # noqa: F401
+    w = agents.run("watch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
+    summit = next(i for i in w.items if "Summit" in i.title).to_json()
+    assert "tier" in summit["summary"].lower() and "$188K" in summit["summary"] and [s["title"] for s in summit["sections"]] == ["The alert", "What to do"] and summit["email"]
+    m = agents.run("mismatch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
+    harbor = next(i for i in m.items if "Harbor" in i.title).to_json()
+    assert "On track" in harbor["summary"] and len(harbor["sections"]) == 2 and harbor["email"] is None and harbor["note"]
+
+
+def test_registry_carries_the_words_the_catalog_needs():
+    from harness import mismatch, precall, prospect, watch  # noqa: F401
+    for key in ("precall", "watch", "prospect", "mismatch"):
+        a = agents.AGENTS[key]
+        assert a.one_liner.endswith(".") and a.cadence.endswith(".") and 5 <= len(a.steps) <= 7
+        assert [t for t, _ in a.steps][-2:] == ["Check", "Approve"] and a.section_titles

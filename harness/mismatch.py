@@ -76,4 +76,10 @@ agents.register(AgentDef(
     severity=lambda seed, fs: "risk",
     title=lambda seed, fs: f"{seed['agency_name']}: {seed['opp_name']}",
     subtitle=lambda seed, fs: f"{month_label(seed['month'])}, {str(row(fact(fs, 'opportunity').df).get('mismatch') or '').rstrip('.')}",
-    empty_text="The CRM stand-in and the data agree on every open opportunity."))
+    empty_text="The CRM stand-in and the data agree on every open opportunity.",
+    one_liner="Finds deals where the CRM says one thing and the numbers say another, and drafts the fix.",
+    cadence="Runs every night.",
+    steps=[("Deals", "Open opportunities in the CRM stand-in"), ("Compare", "Health against the share move"), ("Draft", "What to change, and the note"),
+           ("Check", "Every number against its query"), ("Approve", "Waits for you")],
+    section_titles=["What the CRM says, and what the data says", "The note for the record"],
+    summarize=lambda seed, fs: (lambda o: f"The CRM says {o.get('health')}; share moved {num(o.get('share_chg_pts'))} points against last year.")(row(fact(fs, "opportunity").df))))

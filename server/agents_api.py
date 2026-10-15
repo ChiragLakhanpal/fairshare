@@ -57,13 +57,37 @@ def _headers(limit: int) -> list[dict]:
 
 def _catalog() -> dict:
     heads = _headers(200)
-    last = {}
+    last, waiting, running = {}, {}, {}
     for h in heads:
         last.setdefault(h["agent"], {"run_id": h["run_id"], "status": h["status"], "created_at": h["created_at"]})
+        waiting.setdefault(h["agent"], int(h["needs_approval"]))
+    for r in RUNS.values():
+        if r.status == "running":
+            running[r.agent] = {"run_id": r.run_id, "progress": r.progress}
     keys = [k for k in ORDER if k in AGENTS] + [k for k in AGENTS if k not in ORDER]
-    return {"agents": [{"key": a.key, "name": a.name, "summary": a.summary, "reads": a.reads, "writes": a.writes, "approver": a.approver,
-                        "scope_kind": a.scope_kind, "last_run": last.get(a.key)} for a in (AGENTS[k] for k in keys)],
+    return {"agents": [{"key": a.key, "name": a.name, "summary": a.summary, "one_liner": a.one_liner, "cadence": a.cadence,
+                        "steps": [{"key": f"s{i}", "title": t, "sub": s} for i, (t, s) in enumerate(a.steps, 1)],
+                        "reads": a.reads, "writes": a.writes, "approver": a.approver, "scope_kind": a.scope_kind,
+                        "last_run": last.get(a.key), "waiting": waiting.get(a.key, 0), "running": running.get(a.key)} for a in (AGENTS[k] for k in keys)],
             "managers": _managers(), "markets": _markets(), "crm_label": CRM_LABEL}
+
+
+def _inbox() -> dict:
+    """Every item still waiting for a decision, by run, newest run first."""
+    groups = []
+    for h in _headers(50):
+        if h["status"] != "needs_approval":
+            continue
+        run = _run(h["run_id"])
+        items = [i.head() for i in run.items if i.status == "draft"]
+        if items:
+            groups.append({"run_id": run.run_id, "agent": run.agent, "agent_name": run.agent_name(), "scope": run.scope, "created_at": run.created_at, "items": items})
+    return {"waiting": sum(len(g["items"]) for g in groups), "groups": groups[:20]}
+
+
+@router.get("/agents/inbox")
+async def inbox(v: Viewer = Depends(viewer)):
+    return await run_in_threadpool(_inbox)
 
 
 @router.get("/agents")

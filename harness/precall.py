@@ -262,8 +262,43 @@ def action(seed: dict, fs: list[Fact], verified_text: str) -> dict:
     body = body.split("Could not verify")[0].strip()
     contacts = fact(fs, "contacts").df
     return {"type": "email", "subject": f"Pre-call pack: {seed['agency_name']}, {month_label(seed['month'])}", "body": body,
-            "to": str(contacts.iloc[0]["email"]) if not contacts.empty else "",
+            "to": str(contacts.iloc[0]["email"]) if not contacts.empty else "", "to_name": str(contacts.iloc[0]["contact_name"]) if not contacts.empty else "",
             "crm": {"agency_id": seed["agency_id"], "activity_type": "Pre-call pack", "subject": f"Pre-call pack approved for {month_label(seed['month'])}"}}
+
+
+def clause_summary(r) -> str:
+    """One plain sentence about a clause check row (a Series or a dict)."""
+    get = r.get
+    t, d, v, th = get("clause_type"), get("distance"), get("value"), get("threshold")
+    d = None if d is None or pd.isna(d) else float(d)
+    dollars = money(get("dollars")) if get("dollars") is not None and not pd.isna(get("dollars")) and float(get("dollars")) > 0 else None
+    if t == "share_floor_quarters" and d is not None:
+        return f"{num(abs(d))} points {'above' if d >= 0 else 'below'} its share floor."
+    if str(t).endswith("_tiers") and d is not None:
+        return f"{num(abs(d))} points from a higher tier worth {dollars} this year." if d < 0 else f"{num(d)} points above the line for its tier, worth {dollars} this year."
+    if t == "annual_commitment":
+        return f"At {num(v)}% of its revenue commitment at this pace, with {dollars} of advanced incentive at stake."
+    if t == "revenue_decline_quarters":
+        return f"The latest quarter was {num(v)}% of last year's, against a line of {num(th, 0)}%."
+    if t == "goal":
+        return f"At {num(v)}{'%' if get('unit') == 'pct' else ' points'} against a goal of {num(th)}."
+    return f"The {WORDS.get(t, str(t).replace('_', ' '))} is {STATUS_WORDS.get(get('status'), get('status'))}."
+
+
+def summary(seed: dict, fs: list[Fact]) -> str:
+    n, cl, mis = row(fact(fs, "numbers").df), fact(fs, "clauses"), fact(fs, "mismatch").df
+    tail = " No agreement on file." if "No agreement" in cl.note else ""
+    if not mis.empty:
+        r = mis.iloc[0]
+        chg = float(r["share_chg_pts"])
+        deal = str(r["opp_name"]).replace(seed["agency_name"] + " ", "")
+        return f"Share is {'down' if chg < 0 else 'up'} {num(abs(chg))} points, and the CRM still says the {deal} is {str(r['health']).lower()}."
+    if not cl.df.empty and cl.df.iloc[0]["status"] in ("breached", "watch"):
+        return clause_summary(cl.df.iloc[0])
+    yoy, gap = n.get("yoy_pct"), n.get("share_gap_pts") or 0
+    if yoy is None:
+        return f"{num(abs(gap))} points {'above' if gap >= 0 else 'below'} fair share; no comparison with last year.{tail}"
+    return f"{'Up' if yoy >= 0 else 'Down'} {num(abs(yoy))}%, {num(abs(gap))} points {'above' if gap >= 0 else 'below'} fair share.{tail}"
 
 
 agents.register(AgentDef(
@@ -273,4 +308,10 @@ agents.register(AgentDef(
     writes=["an activity in the CRM stand-in", "an email draft"], approver="the account manager", scope_kind="manager", kind="page", noun="page",
     plan=plan, facts=facts, instructions=INSTRUCTIONS, template=template, action=action, severity=severity,
     title=lambda seed, fs: seed["agency_name"], subtitle=lambda seed, fs: f"{month_label(seed['month'])}, {seed['manager']}",
-    empty_text="This manager owns no agencies."))
+    empty_text="This manager owns no agencies.",
+    one_liner="Writes one page for each of your agencies before Monday's calls, with an email ready to send.",
+    cadence="Runs every Monday at 6:00. You can also run it now.",
+    steps=[("Numbers", "Revenue, share, pace"), ("Why", "Volume, mix, share since last year"), ("Agreement", "Clauses near their line"), ("CRM", "Last touch, open deals"),
+           ("Draft", "The page and the email"), ("Check", "Every number against its query"), ("Approve", "Waits for you")],
+    section_titles=["Where they stand", "What moved", "The agreement", "The CRM stand-in", "The schedule", "For the call"],
+    summarize=summary))

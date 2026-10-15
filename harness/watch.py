@@ -15,7 +15,7 @@ import pandas as pd
 from fairshare import db
 from harness import agents
 from harness.agents import AgentDef, Fact, money, month_label, num, row
-from harness.precall import STATUS_WORDS, WORDS
+from harness.precall import STATUS_WORDS, WORDS, clause_summary
 from harness.summary import REGIONS
 
 
@@ -167,7 +167,7 @@ def action(seed: dict, fs: list[Fact], verified_text: str) -> dict:
     contacts = fact(fs, "contacts").df
     kind = WORDS.get(seed["clause_type"], seed["clause_type"].replace("_", " "))
     return {"type": "email", "subject": f"Agreement watch: {seed['agency_name']}, {kind}", "body": body,
-            "to": str(contacts.iloc[0]["email"]) if not contacts.empty else "",
+            "to": str(contacts.iloc[0]["email"]) if not contacts.empty else "", "to_name": str(contacts.iloc[0]["contact_name"]) if not contacts.empty else "",
             "crm": {"agency_id": seed["agency_id"], "activity_type": "Agreement notice" if seed["status"] == "breached" else "Agreement note",
                     "subject": f"Agreement watch: clause {seed['section']} {seed['status']}"}}
 
@@ -181,4 +181,10 @@ agents.register(AgentDef(
     severity=lambda seed, fs: "risk" if seed["status"] == "breached" else "watch",
     title=lambda seed, fs: f"{seed['agency_name']}: {WORDS.get(seed['clause_type'], seed['clause_type'].replace('_', ' '))} (clause {seed['section']})",
     subtitle=lambda seed, fs: f"{month_label(seed['month'])}, {STATUS_WORDS.get(seed['status'], seed['status'])}",
-    empty_text="No clause needs attention this month."))
+    empty_text="No clause needs attention this month.",
+    one_liner="Checks every promise in the agreements against the month and drafts a note when one is close to its line.",
+    cadence="Runs every night.",
+    steps=[("Clauses", "Every promise, with its page"), ("Compare", "Each clause against this month"), ("Alerts", "Breached, or close to the line"),
+           ("Draft", "The alert and the note"), ("Check", "Every number against its query"), ("Approve", "Waits for you")],
+    section_titles=["The alert", "What to do"],
+    summarize=lambda seed, fs: clause_summary(row(fact(fs, "check").df))))

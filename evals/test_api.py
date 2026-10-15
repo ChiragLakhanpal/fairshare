@@ -176,7 +176,9 @@ def test_agencies_are_read_per_call_not_cached_across_viewers(monkeypatch):
 
 # ---------------------------------------------------------------- Delegate: the agents routes
 def _state(monkeypatch, tmp_path):
+    from server import agents_api
     monkeypatch.setattr(db, "STATE_FILE", tmp_path / "state.duckdb")
+    monkeypatch.setattr(agents_api, "RUNS", {})  # runs from other tests stay out of this one's catalog and inbox
 
 
 def test_agents_catalog(client):
@@ -193,7 +195,7 @@ def test_run_pack_wait_and_poll(client, monkeypatch, tmp_path):
     assert r.status_code == 200, r.text
     run = r.json()
     assert run["status"] == "needs_approval" and len(run["items"]) == 4 and run["agent_name"] == "Monday pre-call pack" and run["model"] == "template"
-    assert run["progress"] == {"done": 4, "total": 4, "text": "4 of 4 waiting for a decision."} and run["error"] is None and run["finished_at"]
+    assert run["progress"] == {"done": 4, "total": 4, "text": "4 of 4 waiting for a decision.", "phase": "done", "item": None} and run["error"] is None and run["finished_at"]
     item = run["items"][0]
     assert item["facts"] and item["facts"][0]["rows"] and item["facts"][0]["sql"] and item["sentences"] and item["action"]["type"] == "email" and item["status"] == "draft"
     g = client.get(f"/api/agents/runs/{run['run_id']}").json()
@@ -245,3 +247,27 @@ def test_run_in_the_background_is_running_then_waits_for_approval(monkeypatch, t
                 break
             time.sleep(0.1)
         assert g["status"] == "needs_approval" and g["items"] and g["progress"]["done"] == g["progress"]["total"] == len(g["items"])
+
+
+def test_catalog_words_steps_waiting_and_running(client, monkeypatch, tmp_path):
+    _state(monkeypatch, tmp_path)
+    for a in client.get("/api/agents").json()["agents"]:
+        assert a["one_liner"].endswith(".") and a["cadence"].endswith(".") and 5 <= len(a["steps"]) <= 7
+        assert a["steps"][-2]["title"] == "Check" and a["steps"][-1]["title"] == "Approve" and all(s["sub"] for s in a["steps"])
+        assert a["waiting"] == 0 and a["running"] is None
+    client.post("/api/agents/mismatch/run?wait=true", json={"scope": {"region": "All", "month": "2026-09"}, "writer": "template"})
+    m = next(a for a in client.get("/api/agents").json()["agents"] if a["key"] == "mismatch")
+    assert m["waiting"] >= 1 and m["last_run"]["status"] == "needs_approval"
+
+
+def test_inbox_lists_draft_items_newest_run_first(client, monkeypatch, tmp_path):
+    _state(monkeypatch, tmp_path)
+    assert client.get("/api/agents/inbox").json() == {"waiting": 0, "groups": []}
+    run = client.post("/api/agents/precall/run?wait=true", json={"scope": {"manager": "Marcus Lee", "month": "2026-09"}, "writer": "template"}).json()
+    item = run["items"][0]
+    assert item["summary"] and item["sections"] and item["email"]["subject"] and item["note"] and item["numbers_checked"] > 0 and run["progress"]["phase"] == "done"
+    client.post(f"/api/agents/runs/{run['run_id']}/items/{item['item_id']}/approve", json={})
+    inbox = client.get("/api/agents/inbox").json()
+    assert inbox["waiting"] == 3 and inbox["groups"][0]["run_id"] == run["run_id"] and inbox["groups"][0]["agent_name"] == "Monday pre-call pack"
+    head = inbox["groups"][0]["items"][0]
+    assert set(head) == {"item_id", "kind", "title", "subtitle", "severity", "summary", "status"} and head["status"] == "draft" and head["summary"]

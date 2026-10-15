@@ -28,7 +28,7 @@ from fairshare import db
 from harness import aio
 from harness.facts import records
 from harness.summary import _clean, prettify
-from harness.verifier import INFORMATIONAL, FactPool, extract_numbers, verify
+from harness.verifier import INFORMATIONAL, SENTENCE_SPLIT, FactPool, extract_numbers, verify
 
 
 @dataclass
@@ -67,6 +67,55 @@ class Item:
     decided_at: str | None = None
     decided_by: str | None = None
     seed: dict = field(default_factory=dict)
+    summary: str = ""                                  # one plain sentence for a list row
+    titles: list[str] = field(default_factory=list)   # the section titles the page body is read under, in order
+
+    def _grouped(self) -> list[list[dict]]:
+        """The verified sentences regrouped into the draft's paragraphs: the verifier split the same text in the same order."""
+        sents = self.sentences()
+        paras = [p for p in re.split(r"\n\s*\n", self.draft or "") if p.strip()]
+        out, i = [], 0
+        for p in paras:
+            n = len([s for s in SENTENCE_SPLIT.split(p) if s and s.strip()])
+            out.append(sents[i:i + n])
+            i += n
+        if i < len(sents):  # a draft without blank lines, or a count mismatch: the rest is one paragraph
+            out.append(sents[i:])
+        return [g for g in out if g]
+
+    def _parts(self) -> tuple[list[list[dict]], list[dict], str | None]:
+        """Body paragraphs, the email (from the sentence that starts with Subject:), and the could-not-verify note."""
+        body, email, note, in_email = [], [], None, False
+        for g in self._grouped():
+            para = []
+            for s in g:
+                t = s["text"].strip()
+                if t.lower().startswith("could not verify"):
+                    note = re.sub(r"^could not verify:?\s*", "", t, flags=re.I).strip() or None
+                    continue
+                if t.lower().startswith("subject:"):
+                    in_email = True
+                (email if in_email else para).append(s)
+            if para:
+                body.append(para)
+        return body, email, note
+
+    def sections(self) -> list[dict]:
+        body, _, _ = self._parts()
+        return [{"title": self.titles[i] if i < len(self.titles) else "", "sentences": para} for i, para in enumerate(body)]
+
+    def email(self) -> dict | None:
+        _, mail, _ = self._parts()
+        if not mail:
+            return None
+        subject = re.sub(r"^subject:\s*", "", mail[0]["text"].strip(), flags=re.I).rstrip(".").strip()
+        return {"to": (self.action or {}).get("to") or "", "to_name": (self.action or {}).get("to_name") or "", "subject": subject, "sentences": mail[1:]}
+
+    def note(self) -> str | None:
+        return self._parts()[2]
+
+    def numbers_checked(self) -> int:
+        return sum(len(s.get("numbers", [])) for s in self.sentences() if s["status"] == "verified")
 
     def pool(self) -> FactPool:
         """Every number the prose may carry: the facts' cells, and the numbers quoted in a cited source (with its URL)."""
@@ -94,16 +143,21 @@ class Item:
 
     def to_json(self) -> dict:
         return {"item_id": self.item_id, "kind": self.kind, "title": self.title, "subtitle": self.subtitle, "severity": self.severity, "status": self.status,
-                "sentences": self.sentences(), "removed": self.flagged, "verified_text": self.verified_text, "draft": self.draft,
+                "summary": self.summary, "sentences": self.sentences(), "sections": self.sections(), "email": self.email(), "note": self.note(),
+                "numbers_checked": self.numbers_checked(), "removed": self.flagged, "verified_text": self.verified_text, "draft": self.draft,
                 "facts": [f.to_json() for f in self.facts], "sources": self.sources, "action": self.action,
-                "decided_at": self.decided_at, "decided_by": self.decided_by, "badges": self.badges, "seed": self.seed}
+                "decided_at": self.decided_at, "decided_by": self.decided_by, "badges": self.badges, "seed": self.seed, "titles": self.titles}
+
+    def head(self) -> dict:
+        """What a list row needs."""
+        return {"item_id": self.item_id, "kind": self.kind, "title": self.title, "subtitle": self.subtitle, "severity": self.severity, "summary": self.summary, "status": self.status}
 
     @classmethod
     def from_json(cls, d: dict) -> "Item":
         return cls(item_id=d["item_id"], kind=d["kind"], title=d["title"], subtitle=d.get("subtitle", ""), severity=d.get("severity"), status=d.get("status", "draft"),
                    facts=[Fact.from_json(f) for f in d.get("facts", [])], sources=d.get("sources", []), draft=d.get("draft", ""), verified_text=d.get("verified_text", ""),
                    flagged=d.get("removed", []), badges=d.get("badges", []), action=d.get("action") or {"type": "none", "subject": "", "body": "", "crm": None},
-                   decided_at=d.get("decided_at"), decided_by=d.get("decided_by"), seed=d.get("seed", {}))
+                   decided_at=d.get("decided_at"), decided_by=d.get("decided_by"), seed=d.get("seed", {}), summary=d.get("summary", ""), titles=d.get("titles", []))
 
 
 @dataclass
@@ -172,6 +226,11 @@ class AgentDef:
     sources: Callable[[dict, list[Fact]], list[dict]] | None = None
     empty_text: str = "Nothing needed attention."
     noun: str = "item"                                # for the progress line: page, alert, brief, note
+    one_liner: str = ""                               # what it does, one plain sentence
+    cadence: str = ""                                 # when it runs, one plain sentence
+    steps: list[tuple[str, str]] = field(default_factory=list)      # (one-word title, a short line) in order; the last two are Check and Approve
+    section_titles: list[str] = field(default_factory=list)         # the page body's paragraphs are read under these
+    summarize: Callable[[dict, list[Fact]], str] = lambda seed, fs: ""  # (seed, facts) -> one plain sentence for a list row
 
 
 AGENTS: dict[str, AgentDef] = {}
@@ -342,19 +401,28 @@ async def run_async(key: str, scope: dict, requested_by: str, mode: str = "guard
     run = run or new_run(key, scope, requested_by, mode)
     writer = None if mode == "template" else make_writer(a.instructions)
     run.model = writer_name() if writer else "template"
+    def provisional_title(seed: dict) -> str:
+        try:
+            return a.title(seed, [])
+        except Exception:
+            return str(seed.get("agency_name") or seed.get("market") or seed.get("opp_name") or "")
+
     try:
         seeds = await asyncio.to_thread(a.plan, scope)
-        run.progress = {"done": 0, "total": len(seeds), "text": ""}
+        run.progress = {"done": 0, "total": len(seeds), "text": "", "phase": "facts", "item": None}
         run.progress["text"] = progress_text(run)
         for i, seed in enumerate(seeds, 1):
+            run.progress.update(phase="facts", item=provisional_title(seed))
             fs = await asyncio.to_thread(a.facts, scope, seed)
             item = Item(item_id=uuid.uuid4().hex[:8], kind=a.kind, title=a.title(seed, fs), subtitle=a.subtitle(seed, fs), severity=a.severity(seed, fs),
-                        facts=fs, sources=a.sources(seed, fs) if a.sources else [], seed=seed)
+                        facts=fs, sources=a.sources(seed, fs) if a.sources else [], seed=seed, summary=a.summarize(seed, fs), titles=list(a.section_titles))
+            run.progress.update(phase="draft", item=item.title)
             if writer is None:
                 text = a.template(seed, fs)
             else:
                 resp = await writer.run(facts_text(item))
                 text = resp.text or ""
+            run.progress["phase"] = "check"
             verify_item(item, text)
             item.action = a.action(seed, fs, item.verified_text)
             run.items.append(item)
@@ -363,6 +431,7 @@ async def run_async(key: str, scope: dict, requested_by: str, mode: str = "guard
     except Exception as e:  # one bad block ends the run honestly; what was written stays
         run.error = f"{type(e).__name__}: {str(e)[:300]}"
     run.finished_at = _now()
+    run.progress.update(phase="done", item=None)
     run.progress["text"] = progress_text(run)
     await asyncio.to_thread(save, run)
     return run

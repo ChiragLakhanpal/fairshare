@@ -115,4 +115,11 @@ agents.register(AgentDef(
     title=lambda seed, fs: seed["market"],
     subtitle=lambda seed, fs: f"{month_label(seed['month'])}, {money(abs(row(fact(fs, 'total').df).get('share_gap_usd') or 0))} {'below' if (row(fact(fs, 'total').df).get('share_gap_usd') or 0) < 0 else 'above'} fair share this year",
     sources=lambda seed, fs: research.sources(seed["market"]),
-    empty_text="No market was named."))
+    empty_text="No market was named.",
+    one_liner="Picks a route, shows where the money is, and adds what the news says about it.",
+    cadence="Runs when you pick a market.",
+    steps=[("Headroom", "Agencies below fair share, in dollars"), ("Trend", "Twelve months of share"), ("Seats", "AA capacity versus last year"),
+           ("Sources", "Public pages about the route"), ("Draft", "The brief and a play"), ("Check", "Every number against its query or its source"), ("Approve", "Waits for you")],
+    section_titles=["Where the headroom is", "What the sources say", "A suggested play"],
+    summarize=lambda seed, fs: (lambda t, h: f"{money(abs(t.get('share_gap_usd') or 0))} {'below' if (t.get('share_gap_usd') or 0) < 0 else 'above'} fair share this year, with "
+                                             f"{int((h['share_gap_usd'] < 0).sum()) if not h.empty else 0} agencies below it.")(row(fact(fs, "total").df), fact(fs, "headroom").df)))
