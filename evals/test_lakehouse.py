@@ -135,3 +135,21 @@ def test_app_deploy_ships_the_server_not_streamlit():
     manifest = yaml.safe_load((ROOT / "app.yaml").read_text())
     assert manifest["command"] == ["python", "-m", "server.main"]
     assert not any(e["name"].startswith("STREAMLIT") for e in manifest["env"])
+
+
+def test_crm_stand_in_tables_load():
+    """Synthetic Dynamics-shaped tables: a contact for every agency, the planted Harbor trap, a last touch for everyone."""
+    c = db.query("SELECT COUNT(*) AS n, COUNT(DISTINCT agency_id) AS a FROM aa_demo.gold.crm_contacts").iloc[0]
+    assert c["a"] == 12 and c["n"] >= 12
+    o = db.query("SELECT agency_id, opp_name, stage, health FROM aa_demo.gold.crm_opportunities WHERE agency_id = 5 AND opp_name LIKE '%renewal%'").iloc[0]
+    assert o["stage"] == "Negotiate" and o["health"] == "On track"  # the CRM says fine while share collapsed
+    last = db.query("SELECT agency_id, MAX(happened_at) AS last_touch FROM aa_demo.gold.crm_activities GROUP BY ALL")
+    assert len(last) == 12 and str(last["last_touch"].min()) >= "2026-07-01"
+
+
+def test_state_tables_map_every_ops_name(tmp_path, monkeypatch):
+    """The local state file stands in for every aa_demo.ops table the app writes, not only summaries."""
+    monkeypatch.setattr(db, "STATE_FILE", tmp_path / "s.duckdb")
+    db.state_execute(["CREATE TABLE IF NOT EXISTS aa_demo.ops.crm_activities (activity_id STRING, agency_id INT)",
+                      "INSERT INTO aa_demo.ops.crm_activities VALUES ('a', 5)"])
+    assert db.state_query("SELECT COUNT(*) AS n FROM aa_demo.ops.crm_activities")["n"].iloc[0] == 1

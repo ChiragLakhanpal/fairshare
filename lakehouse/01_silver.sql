@@ -39,3 +39,18 @@ SELECT CAST(booking_id AS BIGINT) AS booking_id, CAST(ticket_number AS STRING) A
        CAST(fare_usd AS DOUBLE) AS fare_usd, CAST(ticket_count AS INT) AS ticket_count, cabin, CAST(agency_id AS INT) AS agency_id
 FROM aa_demo.bronze.fact_corporate_bookings
 QUALIFY ROW_NUMBER() OVER (PARTITION BY ticket_number ORDER BY booking_id) = 1;
+
+-- The CRM stand-in, typed. Fictional contacts, opportunities and activities; the app's own activities go to ops.crm_activities.
+CREATE OR REPLACE TABLE aa_demo.silver.crm_contacts AS
+SELECT CAST(contact_id AS INT) AS contact_id, CAST(agency_id AS INT) AS agency_id, contact_name, title, email
+FROM aa_demo.bronze.crm_contacts;
+
+CREATE OR REPLACE TABLE aa_demo.silver.crm_opportunities AS
+SELECT CAST(opp_id AS INT) AS opp_id, CAST(agency_id AS INT) AS agency_id, opp_name, stage, CAST(amount_usd AS DOUBLE) AS amount_usd,
+       CAST(close_date AS DATE) AS close_date, health, owner, CAST(updated_at AS DATE) AS updated_at
+FROM aa_demo.bronze.crm_opportunities;
+
+CREATE OR REPLACE TABLE aa_demo.silver.crm_activities AS
+SELECT CAST(activity_id AS INT) AS activity_id, CAST(agency_id AS INT) AS agency_id, CAST(contact_id AS INT) AS contact_id,
+       activity_type, subject, CAST(happened_at AS DATE) AS happened_at, owner, CAST(notes AS STRING) AS notes
+FROM aa_demo.bronze.crm_activities;

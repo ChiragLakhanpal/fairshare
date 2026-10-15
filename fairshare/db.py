@@ -10,6 +10,7 @@ SQL is written once with three-part names (aa_demo.gold.table) and runs on all t
 Databricks only (warehouse or spark); callers check `is_databricks()` before using them.
 """
 import os
+import re
 import threading
 from pathlib import Path
 
@@ -123,12 +124,20 @@ def statements(path: Path):
     return out
 
 
-# ---- small mutable state (summary runs and their approval status) ----
+# ---- small mutable state: what the app writes (summary runs, agent runs, the CRM stand-in's activities) ----
 SUMMARIES = "aa_demo.ops.summaries"
+AGENT_RUNS = "aa_demo.ops.agent_runs"
+CRM_ACTIVITIES = "aa_demo.ops.crm_activities"
+_OPS_NAME = re.compile(r"\baa_demo\.ops\.(\w+)")
+
+
+def _local(sql: str) -> str:
+    """Every aa_demo.ops table the app writes lives as a plain table in the local state file."""
+    return _OPS_NAME.sub(r"\1", sql)
 
 
 def state_execute(statements_: list[str]) -> None:
-    """Writes to the summaries table. Databricks: the warehouse. DuckDB: a short-lived connection to app_state.duckdb,
+    """Writes to the state tables. Databricks: the warehouse. DuckDB: a short-lived connection to app_state.duckdb,
     so no process holds a lock on it for longer than the write."""
     if is_databricks():
         for s in statements_:
@@ -138,7 +147,7 @@ def state_execute(statements_: list[str]) -> None:
     con = duckdb.connect(str(STATE_FILE))
     try:
         for s in statements_:
-            con.execute(s.replace(SUMMARIES, "summaries"))
+            con.execute(_local(s))
     finally:
         con.close()
 
@@ -151,6 +160,6 @@ def state_query(sql: str) -> pd.DataFrame:
         return pd.DataFrame()
     con = duckdb.connect(str(STATE_FILE), read_only=True)
     try:
-        return con.execute(sql.replace(SUMMARIES, "summaries")).df()
+        return con.execute(_local(sql)).df()
     finally:
         con.close()

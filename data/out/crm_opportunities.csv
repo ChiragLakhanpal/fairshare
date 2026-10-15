@@ -1,0 +1,20 @@
+opp_id,agency_id,opp_name,stage,amount_usd,close_date,health,owner,updated_at
+7001,1,Summit Travel Partners 2027 renewal,Negotiate,7290000.0,2026-12-15,On track,Dana Whitfield,2026-09-01
+7002,1,Summit Travel Partners NDC adoption,Qualify,1080000.0,2027-03-31,Stalled,Dana Whitfield,2026-09-08
+7003,2,BlueSky Corporate Travel 2027 renewal,Propose,6075000.0,2026-12-15,On track,Marcus Lee,2026-09-28
+7004,2,BlueSky Corporate Travel NDC adoption,Qualify,900000.0,2027-03-31,On track,Marcus Lee,2026-07-05
+7005,3,FareHub Online 2027 renewal,Propose,11340000.0,2026-12-15,At risk,Priya Raman,2026-09-18
+7006,3,FareHub Online NDC adoption,Qualify,1680000.0,2027-03-31,On track,Priya Raman,2026-07-11
+7007,4,Northstar Leisure 2027 renewal,Qualify,2430000.0,2026-12-15,On track,Dana Whitfield,2026-09-03
+7008,5,Harbor Business Travel 2027 renewal,Negotiate,5265000.0,2026-12-15,On track,Marcus Lee,2026-09-05
+7009,6,Pacific Gateway Travel 2027 renewal,Negotiate,4212000.0,2026-12-15,On track,Priya Raman,2026-08-22
+7010,7,Lone Star Travel Group 2027 renewal,Propose,6642000.0,2026-12-15,Stalled,Dana Whitfield,2026-08-26
+7011,7,Lone Star Travel Group NDC adoption,Qualify,984000.0,2027-03-31,Stalled,Dana Whitfield,2026-07-05
+7012,8,Capitol Corporate Travel 2027 renewal,Qualify,5670000.0,2026-12-15,At risk,Marcus Lee,2026-09-28
+7013,8,Capitol Corporate Travel NDC adoption,Propose,840000.0,2027-03-31,Stalled,Marcus Lee,2026-08-18
+7014,9,Sunbelt Vacations 2027 renewal,Propose,2106000.0,2026-12-15,Stalled,Tom Okafor,2026-08-27
+7015,10,Golden Coast Travel 2027 renewal,Negotiate,8910000.0,2026-12-15,At risk,Priya Raman,2026-08-27
+7016,10,Golden Coast Travel NDC adoption,Propose,1320000.0,2027-03-31,Stalled,Priya Raman,2026-08-13
+7017,11,Midway Travel Services 2027 renewal,Negotiate,3321000.0,2026-12-15,At risk,Tom Okafor,2026-09-22
+7018,12,Atlantic Premier Travel 2027 renewal,Qualify,7128000.0,2026-12-15,On track,Marcus Lee,2026-09-28
+7019,12,Atlantic Premier Travel NDC adoption,Propose,1056000.0,2027-03-31,Stalled,Marcus Lee,2026-07-20

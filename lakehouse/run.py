@@ -20,7 +20,8 @@ HERE = Path(__file__).parent
 OUT = ROOT / "data" / "out"
 PORTABLE = ["01_silver.sql", "02_gold.sql", "04_definitions.sql", "06_decomposition.sql"]
 DATABRICKS_ONLY = {"00_bronze.sql": "before", "03_metric_view.sql": "after_gold"}
-BRONZE_TABLES = ["dim_agency", "dim_corporate", "dim_market", "fact_agency_sales_monthly", "fact_market_capacity", "agency_goals", "fact_corporate_bookings"]
+BRONZE_TABLES = ["dim_agency", "dim_corporate", "dim_market", "fact_agency_sales_monthly", "fact_market_capacity", "agency_goals", "fact_corporate_bookings",
+                 "crm_contacts", "crm_opportunities", "crm_activities"]
 
 
 def local_bronze():

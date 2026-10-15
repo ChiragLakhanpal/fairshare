@@ -204,6 +204,49 @@ def build_bookings():
     return bookings
 
 
+def build_crm():
+    """The CRM stand-in: contacts, opportunities and activities shaped like Dynamics 365 Sales, all fictional.
+    Its own generator (not the module's), so the sales stream above and every existing number stay identical.
+
+    Planted on purpose: Harbor's renewal says Negotiate and On track while its share collapsed (the CRM-versus-reality
+    story); FareHub's says At risk and is; Summit's says On track and is.
+    """
+    rng = random.Random(88202)
+    first = ["Avery", "Jordan", "Morgan", "Riley", "Casey", "Quinn", "Taylor", "Drew", "Reese", "Harper", "Rowan", "Sage"]
+    last = ["Patel", "Nguyen", "Garcia", "Okoro", "Kim", "Silva", "Brennan", "Haddad", "Larsen", "Mehta", "Flores", "Walsh"]
+    titles = ["Director of Air", "VP Supplier Relations", "Air Sourcing Manager", "Head of Corporate Travel", "Operations Lead"]
+    kinds = [("Call", "Monthly check-in"), ("Email", "Performance report sent"), ("Meeting", "Quarterly business review"), ("Email", "Follow-up on fare display")]
+    today = date(2026, 10, 1)
+    contacts, opps, acts = [], [], []
+    cid, oid, actid = 9000, 7000, 30000
+    for aid, name, _atype, _region, am in agencies:
+        domain = name.lower().replace(" ", "") + ".example"
+        people = []
+        for _ in range(rng.choice([1, 2, 2, 3])):
+            cid += 1
+            fn, ln = rng.choice(first), rng.choice(last)
+            contacts.append((cid, aid, f"{fn} {ln}", rng.choice(titles), f"{fn.lower()}.{ln.lower()}@{domain}"))
+            people.append(cid)
+        base = agency_profile[aid][0]
+        health = {5: "On track", 3: "At risk", 1: "On track"}.get(aid, rng.choice(["On track", "On track", "At risk", "Stalled"]))
+        stage = {5: "Negotiate", 3: "Propose", 1: "Negotiate"}.get(aid, rng.choice(["Qualify", "Propose", "Negotiate"]))
+        oid += 1
+        opps.append((oid, aid, f"{name} 2027 renewal", stage, round(base * 12 * 0.45 * 1.5, -3), date(2026, 12, 15).isoformat(), health, am,
+                     (today - timedelta(days=rng.randint(3, 40))).isoformat()))
+        if base >= 700000:
+            oid += 1
+            opps.append((oid, aid, f"{name} NDC adoption", rng.choice(["Qualify", "Propose"]), round(base * 1.2, -3), date(2027, 3, 31).isoformat(),
+                         rng.choice(["On track", "Stalled"]), am, (today - timedelta(days=rng.randint(10, 90))).isoformat()))
+        cutoff = today - timedelta(days=rng.randint(5, 45))   # the last touch is between five and seventy days old
+        d = date(2026, 1, 10)
+        while d < cutoff:
+            actid += 1
+            kind, subject = rng.choice(kinds)
+            acts.append((actid, aid, rng.choice(people), kind, subject, d.isoformat(), am, ""))
+            d += timedelta(days=rng.randint(10, 25))
+    return contacts, opps, acts
+
+
 def write(name, header, rows):
     with open(OUT / name, "w", newline="") as f:
         w = csv.writer(f)
@@ -227,6 +270,10 @@ def main():
     write("fact_market_capacity.csv", ["market_id", "sales_month", "aa_seats", "total_seats", "aa_seat_share", "is_projected", "source"], capacity)
     write("agency_goals.csv", ["agency_id", "goal_year", "revenue_goal_usd", "share_goal"], goals)
     write("fact_corporate_bookings.csv", ["booking_id", "ticket_number", "corp_id", "booking_date", "travel_date", "origin", "dest", "channel", "fare_usd", "ticket_count", "cabin", "agency_id"], bookings)
+    contacts, opps, acts = build_crm()
+    write("crm_contacts.csv", ["contact_id", "agency_id", "contact_name", "title", "email"], contacts)
+    write("crm_opportunities.csv", ["opp_id", "agency_id", "opp_name", "stage", "amount_usd", "close_date", "health", "owner", "updated_at"], opps)
+    write("crm_activities.csv", ["activity_id", "agency_id", "contact_id", "activity_type", "subject", "happened_at", "owner", "notes"], acts)
     print(f"fair share source: {source}")
 
 

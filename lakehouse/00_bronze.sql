@@ -36,3 +36,14 @@ SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing
 CREATE OR REPLACE TABLE aa_demo.bronze.fact_corporate_bookings AS
 SELECT * FROM read_files('/Volumes/aa_demo/bronze/landing/fact_corporate_bookings.csv', format => 'csv', header => true,
   schema => 'booking_id BIGINT, ticket_number STRING, corp_id INT, booking_date DATE, travel_date DATE, origin STRING, dest STRING, channel STRING, fare_usd DOUBLE, ticket_count INT, cabin STRING, agency_id INT');
+
+-- The CRM stand-in (synthetic, shaped like Dynamics 365 Sales): at an airline this is the Dataverse mirror.
+CREATE OR REPLACE TABLE aa_demo.bronze.crm_contacts AS
+SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing/crm_contacts.csv', format => 'csv', header => true);
+
+CREATE OR REPLACE TABLE aa_demo.bronze.crm_opportunities AS
+SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing/crm_opportunities.csv', format => 'csv', header => true);
+
+CREATE OR REPLACE TABLE aa_demo.bronze.crm_activities AS
+SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing/crm_activities.csv', format => 'csv', header => true,
+  schema => 'activity_id INT, agency_id INT, contact_id INT, activity_type STRING, subject STRING, happened_at DATE, owner STRING, notes STRING');
