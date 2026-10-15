@@ -151,3 +151,39 @@ def test_pack_rejects_an_unknown_manager(state):
     from harness import precall  # noqa: F401
     run = agents.run("precall", {"manager": "Nobody", "month": "2026-09"}, "tester", mode="template")
     assert run.status == "failed" and "manager" in run.error.lower()
+
+
+# ---------------------------------------------------------------- agreement watch
+def test_watch_september(state):
+    from harness import watch  # noqa: F401
+    run = agents.run("watch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
+    assert run.status == "needs_approval", run.error
+    titles = [i.title for i in run.items]
+    assert any("Harbor" in t for t in titles) and any("BlueSky" in t for t in titles) and any("Summit" in t for t in titles)
+    harbor = next(i for i in run.items if "Harbor" in i.title)
+    assert harbor.kind == "clause" and harbor.severity in ("watch", "risk") and {f.name for f in harbor.facts} >= {"check", "trend", "contacts"}
+    assert harbor.action["type"] == "email" and harbor.action["subject"].startswith("Agreement watch") and harbor.action["crm"]["agency_id"] == 5
+    summit = next(i for i in run.items if "Summit" in i.title)
+    assert not fact(summit, "tiers").df.empty and "tier" in summit.verified_text.lower()
+    for item in run.items:
+        assert not item.flagged, (item.title, item.flagged)
+        assert "Could not verify" in item.draft and "Hello " in item.draft
+
+
+def test_watch_region_with_nothing_to_flag_has_no_items(state):
+    from harness import watch  # noqa: F401
+    run = agents.run("watch", {"region": "West", "month": "2026-09"}, "tester", mode="template")
+    assert run.error is None and run.items == [] and run.status == "approved" and "clause" in run.progress["text"].lower()
+
+
+# ---------------------------------------------------------------- CRM versus reality
+def test_mismatch_finds_harbor_renewal(state):
+    from harness import mismatch  # noqa: F401
+    run = agents.run("mismatch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
+    assert run.status == "needs_approval", run.error
+    harbor = next(i for i in run.items if "Harbor" in i.title)
+    assert harbor.kind == "mismatch" and harbor.severity == "risk" and not harbor.flagged
+    assert harbor.action["type"] == "crm" and harbor.action["crm"]["activity_type"] == "CRM update" and harbor.action["crm"]["agency_id"] == 5
+    agents.approve(run, harbor.item_id, None, "dana")
+    acts = db.state_query("SELECT * FROM aa_demo.ops.crm_activities")
+    assert len(acts) == 1 and acts.iloc[0]["activity_type"] == "CRM update" and acts.iloc[0]["agency_id"] == 5
