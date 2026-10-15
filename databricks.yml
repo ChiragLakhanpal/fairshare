@@ -91,6 +91,12 @@ resources:
           spark_python_task:
             python_file: lakehouse/job_tasks.py
             parameters: ["summary", "databricks", "--root", "${workspace.file_path}"]
+        - task_key: agents
+          depends_on: [{task_key: parity}, {task_key: decomposition}, {task_key: agreement_watch}]
+          environment_key: fairshare
+          spark_python_task:
+            python_file: lakehouse/job_tasks.py
+            parameters: ["agents", "databricks", "--root", "${workspace.file_path}"]
 
 targets:
   demo:

@@ -2,6 +2,7 @@
 
   job_tasks.py parity                      metric view vs the twins, one run appended to ops.kpi_parity; drift fails the task
   job_tasks.py summary [databricks|none]   the Monday draft for every region, latest closed month, status draft
+  job_tasks.py agents [databricks|none]    the Delegate agents (pre-call packs, agreement watch, CRM check), waiting for approval
   --root <path>                            the synced repo root (the bundle passes it; locally the file's own location is used)
 
 Inside the job there is no warehouse connection and no token: SQL runs on the task's own Spark session
@@ -54,11 +55,35 @@ def summary_task(model: str):
             print("  removed:", f)
 
 
+def managers() -> list[str]:
+    return db.query("SELECT DISTINCT account_manager FROM aa_demo.gold.dim_agency ORDER BY account_manager")["account_manager"].tolist()
+
+
+def agents_task(model: str):
+    """The Delegate agents for the latest month: a pre-call pack per account manager, the agreement watch and the CRM check
+    for every region, one run each, all waiting for approval in the app. The writers use FAIRSHARE_THINKER when the job
+    sets it, else this task's model; with none they write the templates."""
+    os.environ["FAIRSHARE_MODEL"] = model
+    from harness import agents, mismatch, precall, prospect, watch  # noqa: F401  (each registers its agent on import)
+    month = latest_month()
+    mode = "template" if model == "none" else "guarded"
+    planned = [("precall", {"manager": m, "month": month}) for m in managers()] + [("watch", {"region": "All", "month": month}), ("mismatch", {"region": "All", "month": month})]
+    for key, scope in planned:
+        run = agents.run(key, scope, "fairshare nightly", mode)
+        print(f"\n{run.agent_name()} {scope}: {run.status}, {len(run.items)} items ({run.model})" + (f", error: {run.error}" if run.error else ""))
+        for item in run.items:
+            print(f"  {item.title}: {len(item.badges)} sentences, {len(item.flagged)} removed")
+            for f in item.flagged:
+                print("    removed:", f)
+
+
 if __name__ == "__main__":
     task = sys.argv[1] if len(sys.argv) > 1 else ""
     if task == "parity":
         parity_task()
     elif task == "summary":
         summary_task(sys.argv[2] if len(sys.argv) > 2 else "none")
+    elif task == "agents":
+        agents_task(sys.argv[2] if len(sys.argv) > 2 else "none")
     else:
-        raise SystemExit("usage: job_tasks.py parity | summary [databricks|none]")
+        raise SystemExit("usage: job_tasks.py parity | summary [databricks|none] | agents [databricks|none]")

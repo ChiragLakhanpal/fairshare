@@ -94,6 +94,19 @@ def test_job_tasks_pick_the_latest_closed_month_and_every_region():
     import job_tasks
     assert job_tasks.latest_month() == "2026-09"
     assert job_tasks.regions() == ["Central", "East", "West"]
+    assert job_tasks.managers() == ["Dana Whitfield", "Marcus Lee", "Priya Raman", "Tom Okafor"]
+
+
+def test_agents_task_offline_leaves_six_runs_waiting(tmp_path, monkeypatch):
+    """The nightly agents task: a pack per manager, the watch, the CRM check; every run saved for the app to show."""
+    monkeypatch.setattr(db, "STATE_FILE", tmp_path / "state.duckdb")
+    sys.path.insert(0, str(ROOT / "lakehouse"))
+    import job_tasks
+    from harness import agents
+    job_tasks.agents_task("none")
+    heads = agents.list_runs(10)
+    assert len(heads) == 6 and {h["agent"] for h in heads} == {"precall", "watch", "mismatch"}
+    assert all(h["status"] in ("needs_approval", "approved") for h in heads) and sum(h["needs_approval"] for h in heads) >= 12
 
 
 def test_bundle_runs_every_sql_file_in_the_lakehouse():
@@ -103,7 +116,7 @@ def test_bundle_runs_every_sql_file_in_the_lakehouse():
     in_job = [t["sql_task"]["file"]["path"] for t in job["tasks"] if "sql_task" in t]
     on_disk = sorted(f"lakehouse/{p.name}" for p in (ROOT / "lakehouse").glob("0*.sql"))
     assert in_job == on_disk
-    assert {t["spark_python_task"]["parameters"][0] for t in job["tasks"] if "spark_python_task" in t} == {"parity", "summary"}
+    assert {t["spark_python_task"]["parameters"][0] for t in job["tasks"] if "spark_python_task" in t} == {"parity", "summary", "agents"}
 
 
 def test_aio_run_works_inside_a_running_loop():
