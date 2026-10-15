@@ -28,7 +28,8 @@ PHASE_TEXT = {
     "explain": "I am working out what moved.",
     "agreement": "I am reading the agreement.",
     "warehouse": "I am waking up the warehouse. The first question after a quiet hour can take about a minute.",
-    "model": "I am writing the answer.",
+    "start": "I am reading your question and choosing the query.",
+    "model": "I am reading the results.",
     "verify": "I am checking every number against the query.",
 }
 
@@ -46,7 +47,8 @@ def _instrumented(name, phase):
         def wrapper(*args, **kwargs):
             ctx = facts.current()
             ctx.check_cancel()
-            ctx.emit("status", phase=phase, tool=name, args=kwargs, text=PHASE_TEXT[phase])
+            if phase != "genie":  # ask_metrics emits its own genie step once the conversation exists, with the question and the link
+                ctx.emit("status", phase=phase, tool=name, args=kwargs, text=PHASE_TEXT[phase])
             t0 = time.monotonic()
             try:
                 return body(*args, **kwargs)
@@ -117,7 +119,8 @@ def _genie_ask(question: str, conversation_id: str | None = None) -> tuple[str, 
     if wait is None:
         wait = start()
     cid, mid = wait.conversation_id, wait.message_id
-    ctx.emit("status", phase="genie", text=PHASE_TEXT["genie"], genie={"conversation_id": cid, "message_id": mid, "url": _genie_url(space, cid)})
+    ctx.emit("status", phase="genie", tool="ask_metrics", args={"question": question}, text=PHASE_TEXT["genie"],
+             genie={"conversation_id": cid, "message_id": mid, "url": _genie_url(space, cid)})
     ctx.check_cancel()
     msg = wait.result(timeout=timeout, callback=lambda _m: ctx.check_cancel())
     text, df, sql = "", None, None

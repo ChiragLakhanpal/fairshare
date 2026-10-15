@@ -82,7 +82,7 @@ async def ask_events(viewer: Viewer, body: AskIn):
         question = f"Current scope: {body.scope.region}, {body.scope.month}\n\n{question}"
 
     if harness_agent.model_backend() == "none":
-        yield sse("status", {"phase": "model", "text": PHASE_TEXT["model"], "t_ms": 0})
+        yield sse("status", {"phase": "model", "text": PHASE_TEXT["start"], "t_ms": 0})
         hit = cached.lookup(body.question)
         if hit is None:
             yield sse("error", {"code": "no_model", "message": "No model is configured here, and this question has no recorded answer."})
@@ -100,7 +100,7 @@ async def ask_events(viewer: Viewer, body: AskIn):
 
     task = asyncio.create_task(asyncio.wait_for(harness_agent.ask_async(question, history=[t.model_dump() for t in body.history]), ASK_TIMEOUT_S))
     try:
-        yield sse("status", {"phase": "model", "text": PHASE_TEXT["model"], "t_ms": 0})
+        yield sse("status", {"phase": "model", "text": PHASE_TEXT["start"], "t_ms": 0})
         while not task.done():
             try:
                 ev = await asyncio.wait_for(queue.get(), 0.5)

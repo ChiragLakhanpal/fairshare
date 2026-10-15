@@ -34,8 +34,8 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
   if (collapsed) {
     return (
       <Tooltip.Provider>
-        <nav aria-label="Sidebar, collapsed" className="flex w-14 shrink-0 flex-col items-center gap-1.5 bg-surface px-2 py-4">
-          <span className="flex h-[30px] w-[30px] items-center justify-center rounded border border-dashed border-grey text-[9px] text-ink-2" aria-label="Logo placeholder">logo</span>
+        <nav aria-label="Sidebar, collapsed" className="flex h-full w-14 shrink-0 flex-col items-center gap-1.5 bg-surface px-2 py-4">
+          <img src="/aa-mark.svg" alt={copy.brand} className="h-[30px] w-[30px]" />
           <Tip label={copy.expandSidebar}><button type="button" onClick={onToggle} aria-label={copy.expandSidebar} className="press flex h-10 w-10 items-center justify-center rounded-lg text-ink-2 hover:bg-line-2 hover:text-ink"><ChevronsRight /></button></Tip>
           <Tip label={copy.newChat}><button type="button" onClick={onNew} aria-label={copy.newChat} className="press flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white text-ink"><Plus /></button></Tip>
           <span className="h-2" />
@@ -54,12 +54,11 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
   }
   const groups = groupByRecency(conversations);
   return (
-    <nav aria-label="Sidebar" className="flex w-64 shrink-0 flex-col gap-1 bg-surface px-3 pb-4 pt-[18px]">
-      <div className="flex items-center gap-2.5 px-2 pb-3.5">
-        <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded border border-dashed border-grey text-[9px] text-ink-2" aria-label="Logo placeholder">logo</span>
-        <span className="min-w-0 flex-1 leading-tight">
-          <span className="block text-sm font-semibold text-navy">{copy.brand}</span>
-          <span className="block text-xs text-ink-2">{copy.product}</span>
+    <nav aria-label="Sidebar" className="flex h-full w-64 shrink-0 flex-col gap-1 bg-surface px-3 pb-4 pt-[18px]">
+      <div className="flex items-start gap-2 px-2 pb-3.5">
+        <span className="min-w-0 flex-1">
+          <img src="/aa-logo.svg" alt={copy.brand} className="h-auto w-[170px]" />
+          <span className="mt-1 block text-[13px] font-semibold tracking-tight text-navy">{copy.product}</span>
         </span>
         <button type="button" onClick={onToggle} aria-label={copy.collapseSidebar} className="press rounded p-1 text-ink-2 hover:bg-line-2 hover:text-ink"><ChevronsLeft /></button>
       </div>

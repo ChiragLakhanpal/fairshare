@@ -34,3 +34,7 @@ export function upDown(x: number | null | undefined, digits = 1): string {
 export function todayLabel(d = new Date()): string {
   return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
+export function greeting(name?: string | null, d = new Date()): string {
+  const h = d.getHours();
+  return `Good ${h < 12 ? "morning" : h < 18 ? "afternoon" : "evening"}${name ? `, ${name}` : ""}.`;
+}

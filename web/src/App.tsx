@@ -111,7 +111,7 @@ function Main() {
     setBusy(true);
     try {
       await ask({ question: q, history, genie_conversation_id: current?.genieConversationId ?? null, scope }, {
-        onStep: (s) => patch(id, idx, (t) => ({ steps: [...(t.steps ?? []), s] })),
+        onStep: (s) => patch(id, idx, (t) => ({ steps: [...(t.steps ?? []), { ...s, at: Date.now() }] })),
         onAnswer: (a) => {
           patch(id, idx, { pending: false, answer: a, text: a.verified_text || a.text });
           if (a.genie_conversation_id) store.setGenieConversation(id, a.genie_conversation_id);
@@ -130,7 +130,7 @@ function Main() {
   const sendBrief = async () => {
     if (busy) return;
     const id = store.startConversation(copy.actionBrief + ".", scope);
-    store.addTurn(id, { role: "assistant", text: "", at: Date.now(), pending: true, steps: [{ phase: "model", text: "I am writing the brief from this month's queries.", t_ms: 0 }] });
+    store.addTurn(id, { role: "assistant", text: "", at: Date.now(), pending: true, steps: [{ phase: "model", text: "I am writing the brief from this month's queries.", t_ms: 0, at: Date.now() }] });
     setBusy(true);
     try {
       const b = await api.brief(scope);
@@ -164,7 +164,7 @@ function Main() {
 
   const summaryBlock = (
     <div className="mx-auto w-full max-w-[760px] px-6 pb-2 pt-9">
-      <Summary summary={summary} loading={summaryLoading} error={summaryError} onWhy={onWhy} onAsk={(q) => void send(q)} />
+      <Summary summary={summary} loading={summaryLoading} error={summaryError} name={me?.name ?? null} onWhy={onWhy} onAsk={(q) => void send(q)} />
     </div>
   );
 
@@ -202,7 +202,34 @@ function Main() {
       <AgencyPicker open={picker !== null} onOpenChange={(o) => !o && setPicker(null)} onPick={onPick} title={copy.pickAgency} />
       <DefinitionWindow kpi={kpi} onClose={() => setKpi(null)} />
       <KpiBridge onOpen={setKpi} />
+      <Toast />
     </Tooltip.Provider>
+  );
+}
+
+// Copy buttons anywhere raise a custom event; one small pill above the bar shows the message for a moment.
+function Toast() {
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => {
+    let timer: number | undefined;
+    const h = (e: Event) => {
+      setMsg((e as CustomEvent<string>).detail);
+      clearTimeout(timer);
+      timer = window.setTimeout(() => setMsg(null), 1800);
+    };
+    window.addEventListener("fairshare:toast", h);
+    return () => {
+      window.removeEventListener("fairshare:toast", h);
+      clearTimeout(timer);
+    };
+  }, []);
+  return (
+    <AnimatePresence>
+      {msg && (
+        <motion.div role="status" initial={{ opacity: 0, y: 8, x: "-50%" }} animate={{ opacity: 1, y: 0, x: "-50%" }} exit={{ opacity: 0, y: 8, x: "-50%" }} transition={{ duration: 0.18 }}
+          className="fixed bottom-28 left-1/2 z-30 rounded-full bg-ink px-4 py-2 text-[13.5px] font-medium text-white shadow-lg">{msg}</motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

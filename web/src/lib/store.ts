@@ -1,6 +1,7 @@
 // The browser's memory: conversations in localStorage per viewer, the sidebar's collapsed state, and whether the
 // summary is unfolded. One small store on useSyncExternalStore; no state library.
 import { useSyncExternalStore } from "react";
+import { copy } from "../copy";
 import type { Conversation, Scope, Turn } from "./types";
 
 export type { Conversation, Scope, Turn };
@@ -31,7 +32,7 @@ function write(storage: Storage, key: string, value: unknown) {
 
 export function createStore(storage: Storage) {
   let state: State = {
-    conversations: read<Conversation[]>(storage, KEY, []),
+    conversations: read<Conversation[]>(storage, KEY, []).map((c) => ({ ...c, turns: c.turns.map((t) => (t.pending ? { ...t, pending: false, error: { code: "reload", message: copy.reloaded } } : t)) })),
     activeId: null,
     summaryExpanded: true,
     sidebarCollapsed: read<boolean>(storage, SIDEBAR, typeof window !== "undefined" && window.innerWidth < 900), // ponytail: narrow screens start collapsed; no slide-over sheet

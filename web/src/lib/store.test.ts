@@ -62,4 +62,13 @@ describe("store", () => {
     expect(s.get().summaryExpanded).toBe(true);
     expect(s.get().conversations[0].id).toBe(id);
   });
+
+  it("a turn still pending in storage becomes an error after a reload", () => {
+    const s = createStore(storage);
+    const id = s.startConversation("q", { region: "All", month: "2026-09" });
+    s.addTurn(id, { role: "assistant", text: "", at: now, pending: true, steps: [] });
+    const again = createStore(storage).get().conversations[0].turns[1];
+    expect(again.pending).toBe(false);
+    expect(again.error?.code).toBe("reload");
+  });
 });

@@ -36,11 +36,29 @@ def _prior(month: str) -> str:
     return f"{int(month[:4]) - 1}-{month[5:7]}"
 
 
+def _has_profile(v: Viewer) -> bool:
+    """A workspace profile to read the viewer's name from: inside the App (a forwarded token) or with a workspace configured."""
+    return bool(v.token) or db.is_databricks()
+
+
+def _first_name(v: Viewer) -> str | None:
+    """The viewer's first name from their SCIM record (given name, else the first word of the display name). None when there
+    is no profile, no name on it, or the lookup fails; the greeting then drops the name, never the page."""
+    if not _has_profile(v):
+        return None
+    try:
+        u = dbx.workspace_client().current_user.me()
+    except Exception:
+        return None
+    given = u.name.given_name if getattr(u, "name", None) else None
+    return given or (u.display_name or "").split(" ")[0] or None
+
+
 @router.get("/me")
 async def me(v: Viewer = Depends(viewer)):
-    months = await run_in_threadpool(summary.months)
+    months, name = await run_in_threadpool(summary.months), await run_in_threadpool(_first_name, v)
     sid = os.environ.get("GENIE_SPACE_ID") if db.is_databricks() else None
-    return {"email": v.email, "user": v.user, "inside_app": v.inside_app, "scopes": SCOPES, "backend": db.backend(), "model": _model_name(),
+    return {"email": v.email, "user": v.user, "name": name, "inside_app": v.inside_app, "scopes": SCOPES, "backend": db.backend(), "model": _model_name(),
             "genie": {"space_id": sid, "url": f"{dbx.host()}/genie/rooms/{sid}"} if sid else None,
             "data_through": months[0], "regions": list(summary.REGIONS), "months": months,
             "links": {k: os.environ[var] for k, var in LINKS.items() if os.environ.get(var)}}

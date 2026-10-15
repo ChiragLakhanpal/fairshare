@@ -1,9 +1,24 @@
 // Copy, email, print (the browser's own "Save as PDF") and CSV. No library: the platform does all four.
-export async function copyText(text: string): Promise<boolean> {
+import { copy } from "../copy";
+
+/** A short confirmation at the bottom of the screen; App.tsx shows it. */
+export function toast(message: string): void {
+  window.dispatchEvent(new CustomEvent("fairshare:toast", { detail: message }));
+}
+/** Plain text always; with html too, rich targets (Mail, Teams, Slack) keep bold and lists. Says "Copied." either way. */
+export async function copyText(text: string, html?: string): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(text);
+    if (html && typeof ClipboardItem !== "undefined") {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "text/plain": new Blob([text], { type: "text/plain" }), "text/html": new Blob([html], { type: "text/html" }) })]);
+      } catch {
+        await navigator.clipboard.writeText(text);
+      }
+    } else await navigator.clipboard.writeText(text);
+    toast(copy.copied);
     return true;
   } catch {
+    toast(copy.copyFailed);
     return false;
   }
 }

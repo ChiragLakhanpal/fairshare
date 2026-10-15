@@ -2,12 +2,13 @@ import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import { useRef } from "react";
 import { copy } from "../copy";
 import { copyText, emailDraft, printElement } from "../lib/export";
-import { money, monthLabel, pct, pts, signed, todayLabel, upDown } from "../lib/format";
+import { greeting, money, monthLabel, pct, pts, signed, todayLabel, upDown } from "../lib/format";
+import { summaryHtml, summaryText } from "../lib/share";
 import type { Mover, Summary as SummaryT } from "../lib/types";
 import { ChevronDown, Copy, Mail, File as FileIcon, ShareIcon } from "./Icons";
 import { Term } from "./Term";
 
-type Props = { summary: SummaryT | null; loading: boolean; error: string | null; onWhy: (m: Mover) => void; onAsk: (q: string) => void };
+type Props = { summary: SummaryT | null; loading: boolean; error: string | null; name?: string | null; onWhy: (m: Mover) => void; onAsk: (q: string) => void };
 
 function Stat({ value, label, term, note, color }: { value: string; label: string; term?: string; note: string; color?: string }) {
   return (
@@ -19,22 +20,27 @@ function Stat({ value, label, term, note, color }: { value: string; label: strin
   );
 }
 
-export function summaryText(s: SummaryT): string {
-  const k = s.kpis;
-  const scope = s.region === "All" ? "All regions" : `${s.region} region`;
-  const lines = [
-    `${scope}, ${monthLabel(s.month)}. ${s.headline}`,
-    `AA revenue ${money(k.aa_revenue)}, ${upDown(k.yoy_pct)} from ${monthLabel(s.prior_month)}. AA share ${pct(k.aa_share_pct)} against a fair share of ${pct(k.fair_share_pct)}, a gap of ${pts(k.share_gap_pts)} worth ${money(k.share_gap_usd)}. Pace to goal ${pct(k.pace_pct, 0)}.`,
-    ...s.movers.map((m) => `${m.agency} ${m.share_chg_pts < 0 ? "lost" : "gained"} ${Math.abs(m.share_chg_pts).toFixed(1)} points of share, from ${pct(m.share_prior_pct)} to ${pct(m.share_now_pct)}. Revenue was ${money(m.revenue_now)}, ${upDown(m.yoy_pct)}.`),
-    copy.behindPace(s.behind_pace.map((b) => `${b.agency} at ${pct(b.pace_pct)}`), s.agency_count),
-  ];
-  return lines.join("\n");
+function Skeleton() {
+  const bar = "rounded bg-line-2";
+  return (
+    <div className="animate-pulse" aria-busy="true" aria-label="Loading the month.">
+      <div className={`h-3 w-64 ${bar}`} />
+      <div className={`mt-4 h-7 w-[520px] max-w-full ${bar}`} />
+      <div className="mt-9 grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 md:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i}><div className={`h-9 w-24 ${bar}`} /><div className={`mt-2.5 h-3 w-20 ${bar}`} /><div className={`mt-1.5 h-3 w-28 ${bar}`} /></div>
+        ))}
+      </div>
+      <div className={`mt-10 h-4 w-72 ${bar}`} />
+      {[0, 1, 2].map((i) => <div key={i} className={`mt-4 h-4 w-full ${bar}`} />)}
+    </div>
+  );
 }
 
-export function Summary({ summary, loading, error, onWhy, onAsk }: Props) {
+export function Summary({ summary, loading, error, name, onWhy, onAsk }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   if (error) return <p className="text-red">{error}</p>;
-  if (!summary || loading) return <div className="animate-pulse text-ink-2">Loading the month.</div>;
+  if (!summary || loading) return <Skeleton />;
   const k = summary.kpis;
   const text = summaryText(summary);
   const item = "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink outline-none data-[highlighted]:bg-surface";
@@ -42,7 +48,7 @@ export function Summary({ summary, loading, error, onWhy, onAsk }: Props) {
     <div ref={ref} className="print-section">
       <div className="flex items-end justify-between gap-6">
         <div>
-          <div className="t-label">{todayLabel()}</div>
+          <div className="t-label">{greeting(name)} {todayLabel()}</div>
           <h1 className="t-title mt-2">{summary.headline}</h1>
         </div>
         <Dropdown.Root>
@@ -51,7 +57,7 @@ export function Summary({ summary, loading, error, onWhy, onAsk }: Props) {
           </Dropdown.Trigger>
           <Dropdown.Portal>
             <Dropdown.Content align="end" sideOffset={6} className="z-20 min-w-[230px] rounded-lg border border-line bg-white p-1.5 shadow-xl">
-              <Dropdown.Item className={item} onSelect={() => void copyText(text)}><Copy className="text-ink-2" />{copy.shareCopy}</Dropdown.Item>
+              <Dropdown.Item className={item} onSelect={() => void copyText(text, summaryHtml(summary))}><Copy className="text-ink-2" />{copy.shareCopy}</Dropdown.Item>
               <Dropdown.Item className={item} onSelect={() => emailDraft(`${summary.region === "All" ? "All regions" : summary.region}, ${monthLabel(summary.month)}: the month's summary`, text)}><Mail className="text-ink-2" />{copy.shareEmail}</Dropdown.Item>
               <Dropdown.Item className={item} onSelect={() => printElement(ref.current)}><FileIcon className="text-ink-2" />{copy.sharePdf}</Dropdown.Item>
             </Dropdown.Content>
@@ -69,7 +75,7 @@ export function Summary({ summary, loading, error, onWhy, onAsk }: Props) {
 
       <div className="mt-9">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-[15px] font-semibold text-ink">{summary.movers.length ? copy.moversTitle : copy.moversNone}</h2>
+          <h2 className="text-[15px] font-semibold text-ink">{summary.movers.length ? copy.moversTitle(summary.movers.length) : copy.moversNone}</h2>
           <button type="button" className="no-print text-[13.5px] text-blue hover:underline" onClick={() => onAsk(`Show every agency's share against fair share for ${monthLabel(summary.month)}.`)}>{copy.seeAll(summary.agency_count)}</button>
         </div>
         <div className="mt-2">

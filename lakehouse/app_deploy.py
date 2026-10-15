@@ -7,9 +7,10 @@ with the viewer's own permissions. Build the web app first (cd web && npm run bu
   python lakehouse/app_deploy.py start    # Free Edition stops apps 24 hours after a start or deploy: run this before a demo
   python lakehouse/app_deploy.py status   # compute state, last deployment, URL
 
-Free Edition facts (Oct 13, 2026): 3 apps per account; outbound internet limited to trusted domains, so the model is a
-Databricks serving endpoint (DATABRICKS_MODEL), not Foundry; an app's service principal pays for Genie, a user does not,
-hence user authorization for everything.
+Free Edition facts (Oct 13, 2026): 3 apps per account; an app's service principal pays for Genie, a user does not, hence user
+authorization for everything. Outbound HTTPS to the Foundry endpoint works from the App (probed Oct 14, see docs/limits.md), so
+the model is a Databricks serving endpoint (DATABRICKS_MODEL) by choice, not by necessity; a Foundry switch needs the key from a
+secret scope resource, never from a file.
 """
 import io
 import os

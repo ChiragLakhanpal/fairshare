@@ -1,7 +1,7 @@
 export type Scope = { region: string; month: string };
 
 export type Me = {
-  email: string | null; user: string | null; inside_app: boolean; scopes: string[]; backend: string; model: string;
+  email: string | null; user: string | null; name?: string | null; inside_app: boolean; scopes: string[]; backend: string; model: string;
   genie: { space_id: string; url: string } | null; data_through: string; regions: string[]; months: string[];
   links: Record<string, string>;
 };
@@ -35,7 +35,7 @@ export type Answer = {
   calls: Call[]; sources: string[]; follow_ups: string[]; genie_conversation_id: string | null;
   timing: { total_ms: number; tools_ms: number }; cached: { recorded: string; model: string } | null; trace_url: string | null;
 };
-export type Step = { phase: string; text: string; tool?: string; genie?: { conversation_id: string; message_id: string; url: string }; t_ms: number; done?: boolean };
+export type Step = { phase: string; text: string; tool?: string; args?: Record<string, unknown>; genie?: { conversation_id: string; message_id: string; url: string }; t_ms: number; done?: boolean; at?: number };
 export type ApiError = { code: string; message: string };
 
 export type Brief = {

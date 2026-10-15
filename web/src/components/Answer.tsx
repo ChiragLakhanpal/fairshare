@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { copy } from "../copy";
 import { copyText, downloadCsv, emailDraft, printElement } from "../lib/export";
 import { money, pct } from "../lib/format";
+import { answerBody, answerHtml, answerText, shownSentences, trustLine } from "../lib/share";
 import type { Answer as AnswerT, Call } from "../lib/types";
 import { Check, Chart, Close, Copy, Dots, File as FileIcon, Info, Mail } from "./Icons";
 
@@ -64,8 +65,7 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
   const explainMarkets = a.calls.filter((c) => c.tool === "explain_change").at(1);
   const [open, setOpen] = useState<null | "numbers" | "query" | "breakdown">(explain ? "breakdown" : null);
   const toggle = (k: "numbers" | "query" | "breakdown") => setOpen(open === k ? null : k);
-  const isNote = (t: string) => /^sources?:/i.test(t.trim()) || t.trim().toLowerCase().startsWith("could not verify");
-  const shown = a.sentences.filter((s) => s.status !== "flagged" && !isNote(s.text));
+  const shown = shownSentences(a);
   const nums = shown.reduce((n, s) => n + (s.numbers?.length ?? 0), 0);
   const withSql = a.calls.filter((c) => c.sql);
   const withRows = a.calls.filter((c) => c.preview.length);
@@ -74,12 +74,12 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
   const nothingToShow = shown.length === 0 && a.removed.length > 0;
   return (
     <div ref={ref} className="print-section">
-      <div className="text-[15.5px] leading-[1.6]">{nothingToShow ? copy.allRemoved : shown.map((s, i) => <span key={i}>{s.text} </span>)}</div>
+      <div className="text-[15.5px] leading-[1.6]">{answerBody(a)}</div>
       {a.cached && <p className="mt-2 text-[13px] text-ink-2">{copy.cached(a.cached.recorded)}</p>}
       <div className="mt-2.5 flex items-start gap-1.5 text-[13.5px] leading-[1.45] text-ink-2">
         {refusal ? <Info className="mt-[3px] shrink-0" width={15} height={15} /> : <Check className="mt-[3px] shrink-0 text-blue" width={15} height={15} strokeWidth={2.5} />}
         <span>
-          {refusal ? "I did not guess. Everything above is either a query result or a clear statement of what the data does not have." : a.cached ? "Every number in this answer was checked against its query when it was recorded." : nothingToShow ? "Nothing above passed the check." : a.removed.length ? copy.verifiedShown(nums) : copy.verified(nums)}{" "}
+          {trustLine(a)}{" "}
           <Popover.Root>
             <Popover.Trigger asChild><button type="button" className="border-b border-dotted border-grey text-ink-2 hover:text-ink">{copy.howChecked}</button></Popover.Trigger>
             <Popover.Portal>
@@ -111,8 +111,8 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
           <Dropdown.Trigger asChild><button type="button" aria-label={copy.more} className="press rounded-lg px-2 py-1.5 text-ink-2 hover:bg-surface hover:text-ink"><Dots /></button></Dropdown.Trigger>
           <Dropdown.Portal>
             <Dropdown.Content align="start" sideOffset={6} className="z-20 min-w-[230px] rounded-lg border border-line bg-white p-1.5 shadow-xl">
-              <Dropdown.Item className={item} onSelect={() => void copyText(a.verified_text || a.text)}><Copy className="text-ink-2" />{copy.copyAnswer}</Dropdown.Item>
-              <Dropdown.Item className={item} onSelect={() => emailDraft(a.question, a.verified_text || a.text)}><Mail className="text-ink-2" />{copy.emailAnswer}</Dropdown.Item>
+              <Dropdown.Item className={item} onSelect={() => void copyText(answerText(a), answerHtml(a))}><Copy className="text-ink-2" />{copy.copyAnswer}</Dropdown.Item>
+              <Dropdown.Item className={item} onSelect={() => emailDraft(a.question, `${answerBody(a)}\n\n${trustLine(a)}`)}><Mail className="text-ink-2" />{copy.emailAnswer}</Dropdown.Item>
               <Dropdown.Item className={item} onSelect={() => printElement(ref.current)}><FileIcon className="text-ink-2" />{copy.pdfAnswer}</Dropdown.Item>
               {withRows.length > 0 && <Dropdown.Item className={item} onSelect={() => downloadCsv("fairshare-answer", withRows[0].preview)}><Chart className="text-ink-2" />{copy.csv}</Dropdown.Item>}
             </Dropdown.Content>

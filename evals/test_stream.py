@@ -88,6 +88,9 @@ def test_ask_sse_with_stub_agent(client, monkeypatch):
                             "scope": {"region": "East", "month": "2026-09"}})
     kinds = [(e["event"], e["data"].get("phase")) for e in ev]
     assert kinds == [("status", "model"), ("status", "sql"), ("tool", None), ("status", "model"), ("status", "verify"), ("answer", None), ("done", None)], kinds
+    texts = [e["data"].get("text") for e in ev if e["event"] == "status"]
+    assert texts[0] == "I am reading your question and choosing the query." and texts[2] == "I am reading the results.", texts
+    assert ev[1]["data"]["args"] == {"sql": "SELECT COUNT(*) AS n FROM aa_demo.gold.dim_agency"}
     a = ev[-2]["data"]
     assert a["sentences"][0]["status"] == "verified" and a["calls"][0]["tool"] == "run_sql" and a["kind"] == "numbers"
     assert a["timing"]["total_ms"] >= 0 and a["genie_conversation_id"] is None

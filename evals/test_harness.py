@@ -106,8 +106,9 @@ def test_ask_metrics_records_genie_ids_and_progress(genie):
     call = ctx.calls[-1]
     assert call.genie["conversation_id"] == "c-new" and call.genie["message_id"] == "m1" and call.genie["url"].endswith("/genie/rooms/space-1/chats/c-new")
     phases = [e.get("phase") for e in events if e["type"] == "status"]
-    assert phases == ["genie", "warehouse", "genie", "model"]
-    assert [e for e in events if e["type"] == "status" and e.get("genie")][0]["genie"]["conversation_id"] == "c-new"
+    assert phases == ["warehouse", "genie", "model"]  # one Genie step, emitted once the conversation exists, carrying the question and the link
+    g = [e for e in events if e["type"] == "status" and e.get("genie")][0]
+    assert g["genie"]["conversation_id"] == "c-new" and g["tool"] == "ask_metrics" and g["args"] == {"question": "How did Summit do?"}
     tools.ask_metrics.func(question="And FareHub?")
     assert genie[-1][0] == "continue" and genie[-1][1] == "c-new"
 
