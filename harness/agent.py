@@ -78,6 +78,8 @@ def make_client(backend: str | None = None):
     """Returns an Agent Framework chat client for the configured backend (or the one named), or None."""
     from agent_framework.openai import OpenAIChatClient
     b = (backend or model_backend()).lower()
+    if b == "foundry":  # the Delegate writers are Foundry agents (harness/foundry.py); the brief and clause extraction use the deployment directly
+        b = "azure"
     if b == "azure":
         endpoint = os.environ["AZURE_OPENAI_ENDPOINT"].rstrip("/")
         if endpoint.endswith("/openai/v1"):

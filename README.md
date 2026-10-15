@@ -102,6 +102,15 @@ names the backend the writers use when it should differ from the chat loop's (az
 cheaper model). Approving an item re-verifies any edit, writes a row in `ops.crm_activities` (the CRM stand-in) and opens the
 mail draft; the app itself sends nothing.
 
+The four writers are also agents the Foundry project owns (Build > Agents in the portal: `fairshare-precall-pack`,
+`fairshare-agreement-watch`, `fairshare-prospect-research`, `fairshare-crm-vs-reality`). `lakehouse/foundry.py sync` pushes each
+agent's instructions as a new version when they change, with the account's content filter policy as the guardrail
+(`FOUNDRY_RAI_POLICY`, the policy's full resource id). With `FAIRSHARE_THINKER=foundry` the app calls the agent by name through
+the project's Responses API and sends the FACTS block only; the verifier then checks every number as before, and the run records
+which agent version wrote it. `lakehouse/foundry.py eval` builds a dataset from local template runs (every page plus two
+adversarial rows) and runs Foundry's quality and safety evaluators against each agent. It needs a one-time sign-in (`login`),
+because the evaluation API wants a person's identity, not a key.
+
 ## Why these choices
 
 - A metric view, not a table of shares: share is a ratio, and a table of pre-computed shares is wrong the moment someone groups differently.

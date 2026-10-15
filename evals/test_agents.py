@@ -281,3 +281,57 @@ def test_an_unreadable_saved_run_shows_as_failed_not_a_crash():
                             "model": "template", "created_at": "2026-10-15T09:00:00", "finished_at": "2026-10-15T09:01:00", "error": None,
                             "payload_json": '{"items": [{"draft": "a\n b"}]}'})
     assert run.status == "failed" and run.items == [] and "could not be read" in run.error
+
+
+# ---------------------------------------------------------------- the Foundry agents (harness/foundry.py)
+def test_foundry_definition_follows_the_registry(monkeypatch):
+    from harness import foundry, precall  # noqa: F401
+    monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
+    monkeypatch.delenv("FOUNDRY_RAI_POLICY", raising=False)
+    a = agents.AGENTS["precall"]
+    assert foundry.definition(a) == {"kind": "prompt", "model": "gpt-5-mini", "instructions": a.instructions}
+    monkeypatch.setenv("FOUNDRY_RAI_POLICY", "/subscriptions/s/resourceGroups/g/providers/Microsoft.CognitiveServices/accounts/a/raiPolicies/p")
+    assert foundry.definition(a)["rai_config"] == {"rai_policy_name": "/subscriptions/s/resourceGroups/g/providers/Microsoft.CognitiveServices/accounts/a/raiPolicies/p"}
+    assert foundry.NAMES == {"precall": "fairshare-precall-pack", "watch": "fairshare-agreement-watch", "prospect": "fairshare-prospect-research", "mismatch": "fairshare-crm-vs-reality"}
+
+
+def test_foundry_sync_only_adds_a_version_when_something_changed():
+    from harness import foundry
+    wanted = {"kind": "prompt", "model": "m", "instructions": "i", "rai_config": {"rai_policy_name": "p"}}
+    assert foundry.same({**wanted, "tools": [], "rai_config": {"rai_policy_name": "p", "invocations_moderation": None}}, wanted)
+    assert not foundry.same({**wanted, "instructions": "j"}, wanted)
+    assert not foundry.same({"kind": "prompt", "model": "m", "instructions": "i"}, wanted)
+    assert not foundry.same(None, wanted)
+
+
+def _fake_foundry(monkeypatch, seen: dict, text="Harbor Business Travel sold $330K of AA travel in September 2026."):
+    from harness import foundry
+    def fake(method, path, body=None, token=None, timeout=180):
+        seen.update(method=method, path=path, body=body, token=token)
+        return {"id": "resp_1", "agent": {"type": "agent_id", "name": body["agent"]["name"], "version": "3"},
+                "output": [{"type": "reasoning", "summary": []}, {"type": "message", "content": [{"type": "output_text", "text": text}]}]}
+    monkeypatch.setattr(foundry, "call", fake)
+
+
+def test_foundry_writer_sends_the_agent_reference_and_reads_the_text(monkeypatch):
+    import asyncio
+    from harness import foundry
+    seen = {}
+    _fake_foundry(monkeypatch, seen)
+    w = foundry.FoundryWriter("precall")
+    r = asyncio.run(w.run("FACTS for Harbor"))
+    assert seen["method"] == "POST" and seen["path"] == "/openai/responses" and seen["token"] is None
+    assert seen["body"] == {"agent": {"name": "fairshare-precall-pack", "type": "agent_reference"}, "input": "FACTS for Harbor"}
+    assert r.text.startswith("Harbor Business Travel sold $330K") and w.label == "foundry/fairshare-precall-pack:3"
+
+
+def test_a_guarded_run_on_the_foundry_backend_records_the_agent_version(state, monkeypatch):
+    from harness import precall  # noqa: F401
+    seen = {}
+    _fake_foundry(monkeypatch, seen)
+    monkeypatch.setenv("FAIRSHARE_THINKER", "foundry")
+    run = agents.run("precall", {"manager": "Marcus Lee", "month": "2026-09"}, "tester")
+    assert run.error is None and run.model == "foundry/fairshare-precall-pack:3" and len(run.items) == 4
+    assert seen["body"]["input"].startswith("FACTS for ") and "Quote numbers exactly as shown" in seen["body"]["input"]
+    harbor = next(i for i in run.items if i.title.startswith("Harbor"))
+    assert "$330K" in harbor.verified_text and not harbor.flagged

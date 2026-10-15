@@ -314,6 +314,8 @@ def thinker_backend() -> str:
 
 def writer_name() -> str:
     b = thinker_backend()
+    if b == "foundry":
+        return "foundry"   # the agent and its version once it has answered (harness/foundry.py)
     if b == "azure":
         return f"azure/{os.environ.get('AZURE_OPENAI_DEPLOYMENT', '')}"
     if b == "databricks":
@@ -323,10 +325,15 @@ def writer_name() -> str:
     return "template"
 
 
-def make_writer(instructions: str):
-    """A tool-less agent on the thinking backend: it sees the FACTS block and nothing else. None when no model is configured."""
+def make_writer(a: "AgentDef"):
+    """A tool-less agent on the thinking backend: it sees the FACTS block and nothing else. None when no model is configured.
+    On the foundry backend it is the Foundry agent of the same name, whose instructions a sync pushed from this registry."""
     if thinker_backend() == "none":
         return None
+    if thinker_backend() == "foundry":
+        from harness.foundry import FoundryWriter
+        return FoundryWriter(a.key)
+    instructions = a.instructions
     if instructions not in _writers:
         from agent_framework import Agent
         from harness.agent import make_client
@@ -404,7 +411,7 @@ async def run_async(key: str, scope: dict, requested_by: str, mode: str = "guard
     ends the run as failed with the error text and keeps the items already written."""
     a = AGENTS[key]
     run = run or new_run(key, scope, requested_by, mode)
-    writer = None if mode == "template" else make_writer(a.instructions)
+    writer = None if mode == "template" else make_writer(a)
     run.model = writer_name() if writer else "template"
     def provisional_title(seed: dict) -> str:
         try:
@@ -427,6 +434,7 @@ async def run_async(key: str, scope: dict, requested_by: str, mode: str = "guard
             else:
                 resp = await writer.run(facts_text(item))
                 text = resp.text or ""
+                run.model = getattr(writer, "label", run.model)
             run.progress["phase"] = "check"
             verify_item(item, text)
             item.action = a.action(seed, fs, item.verified_text)

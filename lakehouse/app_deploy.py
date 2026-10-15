@@ -6,7 +6,7 @@ with the viewer's own permissions. Build the web app first (cd web && npm run bu
   python lakehouse/app_deploy.py deploy   # upload the repo (allowlist below) to the workspace and deploy a snapshot; prints the URL
   python lakehouse/app_deploy.py start    # Free Edition stops apps 24 hours after a start or deploy: run this before a demo
   python lakehouse/app_deploy.py status   # compute state, last deployment, URL
-  python lakehouse/app_deploy.py secret   # the Foundry key into the secret scope the App reads (FAIRSHARE_APP_THINKER=azure in .env, then update and deploy)
+  python lakehouse/app_deploy.py secret   # the Foundry key into the secret scope the App reads (FAIRSHARE_APP_THINKER=foundry or azure in .env, then update and deploy)
 
 Free Edition facts (Oct 13, 2026): 3 apps per account; an app's service principal pays for Genie, a user does not, hence user
 authorization for everything. Outbound HTTPS to the Foundry endpoint works from the App (probed Oct 14, see docs/limits.md), so
@@ -59,8 +59,9 @@ THINKER_SCOPE, THINKER_KEY = "fairshare", "azure-openai-key"
 
 
 def thinker() -> str:
-    """FAIRSHARE_APP_THINKER=azure in .env: the Delegate writers inside the App use Foundry's gpt-5-mini while the chat loop stays
-    on the Databricks endpoint. The key reaches the App through a secret scope resource, never through a file in the workspace."""
+    """FAIRSHARE_APP_THINKER in .env: `foundry` makes the Delegate writers inside the App the Foundry agents (harness/foundry.py),
+    `azure` calls the gpt-5-mini deployment directly; the chat loop stays on the Databricks endpoint either way. The key reaches
+    the App through a secret scope resource, never through a file in the workspace."""
     return os.environ.get("FAIRSHARE_APP_THINKER", "").strip().lower()
 
 
@@ -71,9 +72,9 @@ def manifest() -> bytes:
         v = os.environ.get(var, "").strip()
         if v:
             text += f'  - name: {var}\n    value: "{v}"\n'
-    if thinker() == "azure":
-        text += "  - name: FAIRSHARE_THINKER\n    value: azure\n"
-        for var in ("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_API_VERSION"):
+    if thinker() in ("azure", "foundry"):
+        text += f"  - name: FAIRSHARE_THINKER\n    value: {thinker()}\n"
+        for var in ("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_API_VERSION", "FOUNDRY_PROJECT_ENDPOINT"):
             v = os.environ.get(var, "").strip()
             if v:
                 text += f'  - name: {var}\n    value: "{v}"\n'
@@ -111,7 +112,7 @@ def resources():
         AppResource(name="genie", genie_space=AppResourceGenieSpace(name=NAME, space_id=os.environ["GENIE_SPACE_ID"], permission=AppResourceGenieSpaceGenieSpacePermission.CAN_RUN)),
         AppResource(name="model", serving_endpoint=AppResourceServingEndpoint(name=MODEL, permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY)),
     ]
-    if thinker() == "azure":
+    if thinker() in ("azure", "foundry"):
         from databricks.sdk.service.apps import AppResourceSecret, AppResourceSecretSecretPermission
         out.append(AppResource(name="azure_key", secret=AppResourceSecret(scope=THINKER_SCOPE, key=THINKER_KEY, permission=AppResourceSecretSecretPermission.READ)))
     return out

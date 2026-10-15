@@ -11,3 +11,5 @@ app/cache/*.parquet
 web/node_modules/
 web/dist/
 .superpowers/
+data/out/foundry_auth.json
+data/out/foundry-eval-*.jsonl
