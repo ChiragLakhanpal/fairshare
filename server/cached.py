@@ -37,4 +37,6 @@ FOLLOW_UPS = {
     "why": ["What does the agreement say?", "How does this compare with last month?", "Draft a note to the account manager about this."],
     "agreement": ["Has this happened?", "What are the incentive tiers?", "Show me this agency's numbers for the quarter."],
     "refusal": ["Which agencies are behind pace?", "Who lost the most share this month?", "Show me the proxy rule."],
+    "meta": ["Why did this change?", "Show me the same for last month.", "What does the agreement say?"],
+    "general": ["Which agencies are behind pace?", "Why is Harbor down this month?", "What does Summit's agreement say about a share floor?"],
 }

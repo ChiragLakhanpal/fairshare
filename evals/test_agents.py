@@ -18,7 +18,8 @@ SCOPE = {"region": "All", "month": "2026-09"}
 @pytest.fixture
 def state(tmp_path, monkeypatch):
     monkeypatch.setattr(db, "STATE_FILE", tmp_path / "state.duckdb")
-    return tmp_path
+    yield tmp_path
+    agents.AGENTS.pop("fake", None)  # the fake agent must not reach the catalog of other tests
 
 
 def fake_agent(fail_on: str | None = None) -> AgentDef:

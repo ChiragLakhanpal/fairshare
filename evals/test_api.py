@@ -172,3 +172,76 @@ def test_agencies_are_read_per_call_not_cached_across_viewers(monkeypatch):
     validate.agencies()
     validate.agencies()
     assert len(calls) == 2
+
+
+# ---------------------------------------------------------------- Delegate: the agents routes
+def _state(monkeypatch, tmp_path):
+    monkeypatch.setattr(db, "STATE_FILE", tmp_path / "state.duckdb")
+
+
+def test_agents_catalog(client):
+    c = client.get("/api/agents").json()
+    assert [a["key"] for a in c["agents"]] == ["precall", "watch", "prospect", "mismatch"]
+    assert len(c["managers"]) == 4 and len(c["markets"]) == 12 and c["markets"][0]["market"] == "DFW-LAX" and "stand-in" in c["crm_label"]
+    assert all({"key", "name", "summary", "reads", "writes", "approver", "scope_kind", "last_run"} <= set(a) for a in c["agents"])
+    assert {a["scope_kind"] for a in c["agents"]} == {"manager", "region", "market"}
+
+
+def test_run_pack_wait_and_poll(client, monkeypatch, tmp_path):
+    _state(monkeypatch, tmp_path)
+    r = client.post("/api/agents/precall/run?wait=true", json={"scope": {"manager": "Marcus Lee", "month": "2026-09"}, "writer": "template"})
+    assert r.status_code == 200, r.text
+    run = r.json()
+    assert run["status"] == "needs_approval" and len(run["items"]) == 4 and run["agent_name"] == "Monday pre-call pack" and run["model"] == "template"
+    assert run["progress"] == {"done": 4, "total": 4, "text": "4 of 4 waiting for a decision."} and run["error"] is None and run["finished_at"]
+    item = run["items"][0]
+    assert item["facts"] and item["facts"][0]["rows"] and item["facts"][0]["sql"] and item["sentences"] and item["action"]["type"] == "email" and item["status"] == "draft"
+    g = client.get(f"/api/agents/runs/{run['run_id']}").json()
+    assert g["status"] == "needs_approval" and [i["title"] for i in g["items"]] == [i["title"] for i in run["items"]]
+    heads = client.get("/api/agents/runs").json()
+    assert heads[0]["run_id"] == run["run_id"] and heads[0]["needs_approval"] == 4 and heads[0]["items"] == 4 and heads[0]["agent_name"] == "Monday pre-call pack"
+    pre = next(a for a in client.get("/api/agents").json()["agents"] if a["key"] == "precall")
+    assert pre["last_run"]["run_id"] == run["run_id"] and pre["last_run"]["status"] == "needs_approval"
+
+
+def test_approve_and_reject_items(client, monkeypatch, tmp_path):
+    _state(monkeypatch, tmp_path)
+    H = {"x-forwarded-email": "dana@example.com", "x-forwarded-user": "dana"}
+    run = client.post("/api/agents/precall/run?wait=true", json={"scope": {"manager": "Dana Whitfield", "month": "2026-09"}, "writer": "template"}, headers=H).json()
+    rid, items = run["run_id"], run["items"]
+    assert len(items) == 3
+    a = client.post(f"/api/agents/runs/{rid}/items/{items[0]['item_id']}/approve", json={}, headers=H)
+    assert a.status_code == 200 and a.json()["status"] == "approved" and a.json()["decided_by"] == "dana@example.com" and a.json()["decided_at"]
+    bad = client.post(f"/api/agents/runs/{rid}/items/{items[1]['item_id']}/approve", json={"text": "AA revenue was $9.9M and nobody checked it."}, headers=H)
+    assert bad.status_code == 422 and bad.json()["code"] == "unverified" and "$9.9M" in bad.json()["removed"][0]["reason"]
+    rj = client.post(f"/api/agents/runs/{rid}/items/{items[1]['item_id']}/reject", json={}, headers=H).json()
+    assert rj["status"] == "rejected" and rj["decided_by"] == "dana@example.com"
+    g = client.get(f"/api/agents/runs/{rid}", headers=H).json()
+    assert g["status"] == "needs_approval" and [i["status"] for i in g["items"]] == ["approved", "rejected", "draft"]
+    acts = client.get("/api/crm/activities", params={"agency_id": items[0]["seed"]["agency_id"]}, headers=H).json()
+    assert acts[0]["source"] == "app" and acts[0]["activity_type"] == "Pre-call pack" and acts[0]["owner"] == "dana@example.com" and any(x["source"] == "crm" for x in acts)
+    assert client.post(f"/api/agents/runs/{rid}/items/nope/approve", json={}, headers=H).status_code == 404
+    assert client.get("/api/agents/runs/000000000000", headers=H).status_code == 404
+
+
+def test_run_unknown_agent_is_404_and_bad_scopes_are_422(client):
+    assert client.post("/api/agents/nope/run", json={"scope": {}}).status_code == 404
+    assert client.post("/api/agents/precall/run", json={"scope": {"manager": "Nobody", "month": "2026-09"}}).status_code == 422
+    assert client.post("/api/agents/watch/run", json={"scope": {"region": "Mars", "month": "2026-09"}}).status_code == 422
+    assert client.post("/api/agents/prospect/run", json={"scope": {"market": "XXX-YYY"}}).status_code == 422
+    assert client.post("/api/agents/precall/run", json={"scope": {"manager": "Marcus Lee", "month": "2026-13"}}).status_code == 422
+
+
+def test_run_in_the_background_is_running_then_waits_for_approval(monkeypatch, tmp_path):
+    import time
+    _state(monkeypatch, tmp_path)
+    from server.main import create_app
+    with TestClient(create_app()) as c:  # one event loop for every request, so the background task survives between polls
+        run = c.post("/api/agents/mismatch/run", json={"scope": {"region": "All", "month": "2026-09"}, "writer": "template"}).json()
+        assert run["status"] == "running" and run["items"] == [] and run["progress"]["total"] == 0
+        for _ in range(100):
+            g = c.get(f"/api/agents/runs/{run['run_id']}").json()
+            if g["status"] != "running":
+                break
+            time.sleep(0.1)
+        assert g["status"] == "needs_approval" and g["items"] and g["progress"]["done"] == g["progress"]["total"] == len(g["items"])

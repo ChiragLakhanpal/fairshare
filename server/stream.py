@@ -13,6 +13,7 @@ from harness import agent as harness_agent, facts
 from harness.agent import Answer
 from harness.tools import PHASE_TEXT
 from server import cached
+from server import router as qrouter
 from server.context import Viewer
 from server.serialize import calls_json, sentences_json
 
@@ -32,11 +33,33 @@ class Scope(BaseModel):
     month: str = Field(max_length=10)
 
 
+class LastAnswer(BaseModel):
+    """The browser's record of the previous answer: enough to say what was checked without re-running anything."""
+    calls: list[dict] = Field(default_factory=list, max_length=20)
+    removed: list[dict] = Field(default_factory=list, max_length=20)
+    verified_numbers: int = 0
+    sources: list[str] = Field(default_factory=list, max_length=20)
+
+
 class AskIn(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     history: list[Turn] = Field(default_factory=list, max_length=6)
     genie_conversation_id: str | None = Field(default=None, max_length=120)
     scope: Scope | None = None
+    last_answer: LastAnswer | None = None
+
+
+_general = None
+
+
+def _general_writer():
+    """A tool-less writer on the loop model for concept questions: the cheap model is the right one here."""
+    global _general
+    if _general is None:
+        from agent_framework import Agent
+        client = harness_agent.make_client()
+        _general = Agent(client, instructions=qrouter.GENERAL_INSTRUCTIONS, name="fairshare-general-writer") if client else None
+    return _general
 
 
 def _kind(a: Answer) -> str:
@@ -80,6 +103,22 @@ async def ask_events(viewer: Viewer, body: AskIn):
     question = body.question.strip()
     if body.scope:
         question = f"Current scope: {body.scope.region}, {body.scope.month}\n\n{question}"
+
+    route = qrouter.classify(body.question)
+    if route == "meta":  # about the last answer: from its record, no model, no query re-run
+        yield sse("status", {"phase": "model", "text": "I am reading the record of the last answer.", "t_ms": 0})
+        yield sse("answer", qrouter.meta_answer(body.question, body.last_answer.model_dump() if body.last_answer else None))
+        yield done()
+        return
+    if route == "general" and harness_agent.model_backend() != "none":  # a concept question: the loop model, no tools, labeled
+        yield sse("status", {"phase": "model", "text": "I am answering from general knowledge, not from your data.", "t_ms": 0})
+        try:
+            resp = await asyncio.wait_for(_general_writer().run(body.question), 60)
+            yield sse("answer", qrouter.general_answer(body.question, resp.text, harness_agent.model_backend()))
+        except Exception as e:
+            yield sse("error", {"code": "agent_failed", "message": f"{type(e).__name__}: {str(e)[:300]}"})
+        yield done()
+        return
 
     if harness_agent.model_backend() == "none":
         yield sse("status", {"phase": "model", "text": PHASE_TEXT["start"], "t_ms": 0})

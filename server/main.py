@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from server import api, static
+from server import agents_api, api, static
 
 
 @asynccontextmanager
@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"code": "invalid", "message": "; ".join(f"{'.'.join(str(l) for l in e['loc'])}: {e['msg']}" for e in exc.errors())}, status_code=422)
 
     app.include_router(api.router, prefix="/api")
+    app.include_router(agents_api.router, prefix="/api")
     static.mount(app)
     return app
 

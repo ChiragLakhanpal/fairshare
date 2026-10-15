@@ -144,3 +144,23 @@ def test_stop_cancels_the_run(monkeypatch):
 def test_server_never_calls_aio():
     bad = [p for p in (ROOT / "server").glob("*.py") if "aio." in p.read_text()]
     assert bad == []
+
+
+def test_a_question_about_the_last_answer_is_answered_from_its_record(client):
+    last = {"calls": [{"tool": "ask_metrics", "args": {"question": "Harbor revenue in August 2026"}, "sql": "SELECT 1", "rows": 1, "note": ""}],
+            "removed": [], "verified_numbers": 3, "sources": ["Genie: sales_metrics"]}
+    ev = events_of(client, {"question": "What are the checks you performed?", "last_answer": last})
+    assert [e["event"] for e in ev] == ["status", "answer", "done"]
+    a = ev[1]["data"]
+    assert a["kind"] == "meta" and "1 query" in a["text"] and "Genie" in a["text"] and "3 numbers" in a["text"] and a["calls"][0]["sql"] == "SELECT 1"
+    assert not any(e["event"] == "tool" for e in ev)
+
+
+def test_a_question_about_the_last_answer_without_one_says_so(client):
+    ev = events_of(client, {"question": "Which query did you run?"})
+    assert ev[1]["event"] == "answer" and "no previous answer" in ev[1]["data"]["text"].lower()
+
+
+def test_a_general_question_offline_never_reaches_the_agent(client):
+    ev = events_of(client, {"question": "What is NDC?"})
+    assert [e["event"] for e in ev] == ["status", "error", "done"] and ev[1]["data"]["code"] == "no_model"

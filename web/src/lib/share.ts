@@ -54,6 +54,8 @@ export function trustLine(a: Answer): string {
   const shown = shownSentences(a);
   const nums = shown.reduce((n, s) => n + (s.numbers?.length ?? 0), 0);
   if (a.kind === "refusal") return copy.trustRefusal;
+  if (a.kind === "general") return copy.trustGeneral;
+  if (a.kind === "meta") return copy.trustMeta;
   if (a.cached) return copy.trustCached;
   if (shown.length === 0 && a.removed.length > 0) return copy.trustNone;
   return a.removed.length ? copy.verifiedShown(nums) : copy.verified(nums);

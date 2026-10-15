@@ -59,6 +59,8 @@ export const copy = {
   trustRefusal: "I did not guess. Everything above is either a query result or a clear statement of what the data does not have.",
   trustCached: "Every number in this answer was checked against its query when it was recorded.",
   trustNone: "Nothing above passed the check.",
+  trustGeneral: "This answer did not use your data. It comes from the model's general knowledge, so check it before you rely on it.",
+  trustMeta: "This describes the checks on your last answer. Nothing was run again.",
   verified: (n: number) => (n === 0 ? "This answer has no numbers to check." : n === 1 ? "The 1 number in this answer came from the query results." : `All ${n} numbers in this answer came from the query results.`),
   removedSome: (n: number) => (n === 1 ? "I removed one sentence before showing you this answer." : `I removed ${n} sentences before showing you this answer.`),
   verifiedShown: (n: number) => (n === 0 ? "The sentences you can see have no numbers to check." : n === 1 ? "The 1 number you can see came from the query results." : `The ${n} numbers you can see came from the query results.`),

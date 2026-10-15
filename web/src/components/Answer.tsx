@@ -53,7 +53,7 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
   const withSql = a.calls.filter((c) => c.sql);
   const withRows = a.calls.filter((c) => c.preview.length);
   const genie = a.calls.find((c) => c.genie)?.genie;
-  const refusal = a.kind === "refusal";
+  const refusal = a.kind === "refusal" || a.kind === "general" || a.kind === "meta";
   const nothingToShow = shown.length === 0 && a.removed.length > 0;
   return (
     <div ref={ref} className="print-section">

@@ -13,7 +13,7 @@ import { Summary } from "./components/Summary";
 import { SummaryStrip } from "./components/SummaryStrip";
 import { TopBar } from "./components/TopBar";
 import { copy } from "./copy";
-import { api, ask } from "./lib/api";
+import { api, ask, lastAnswerOf } from "./lib/api";
 import { monthLabel } from "./lib/format";
 import { store, useStore } from "./lib/store";
 import type { Agency, AgentsCatalog, Brief as BriefT, Me, Mover, Scope, Summary as SummaryT, Turn } from "./lib/types";
@@ -112,6 +112,7 @@ function Main() {
     if (!q || busy) return;
     const current = store.get().conversations.find((c) => c.id === store.get().activeId) ?? null;
     const history = (current?.turns ?? []).filter((t) => t.text && !t.pending && !t.error).slice(-6).map((t) => ({ role: t.role, text: t.role === "assistant" ? t.answer?.verified_text || t.text : t.text }));
+    const last_answer = lastAnswerOf([...(current?.turns ?? [])].reverse().find((t) => t.role === "assistant" && t.answer)?.answer);
     const id = current ? current.id : store.startConversation(q, scope);
     if (current) store.addTurn(id, { role: "user", text: q, at: Date.now() });
     const idx = store.get().conversations.find((c) => c.id === id)!.turns.length;
@@ -120,7 +121,7 @@ function Main() {
     abortRef.current = ac;
     setBusy(true);
     try {
-      await ask({ question: q, history, genie_conversation_id: current?.genieConversationId ?? null, scope }, {
+      await ask({ question: q, history, genie_conversation_id: current?.genieConversationId ?? null, scope, last_answer }, {
         onStep: (s) => patch(id, idx, (t) => ({ steps: [...(t.steps ?? []), { ...s, at: Date.now() }] })),
         onAnswer: (a) => {
           patch(id, idx, { pending: false, answer: a, text: a.verified_text || a.text });

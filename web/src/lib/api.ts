@@ -42,8 +42,19 @@ export const api = {
 
 export type AskHandlers = { onStep: (s: Step) => void; onTool?: (c: unknown) => void; onAnswer: (a: Answer) => void; onError: (e: ApiError) => void };
 
+/** The browser's record of the previous answer, so "what checks did you perform?" is answered without re-running a query. */
+export type LastAnswer = { calls: Record<string, unknown>[]; removed: { sentence: string; reason: string }[]; verified_numbers: number; sources: string[] };
+export function lastAnswerOf(a: Answer | undefined | null): LastAnswer | null {
+  if (!a || a.kind === "meta" || a.kind === "general") return null;
+  const shown = a.sentences.filter((s) => s.status !== "flagged");
+  return {
+    calls: a.calls.slice(0, 20).map((c) => ({ tool: c.tool, args: c.args, sql: c.sql, rows: c.rows, note: c.note, genie: c.genie })),
+    removed: a.removed.slice(0, 20), verified_numbers: shown.reduce((n, s) => n + (s.numbers?.length ?? 0), 0), sources: a.sources.slice(0, 20),
+  };
+}
+
 export async function ask(
-  body: { question: string; history: { role: "user" | "assistant"; text: string }[]; genie_conversation_id?: string | null; scope?: Scope },
+  body: { question: string; history: { role: "user" | "assistant"; text: string }[]; genie_conversation_id?: string | null; scope?: Scope; last_answer?: LastAnswer | null },
   h: AskHandlers,
   signal: AbortSignal,
 ): Promise<void> {
