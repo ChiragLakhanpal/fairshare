@@ -31,12 +31,21 @@ def plan(scope: dict) -> list[dict]:
     region, month = _scope(scope)
     pred = "" if region == "All" else f"AND a.region = '{region}'"
     sql = f"""
-        SELECT c.clause_id, c.agency_id, c.agency_name, c.section, c.clause_type, c.status, c.dollars
+        SELECT c.clause_id, c.agency_id, c.agency_name, c.section, c.clause_type, c.status, c.dollars, c.distance
         FROM aa_demo.ops.agreement_checks c JOIN aa_demo.gold.dim_agency a ON a.agency_id = c.agency_id
         WHERE c.as_of = DATE '{month}-01' AND c.status IN ('breached', 'watch') {pred}
         ORDER BY CASE c.status WHEN 'breached' THEN 0 ELSE 1 END, c.dollars DESC NULLS LAST, c.agency_name, c.section"""
+    df = db.query(sql)
+    # an agency near two tier lines at once gets one alert: the tier within reach (the upsell) over the tier to protect
+    tiers = df["clause_type"].str.endswith("_tiers") if not df.empty else df
+    if not df.empty and tiers.any():
+        keep = []
+        for (_aid, _t), g in df[tiers].groupby(["agency_id", "clause_type"]):
+            up = g[g["distance"] < 0]
+            keep.append((up if not up.empty else g).index[0])
+        df = pd.concat([df[~tiers], df.loc[keep]]).sort_index()
     return [{"clause_id": r.clause_id, "agency_id": int(r.agency_id), "agency_name": r.agency_name, "section": str(r.section),
-             "clause_type": r.clause_type, "status": r.status, "month": month} for r in db.query(sql).itertuples()]
+             "clause_type": r.clause_type, "status": r.status, "month": month} for r in df.itertuples()]
 
 
 def facts(scope: dict, seed: dict) -> list[Fact]:

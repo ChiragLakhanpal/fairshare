@@ -1,0 +1,20 @@
+{
+  "market": "DFW-LAX",
+  "query": "DFW LAX route 2026 American Airlines Los Angeles Dallas flights capacity competition news",
+  "fetched_at": "2026-10-14T23:30",
+  "provider": "manual: a web search and page reads on October 14, 2026; snippets are quoted from the pages",
+  "sources": [
+    {
+      "title": "200+ Monthly Rotations: American Airlines' Top 5 Domestic Routes From Los Angeles International Airport",
+      "url": "https://simpleflying.com/american-airlines-lax-top-domestic-routes/",
+      "published": "2024-11-11",
+      "snippet": "American's service between Los Angeles and Dallas/Fort Worth International Airport (DFW) is its busiest domestic route this month with nearly 750 flights. The journey travels across 1,235 miles and has as many as 15 frequencies per day."
+    },
+    {
+      "title": "Dallas-Fort Worth Airport (DFW): 1,078 flights a day to 272 destinations by 65 airlines",
+      "url": "https://aerocorner.com/airports/dfw/",
+      "published": "2026-10-12",
+      "snippet": "Los Angeles (LAX) ... American Airlines · Delta Air Lines · Emirates · Frontier Airlines · Qatar Airways 5 airlines ... 3 hr 50 mins 1,232 mi · 1,983 km 21 per day"
+    }
+  ]
+}

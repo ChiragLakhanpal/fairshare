@@ -26,7 +26,7 @@ from fairshare.dbx import warehouse_id, workspace_client  # noqa: E402
 NAME = "fairshare"
 MODEL = os.environ.get("DATABRICKS_MODEL", "databricks-qwen3-next-80b-a3b-instruct")
 SCOPES = ["sql", "genie", "model-serving"]
-INCLUDE = ["app.yaml", "requirements.txt", "server", "harness", "fairshare", "data/contracts", "web/dist", "app/cache", "evals/benchmark.yaml", "evals/results"]  # the golden set and every scored run: /api/evals reads them
+INCLUDE = ["app.yaml", "requirements.txt", "server", "harness", "fairshare", "data/contracts", "data/research", "web/dist", "app/cache", "evals/benchmark.yaml", "evals/results"]  # the golden set and every scored run: /api/evals reads them; data/research: the prospect agent's cited sources
 LINKS = ["DASHBOARD_URL", "GENIE_SPACE_URL", "JOB_URL", "MLFLOW_TRACES_URL", "FOUNDRY_PROJECT_URL", "REPO_URL", "DATABRICKS_APP_URL"]  # /api/me hands them to the app
 # What the app needs, nothing more: the agent-framework metapackage drags in thirty integrations and its install failed in the
 # Apps runtime (Oct 13, 2026); mlflow, duckdb and pytest are laptop-only (tracing is off inside the app, the data is the warehouse).

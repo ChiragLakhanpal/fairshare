@@ -1,0 +1,26 @@
+{
+  "market": "MIA-JFK",
+  "query": "Miami JFK New York flights 2026 JetBlue Delta American capacity route news",
+  "fetched_at": "2026-10-14T23:30",
+  "provider": "manual: a web search and page reads on October 14, 2026; snippets are quoted from the pages",
+  "sources": [
+    {
+      "title": "JetBlue To Exit Miami, Scale Back Seattle Flights",
+      "url": "https://aviationweek.com/air-transport/airlines-lessors/jetblue-exit-miami-scale-back-seattle-flights",
+      "published": "2025-06-23",
+      "snippet": "The airline will cease all flights to Miami by early September, consolidating its South Florida operations at nearby..."
+    },
+    {
+      "title": "New York Airport (JFK): 736 flights a day to 218 destinations by 106 airlines",
+      "url": "https://aerocorner.com/airports/jfk/",
+      "published": "2026-10-14",
+      "snippet": "Miami (MIA) ... American Airlines · Delta Air Lines 2 airlines ... 3 hr 25 mins 1,092 mi · 1,757 km 14 per day"
+    },
+    {
+      "title": "Why Delta Air Lines Quietly Killed 3 New York-JFK Routes & Sent Them All To LaGuardia Instead",
+      "url": "https://simpleflying.com/why-delta-air-lines-quietly-killed-3-new-york-jfk-routes-sent-laguardia-instead/",
+      "published": "2026-08-31",
+      "snippet": "JFK will increasingly act as its hub for premium and intercontinental services. Meanwhile, LaGuardia will focus on domestic aviation, such as the carrier's flights to Houston, Memphis, and St. Louis."
+    }
+  ]
+}

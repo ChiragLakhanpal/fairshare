@@ -1,0 +1,26 @@
+{
+  "market": "DFW-DCA",
+  "query": "Reagan National DCA slots 2026 American Airlines Dallas flights news",
+  "fetched_at": "2026-10-14T23:30",
+  "provider": "manual: a web search and page reads on October 14, 2026; snippets are quoted from the pages",
+  "sources": [
+    {
+      "title": "U.S. DOT Awards New Beyond-Perimeter Slots At Washington Reagan",
+      "url": "https://aviationweek.com/air-transport/airports-networks/us-dot-awards-new-beyond-perimeter-slots-washington-reagan",
+      "published": "2024-10-17",
+      "snippet": "The U.S. Transportation Department (DOT) has tentatively awarded five coveted beyond-perimeter slots at Ronald Reagan Washington National Airport (DCA) to Alaska Airlines, American Airlines, Delta Air Lines, Southwest Airlines, and United Airlines."
+    },
+    {
+      "title": "New Bill Seeks To Slash 50% Of Washington Reagan's Long-Distance Flights In Air Safety Push",
+      "url": "https://simpleflying.com/new-bill-slash-50pc-washington-reagan-long-distance-flights-air-safety-push/",
+      "published": "2026-09-15",
+      "snippet": "The bill would see the reduction of arriving aircraft to no more than 28 within 60 minutes ... It would see the reduction of six slots per year between 2028 and 2032, totalling 30 slots being axed"
+    },
+    {
+      "title": "Airlines jockey for 5 new long-distance slots from DCA",
+      "url": "https://thepointsguy.com/news/dca-new-beyond-perimeter-slots/",
+      "published": "2024-05-21",
+      "snippet": "American Airlines announced it hopes to launch new nonstop service from DCA to San Antonio International Airport (SAT) in Texas"
+    }
+  ]
+}

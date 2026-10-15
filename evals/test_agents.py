@@ -187,3 +187,31 @@ def test_mismatch_finds_harbor_renewal(state):
     agents.approve(run, harbor.item_id, None, "dana")
     acts = db.state_query("SELECT * FROM aa_demo.ops.crm_activities")
     assert len(acts) == 1 and acts.iloc[0]["activity_type"] == "CRM update" and acts.iloc[0]["agency_id"] == 5
+
+
+# ---------------------------------------------------------------- prospect research
+def test_research_cached_provider_reads_the_file():
+    from harness import research
+    src = research.sources("CLT-LGA")
+    assert src and all({"title", "url", "snippet"} <= set(s) for s in src) and all(s["url"].startswith("http") for s in src)
+    assert research.sources("ZZZ-ZZZ") == []
+
+
+def test_prospect_clt_lga_offline(state):
+    from harness import prospect  # noqa: F401
+    run = agents.run("prospect", {"market": "CLT-LGA", "month": "2026-09"}, "tester", mode="template")
+    assert run.status == "needs_approval", run.error
+    assert len(run.items) == 1
+    item = run.items[0]
+    assert item.kind == "prospect" and item.title == "CLT-LGA" and {f.name for f in item.facts} >= {"headroom", "total", "trend", "capacity"}
+    assert len(item.sources) >= 2 and not item.flagged, item.flagged
+    assert item.action["type"] == "none"
+    web = [n for s in item.badges for n in s["numbers"] if str(n.get("source") or "").startswith("web: ")]
+    assert web, "the brief quotes at least one number from a cited source, and it verifies with the source as its origin"
+    assert "headroom" in item.verified_text.lower() and "[1]" in item.verified_text
+
+
+def test_prospect_unknown_market_fails_honestly(state):
+    from harness import prospect  # noqa: F401
+    run = agents.run("prospect", {"market": "XXX-YYY", "month": "2026-09"}, "tester", mode="template")
+    assert run.status == "failed" and "market" in run.error.lower()

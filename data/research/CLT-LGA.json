@@ -1,0 +1,26 @@
+{
+  "market": "CLT-LGA",
+  "query": "Charlotte LaGuardia route 2026 American Airlines Delta capacity news",
+  "fetched_at": "2026-10-14T23:30",
+  "provider": "manual: a web search and page reads on October 14, 2026; snippets are quoted from the pages",
+  "sources": [
+    {
+      "title": "New York Airport (LGA): 534 flights a day to 106 destinations by 25 airlines",
+      "url": "https://aerocorner.com/airports/lga/",
+      "published": "2026-10-11",
+      "snippet": "Charlotte (CLT) ... American Airlines · Delta Air Lines · Frontier Airlines 3 airlines ... 2 hr 25 mins 544 mi · 875 km 16 per day"
+    },
+    {
+      "title": "American adds 4 LaGuardia routes, cuts 7 in effort to woo NYC fliers",
+      "url": "https://thepointsguy.com/news/american-airlines-new-york-laguarida-new-routes/",
+      "published": "2025-05-03",
+      "snippet": "The spokesperson described the changes at LaGuardia as 'reoptimizing' the airline's slot portfolio at the airport to better serve New Yorkers."
+    },
+    {
+      "title": "Mile-Long Walks Coming To Charlotte Airport With 16 New American Airlines Gates",
+      "url": "https://viewfromthewing.com/mile-long-walks-coming-to-charlotte-airport-with-16-new-american-airlines-gates/",
+      "published": "2026-09-07",
+      "snippet": "a 380,000 square foot Concourse C extension with 12 to 16 gates ... it will give American Airlines up to 16 more mainline gates"
+    }
+  ]
+}
