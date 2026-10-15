@@ -47,3 +47,8 @@ SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing
 CREATE OR REPLACE TABLE aa_demo.bronze.crm_activities AS
 SELECT * EXCEPT (_rescued_data) FROM read_files('/Volumes/aa_demo/bronze/landing/crm_activities.csv', format => 'csv', header => true,
   schema => 'activity_id INT, agency_id INT, contact_id INT, activity_type STRING, subject STRING, happened_at DATE, owner STRING, notes STRING');
+
+-- The agreements as a table: the thinking model's extraction (lakehouse/clauses.py), reviewed and committed with the data.
+CREATE OR REPLACE TABLE aa_demo.bronze.contract_clauses AS
+SELECT * FROM read_files('/Volumes/aa_demo/bronze/landing/contract_clauses.csv', format => 'csv', header => true, multiLine => true,
+  schema => 'clause_id STRING, agency_id INT, file STRING, page INT, section STRING, clause_type STRING, metric STRING, operator STRING, threshold DOUBLE, threshold_2 DOUBLE, window_quarters INT, consequence STRING, quote STRING');

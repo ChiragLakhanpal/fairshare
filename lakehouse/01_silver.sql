@@ -54,3 +54,10 @@ CREATE OR REPLACE TABLE aa_demo.silver.crm_activities AS
 SELECT CAST(activity_id AS INT) AS activity_id, CAST(agency_id AS INT) AS agency_id, CAST(contact_id AS INT) AS contact_id,
        activity_type, subject, CAST(happened_at AS DATE) AS happened_at, owner, CAST(notes AS STRING) AS notes
 FROM aa_demo.bronze.crm_activities;
+
+-- The agreement clauses, typed: thresholds are plain numbers (45 for 45%, 4290000 for $4,290,000), sections stay text.
+CREATE OR REPLACE TABLE aa_demo.silver.contract_clauses AS
+SELECT CAST(clause_id AS STRING) AS clause_id, CAST(agency_id AS INT) AS agency_id, file, CAST(page AS INT) AS page, CAST(section AS STRING) AS section,
+       clause_type, metric, operator, CAST(threshold AS DOUBLE) AS threshold, CAST(threshold_2 AS DOUBLE) AS threshold_2,
+       CAST(window_quarters AS INT) AS window_quarters, consequence, quote
+FROM aa_demo.bronze.contract_clauses;

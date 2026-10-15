@@ -68,6 +68,11 @@ resources:
           sql_task:
             warehouse_id: ${var.warehouse_id}
             file: {path: lakehouse/06_decomposition.sql}
+        - task_key: agreement_watch
+          depends_on: [{task_key: gold}]
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file: {path: lakehouse/07_agreement_watch.sql}
         - task_key: parity
           depends_on: [{task_key: metric_view}, {task_key: definitions}]
           environment_key: fairshare

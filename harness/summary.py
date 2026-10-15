@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import uuid
 from datetime import datetime
@@ -262,7 +263,7 @@ def make_writer(instructions: str | None = None):
         return _writer
     from agent_framework import Agent
     from harness.agent import make_client
-    client = make_client()
+    client = make_client(os.environ.get("FAIRSHARE_THINKER"))  # the thinking model when one is named; the loop model otherwise
     if client is None:
         return None
     w = Agent(client, instructions=instructions or DRAFT_INSTRUCTIONS, name="fairshare-monday-writer")

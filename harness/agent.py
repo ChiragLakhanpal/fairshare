@@ -74,10 +74,10 @@ def model_backend() -> str:
     return os.environ.get("FAIRSHARE_MODEL", "none").lower()
 
 
-def make_client():
-    """Returns an Agent Framework chat client for the configured backend, or None."""
+def make_client(backend: str | None = None):
+    """Returns an Agent Framework chat client for the configured backend (or the one named), or None."""
     from agent_framework.openai import OpenAIChatClient
-    b = model_backend()
+    b = (backend or model_backend()).lower()
     if b == "azure":
         endpoint = os.environ["AZURE_OPENAI_ENDPOINT"].rstrip("/")
         if endpoint.endswith("/openai/v1"):

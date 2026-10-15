@@ -153,3 +153,30 @@ def test_state_tables_map_every_ops_name(tmp_path, monkeypatch):
     db.state_execute(["CREATE TABLE IF NOT EXISTS aa_demo.ops.crm_activities (activity_id STRING, agency_id INT)",
                       "INSERT INTO aa_demo.ops.crm_activities VALUES ('a', 5)"])
     assert db.state_query("SELECT COUNT(*) AS n FROM aa_demo.ops.crm_activities")["n"].iloc[0] == 1
+
+
+def test_clause_quotes_are_verbatim():
+    """Every extracted clause quotes its agreement word for word on the page it cites, so the citation can be checked."""
+    import re
+    from harness.tools import _pages
+    rows = db.query("SELECT file, page, quote FROM aa_demo.gold.contract_clauses")
+    assert len(rows) >= 16
+    squash = lambda s: re.sub(r"\s+", " ", s).strip()
+    for r in rows.itertuples():
+        pages = {p: squash(t) for p, t in _pages(ROOT / "data" / "contracts" / r.file)}
+        assert squash(r.quote)[:60] in pages[int(r.page)], (r.file, r.page, r.quote[:60])
+
+
+def test_agreement_checks_cover_every_clause_and_month():
+    n = db.query("SELECT COUNT(DISTINCT clause_id) AS c, COUNT(DISTINCT as_of) AS m, COUNT(*) AS n FROM aa_demo.ops.agreement_checks").iloc[0]
+    assert n["m"] == 9 and n["n"] == n["c"] * n["m"]  # January to September 2026, one row per clause per month
+    assert set(db.query("SELECT DISTINCT status FROM aa_demo.ops.agreement_checks")["status"]) <= {"ok", "watch", "breached", "not_checkable"}
+
+
+def test_harbor_commitment_and_summit_share_clauses():
+    h = db.query("""SELECT status, value, threshold, dollars FROM aa_demo.ops.agreement_checks
+                    WHERE agency_id = 5 AND clause_type = 'annual_commitment' AND as_of = DATE '2026-09-01' ORDER BY dollars DESC""").iloc[0]
+    assert h["value"] is not None and h["dollars"] > 0 and h["status"] in ("ok", "watch", "breached")
+    s = db.query("""SELECT status, quarters_below FROM aa_demo.ops.agreement_checks
+                    WHERE agency_id = 1 AND clause_type = 'share_floor_quarters' AND as_of = DATE '2026-09-01'""").iloc[0]
+    assert s["status"] == "ok" and s["quarters_below"] == 0

@@ -10,6 +10,7 @@ CREATE OR REPLACE TABLE aa_demo.gold.fact_corporate_bookings AS SELECT * FROM aa
 CREATE OR REPLACE TABLE aa_demo.gold.crm_contacts AS SELECT * FROM aa_demo.silver.crm_contacts;
 CREATE OR REPLACE TABLE aa_demo.gold.crm_opportunities AS SELECT * FROM aa_demo.silver.crm_opportunities;
 CREATE OR REPLACE TABLE aa_demo.gold.crm_activities AS SELECT * FROM aa_demo.silver.crm_activities;
+CREATE OR REPLACE TABLE aa_demo.gold.contract_clauses AS SELECT * FROM aa_demo.silver.contract_clauses;
 
 -- Pace against the annual revenue goal, agency by month. Kept as a gold table rather than a metric view
 -- measure because the goal lives at agency-year grain and would multiply across markets in the fact join.
