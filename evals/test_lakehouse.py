@@ -209,3 +209,16 @@ def test_app_deploy_thinker_switch_puts_the_key_in_a_secret_resource(monkeypatch
     m = app_deploy.manifest().decode()
     assert "FAIRSHARE_THINKER" in m and "valueFrom: azure_key" in m and "gpt-5-mini" in m and "not-a-real-key" not in m
     assert any(r.name == "azure_key" and r.secret.scope == "fairshare" and r.secret.key == "azure-openai-key" for r in app_deploy.resources())
+
+
+def test_decimal_columns_from_the_warehouse_become_numbers():
+    """The SQL connector hands DECIMAL columns over as decimal.Decimal objects; the verifier only reads numeric columns (Oct 15, 2026:
+    every live pre-call page lost its seats sentence to "no query supports 2%, 1.7%, 0.8%")."""
+    import decimal
+    df = pd.DataFrame({"seats_change_pct": [decimal.Decimal("2.0"), decimal.Decimal("1.7"), None], "market": ["DCA-BOS", "CLT-LGA", "DFW-DCA"], "n": [1, 2, 3]})
+    out = db.numeric(df)
+    assert pd.api.types.is_float_dtype(out["seats_change_pct"]) and out["seats_change_pct"].iloc[0] == 2.0 and pd.isna(out["seats_change_pct"].iloc[2])
+    assert not pd.api.types.is_numeric_dtype(out["market"]) and pd.api.types.is_integer_dtype(out["n"])
+    pool = FactPool()
+    pool.add_frame(out, "schedule")
+    assert verify("DCA-BOS up 2%, CLT-LGA up 1.7%.", pool).ok

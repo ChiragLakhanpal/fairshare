@@ -79,16 +79,28 @@ def _databricks():
         return _conns[token]
 
 
+def numeric(df: pd.DataFrame) -> pd.DataFrame:
+    """Databricks returns DECIMAL columns (any ROUND over `* 100.0` arithmetic) as decimal.Decimal objects, which pandas keeps as
+    dtype object; the verifier's fact pool only reads numeric columns, so those numbers would never verify. Make them floats."""
+    import decimal
+    for c in df.columns:
+        if df[c].dtype == object:
+            head = df[c].dropna().head(5)
+            if len(head) and all(isinstance(v, decimal.Decimal) for v in head):
+                df[c] = pd.to_numeric(df[c].map(lambda v: float(v) if isinstance(v, decimal.Decimal) else v), errors="coerce")
+    return df
+
+
 def query(sql: str) -> pd.DataFrame:
     """Run one SELECT and return a DataFrame."""
     if backend() == "spark":
-        return _spark().sql(sql).toPandas()
+        return numeric(_spark().sql(sql).toPandas())
     if is_databricks():
         conn, lock = _databricks()
         with lock, conn.cursor() as cur:
             cur.execute(sql)
             cols = [d[0] for d in cur.description]
-            return pd.DataFrame(cur.fetchall(), columns=cols)
+            return numeric(pd.DataFrame(cur.fetchall(), columns=cols))
     return _duckdb().cursor().execute(sql).df()
 
 

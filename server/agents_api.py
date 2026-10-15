@@ -75,7 +75,7 @@ def _catalog() -> dict:
 def _inbox() -> dict:
     """Every item still waiting for a decision, by run, newest run first."""
     groups = []
-    for h in _headers(50):
+    for h in _headers(20):
         if h["status"] != "needs_approval":
             continue
         run = _run(h["run_id"])
