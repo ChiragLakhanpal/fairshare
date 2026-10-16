@@ -53,8 +53,8 @@ export type Definitions = {
   runs: { run_id: string; run_at: string; kpis: number; rows: number; drift: number }[];
 };
 
-export type RunStatus = "running" | "needs_approval" | "approved" | "rejected" | "failed";
-export type ItemStatus = "draft" | "approved" | "rejected";
+export type RunStatus = "running" | "needs_approval" | "approved" | "rejected" | "failed" | "superseded";
+export type ItemStatus = "draft" | "approved" | "rejected" | "superseded";
 export type AgentScope = { manager?: string; region?: string; month?: string; market?: string };
 export type AgentStep = { key: string; title: string; sub: string };
 export type Progress = { done: number; total: number; text: string; phase: "facts" | "draft" | "check" | "done" | null; item: string | null };
@@ -62,13 +62,17 @@ export type AgentDef = {
   key: string; name: string; summary: string; one_liner: string; cadence: string; steps: AgentStep[];
   reads: string[]; writes: string[]; approver: string; scope_kind: "manager" | "region" | "market";
   last_run: { run_id: string; status: RunStatus; created_at: string } | null; waiting: number; running: { run_id: string; progress: Progress } | null;
+  pages: Page[];
+};
+export type PageVersion = { run_id: string; item_id: string; created_at: string; scope: AgentScope; status: ItemStatus; decided_at: string | null; decided_by: string | null };
+/** The unit a person decides on: one per agent and title, its newest version on top and every earlier version as history. */
+export type Page = {
+  item_id: string; kind: string; title: string; subtitle: string; severity: Severity; summary: string; status: ItemStatus; decided_at: string | null; decided_by: string | null;
+  run_id: string; created_at: string; scope: AgentScope; versions: PageVersion[];
 };
 export type AgentsCatalog = { agents: AgentDef[]; managers: string[]; markets: { market_id: number; market: string }[]; crm_label: string };
 export type RunHeader = { run_id: string; agent: string; agent_name: string; scope: AgentScope; status: RunStatus; created_at: string; finished_at: string | null; items: number; needs_approval: number };
 export type Severity = "ok" | "watch" | "risk" | null;
-export type InboxItem = { item_id: string; kind: string; title: string; subtitle: string; severity: Severity; summary: string; status: ItemStatus };
-export type InboxGroup = { run_id: string; agent: string; agent_name: string; scope: AgentScope; created_at: string; items: InboxItem[] };
-export type Inbox = { waiting: number; groups: InboxGroup[] };
 export type ItemFact = { name: string; label: string; sql: string | null; source: string | null; rows: Record<string, unknown>[] };
 export type ItemSource = { title: string; url: string; published: string | null; snippet: string };
 export type ItemAction = { type: "email" | "crm" | "none"; subject: string; body: string; crm: { agency_id: number; activity_type: string; subject: string } | null };

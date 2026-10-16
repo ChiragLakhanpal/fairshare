@@ -260,14 +260,20 @@ def test_catalog_words_steps_waiting_and_running(client, monkeypatch, tmp_path):
     assert m["waiting"] >= 1 and m["last_run"]["status"] == "needs_approval"
 
 
-def test_inbox_lists_draft_items_newest_run_first(client, monkeypatch, tmp_path):
+def test_catalog_carries_the_pages_and_a_rerun_refreshes_them(client, monkeypatch, tmp_path):
     _state(monkeypatch, tmp_path)
-    assert client.get("/api/agents/inbox").json() == {"waiting": 0, "groups": []}
+    assert all(a["pages"] == [] for a in client.get("/api/agents").json()["agents"])
     run = client.post("/api/agents/precall/run?wait=true", json={"scope": {"manager": "Marcus Lee", "month": "2026-09"}, "writer": "template"}).json()
     item = run["items"][0]
     assert item["summary"] and item["sections"] and item["email"]["subject"] and item["note"] and item["numbers_checked"] > 0 and run["progress"]["phase"] == "done"
     client.post(f"/api/agents/runs/{run['run_id']}/items/{item['item_id']}/approve", json={})
-    inbox = client.get("/api/agents/inbox").json()
-    assert inbox["waiting"] == 3 and inbox["groups"][0]["run_id"] == run["run_id"] and inbox["groups"][0]["agent_name"] == "Monday pre-call pack"
-    head = inbox["groups"][0]["items"][0]
-    assert set(head) == {"item_id", "kind", "title", "subtitle", "severity", "summary", "status"} and head["status"] == "draft" and head["summary"]
+    pre = next(a for a in client.get("/api/agents").json()["agents"] if a["key"] == "precall")
+    assert pre["waiting"] == 3 and [p["status"] for p in pre["pages"]] == ["draft", "draft", "draft", "approved"]
+    page = pre["pages"][0]
+    assert {"item_id", "kind", "title", "subtitle", "severity", "summary", "status", "run_id", "created_at", "scope", "decided_at", "decided_by", "versions"} <= set(page) and page["summary"]
+    again = client.post("/api/agents/precall/run?wait=true", json={"scope": {"manager": "Marcus Lee", "month": "2026-09"}, "writer": "template"}).json()
+    pre = next(a for a in client.get("/api/agents").json()["agents"] if a["key"] == "precall")
+    assert pre["waiting"] == 4 and len(pre["pages"]) == 4 and all(p["run_id"] == again["run_id"] for p in pre["pages"])
+    assert [v["status"] for v in next(p for p in pre["pages"] if p["title"] == item["title"])["versions"]] == ["draft", "approved"]
+    assert [v["status"] for v in next(p for p in pre["pages"] if p["title"] != item["title"])["versions"]] == ["draft", "superseded"]
+    assert client.get("/api/agents/inbox").status_code == 404

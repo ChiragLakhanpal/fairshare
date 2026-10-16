@@ -1,7 +1,6 @@
-// The rows a run's outputs show up as: a severity dot, the name, one plain line, the kind, a chevron. The whole row opens
-// the page. A compact form sits beside an open page; writing and queued rows show a run in progress.
+// The rows pages show up as: a severity dot, the name, one plain line, the status, a chevron. The whole row opens the
+// page. A compact form sits beside an open page; writing and queued rows show a run in progress.
 import { copy } from "../copy";
-import { kindTag } from "../lib/runs";
 import type { Severity } from "../lib/types";
 import { ChevronRight } from "./Icons";
 
@@ -18,15 +17,15 @@ export function SeverityChip({ s }: { s: Severity }) {
   return <span className={`inline-flex h-[22px] shrink-0 items-center rounded-full px-2.5 text-[12px] font-semibold ${look}`}>{copy.severity[s ?? "ok"]}</span>;
 }
 
-type RowProps = { title: string; summary: string; severity: Severity; kind: string; onOpen: () => void; selected?: boolean; compact?: boolean; last?: boolean };
+type RowProps = { title: string; summary: string; severity: Severity; right: string; onOpen: () => void; selected?: boolean; compact?: boolean; last?: boolean };
 
-export function ItemRow({ title, summary, severity, kind, onOpen, selected, compact, last }: RowProps) {
+export function ItemRow({ title, summary, severity, right, onOpen, selected, compact, last }: RowProps) {
   if (compact) {
     return (
       <button type="button" onClick={onOpen} aria-current={selected ? "true" : undefined} aria-label={title}
-        className={`press block w-full rounded-[10px] px-3.5 py-3 text-left ${selected ? "bg-surface" : "hover:bg-surface/60"}`}>
-        <span className="flex items-center justify-between gap-2"><span className="font-semibold text-ink">{title}</span><SeverityChip s={severity} /></span>
-        <span className="mt-0.5 block text-[13px] leading-[1.4] text-ink-2">{summary}</span>
+        className={`press block w-full rounded-[10px] px-3.5 py-2.5 text-left ${selected ? "bg-white shadow-sm" : "hover:bg-white/70"}`}>
+        <span className="flex items-center gap-2"><SeverityDot s={severity} /><span className="min-w-0 flex-1 truncate font-semibold text-ink">{title}</span><span className="shrink-0 text-[12px] text-ink-2">{right}</span></span>
+        <span className="mt-0.5 block pl-4 text-[13px] leading-[1.4] text-ink-2">{summary}</span>
       </button>
     );
   }
@@ -36,7 +35,7 @@ export function ItemRow({ title, summary, severity, kind, onOpen, selected, comp
       <SeverityDot s={severity} />
       <span className="font-medium">{title}</span>
       <span className="leading-[1.45]">{summary}</span>
-      <span className="whitespace-nowrap text-[12.5px] text-ink-2">{kindTag(kind)}</span>
+      <span className="whitespace-nowrap text-[12.5px] text-ink-2">{right}</span>
       <ChevronRight className="text-grey" />
     </button>
   );

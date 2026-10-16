@@ -1,7 +1,8 @@
-"""The Delegate routes: the catalog of agents, runs started in the background and polled, the decisions on their
-items, and the CRM stand-in's activities. A run executes in a task created inside the request, so it carries the
-viewer's token: SQL runs as the person who pressed Run now. Finished runs live in ops.agent_runs; the ones started in
-this process also stay in memory, so a poll sees items appear."""
+"""The Delegate routes: the catalog of agents with their pages, runs started in the background and polled, the decisions
+on their items, and the CRM stand-in's activities. A run executes in a task created inside the request, so it carries the
+viewer's token: SQL runs as the person who pressed Run now. Finished runs live in ops.agent_runs and are read from there
+(the nightly job retires pages this process never saw); a run in progress lives only here until it finishes, so a poll
+sees its items appear."""
 from __future__ import annotations
 
 import asyncio
@@ -22,7 +23,7 @@ from server.context import Viewer, viewer
 router = APIRouter()
 ORDER = ["precall", "watch", "prospect", "mismatch"]
 CRM_LABEL = "the CRM stand-in (Dynamics 365 Sales at an airline)"
-RUNS: dict[str, Run] = {}   # the runs this process started or touched, newest last; ponytail: fifty at most
+RUNS: dict[str, Run] = {}   # the runs this process started or touched, newest last; ponytail: fifty at most. The table wins once a run has finished.
 MAX = 50
 
 
@@ -42,52 +43,35 @@ def _markets() -> list[dict]:
     return [{"market_id": int(r.market_id), "market": r.market} for r in df.itertuples()]
 
 
+def _runs(limit: int) -> list[Run]:
+    """The table, plus the runs still in progress here (a run is saved when it finishes) and any finished one the table
+    has not caught up with yet. Newest first."""
+    out = {r.run_id: r for r in agents.load_runs(max(limit, 50))}
+    for r in RUNS.values():
+        if r.status == "running" or r.run_id not in out:
+            out[r.run_id] = r
+    return sorted(out.values(), key=lambda r: r.created_at, reverse=True)[:limit]
+
+
 def _headers(limit: int) -> list[dict]:
-    """In-memory runs first (they are newest and may still be running), then the table, without duplicates."""
-    seen, out = set(), []
-    for run in RUNS.values():
-        seen.add(run.run_id)
-        out.append(run.header())
-    for h in agents.list_runs(max(limit, 50)):
-        if h["run_id"] not in seen:
-            out.append(h)
-    out.sort(key=lambda h: h["created_at"], reverse=True)
-    return out[:limit]
+    return [r.header() for r in _runs(limit)]
 
 
 def _catalog() -> dict:
-    heads = _headers(200)
-    last, waiting, running = {}, {}, {}
-    for h in heads:
-        last.setdefault(h["agent"], {"run_id": h["run_id"], "status": h["status"], "created_at": h["created_at"]})
-        waiting.setdefault(h["agent"], int(h["needs_approval"]))
-    for r in RUNS.values():
+    runs = _runs(200)
+    pages = agents.pages(runs)
+    last, running = {}, {}
+    for r in runs:
+        last.setdefault(r.agent, {"run_id": r.run_id, "status": r.status, "created_at": r.created_at})
         if r.status == "running":
-            running[r.agent] = {"run_id": r.run_id, "progress": r.progress}
+            running.setdefault(r.agent, {"run_id": r.run_id, "progress": r.progress})
     keys = [k for k in ORDER if k in AGENTS] + [k for k in AGENTS if k not in ORDER]
     return {"agents": [{"key": a.key, "name": a.name, "summary": a.summary, "one_liner": a.one_liner, "cadence": a.cadence,
                         "steps": [{"key": f"s{i}", "title": t, "sub": s} for i, (t, s) in enumerate(a.steps, 1)],
                         "reads": a.reads, "writes": a.writes, "approver": a.approver, "scope_kind": a.scope_kind,
-                        "last_run": last.get(a.key), "waiting": waiting.get(a.key, 0), "running": running.get(a.key)} for a in (AGENTS[k] for k in keys)],
+                        "last_run": last.get(a.key), "running": running.get(a.key), "pages": pages.get(a.key, []),
+                        "waiting": sum(1 for p in pages.get(a.key, []) if p["status"] == "draft")} for a in (AGENTS[k] for k in keys)],
             "managers": _managers(), "markets": _markets(), "crm_label": CRM_LABEL}
-
-
-def _inbox() -> dict:
-    """Every item still waiting for a decision, by run, newest run first."""
-    groups = []
-    for h in _headers(20):
-        if h["status"] != "needs_approval":
-            continue
-        run = _run(h["run_id"])
-        items = [i.head() for i in run.items if i.status == "draft"]
-        if items:
-            groups.append({"run_id": run.run_id, "agent": run.agent, "agent_name": run.agent_name(), "scope": run.scope, "created_at": run.created_at, "items": items})
-    return {"waiting": sum(len(g["items"]) for g in groups), "groups": groups[:20]}
-
-
-@router.get("/agents/inbox")
-async def inbox(v: Viewer = Depends(viewer)):
-    return await run_in_threadpool(_inbox)
 
 
 @router.get("/agents")
@@ -143,7 +127,10 @@ async def runs(limit: int = 20, v: Viewer = Depends(viewer)):
 
 
 def _run(run_id: str) -> Run:
-    run = RUNS.get(run_id) or agents.load(run_id)
+    """A run in progress is read from memory, a finished one from the table, where a later run may have retired its pages."""
+    run = RUNS.get(run_id)
+    if run is None or run.status != "running":
+        run = agents.load(run_id) or run
     if run is None:
         raise HTTPException(404, {"code": "not_found", "message": "No run with that id."})
     return _remember(run)

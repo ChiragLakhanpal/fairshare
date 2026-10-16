@@ -371,3 +371,45 @@ def test_a_refused_page_is_written_by_the_template_and_says_so(state, monkeypatc
     assert harbor.note().endswith("Foundry's guardrail refused these facts (indirect attack), so the template wrote this page without a model.")
     other = next(i for i in run.items if not i.title.startswith("Harbor"))
     assert other.verified_text.startswith("A page.")
+
+
+# ---------------------------------------------------------------- pages: the unit a person decides on, one per agent and title
+def test_a_new_run_retires_the_older_waiting_version_of_the_same_page(state):
+    agents.register(fake_agent())
+    first = agents.run("fake", SCOPE, "tester", mode="template")
+    agents.approve(first, first.items[1].item_id, None, "dana")           # a decided page is history, never retired
+    second = agents.run("fake", SCOPE, "tester", mode="template")
+    old = agents.load(first.run_id)
+    assert [i.status for i in old.items] == ["superseded", "approved"] and old.status == "approved"
+    assert [i.status for i in second.items] == ["draft", "draft"]         # a fresh approval every time
+    assert agents.approve(old, old.items[0].item_id, None, "dana").status == "superseded"   # the retired draft cannot go out
+    assert len(db.state_query("SELECT * FROM aa_demo.ops.crm_activities")) == 1
+    agents.run("fake", SCOPE, "tester", mode="template")
+    assert agents.load(second.run_id).status == "superseded"
+
+
+def test_pages_group_versions_by_title_waiting_first_newest_first(state):
+    agents.register(fake_agent())
+    first = agents.run("fake", SCOPE, "tester", mode="template")
+    agents.approve(first, first.items[0].item_id, None, "dana")
+    second = agents.run("fake", SCOPE, "tester", mode="template")
+    agents.reject(second, second.items[0].item_id, "dana")
+    pages = agents.pages([agents.load(first.run_id), second])["fake"]
+    assert [p["title"] for p in pages] == ["Item b", "Item a"]             # the page that waits comes first
+    b, a = pages
+    assert b["status"] == "draft" and b["run_id"] == second.run_id and b["item_id"] == second.items[1].item_id
+    assert [v["status"] for v in b["versions"]] == ["draft", "superseded"] and b["versions"][1]["run_id"] == first.run_id
+    assert a["status"] == "rejected" and a["decided_by"] == "dana" and a["decided_at"]
+    assert [(v["status"], v["decided_by"]) for v in a["versions"]] == [("rejected", "dana"), ("approved", "dana")]
+    assert a["versions"][0]["created_at"] >= a["versions"][1]["created_at"] and a["scope"] == SCOPE
+    assert agents.pages([]) == {}
+
+
+def test_an_older_draft_reads_as_replaced_even_before_a_run_retires_it(state):
+    """Runs saved before Oct 16, 2026 never retired anything; the page still shows one waiting version."""
+    agents.register(fake_agent())
+    runs = [agents.run("fake", SCOPE, "tester", mode="template") for _ in range(2)]
+    for i in runs[0].items:
+        i.status = "draft"   # as the old rows read
+    page = agents.pages(runs)["fake"][0]
+    assert page["status"] == "draft" and page["run_id"] == runs[1].run_id and [v["status"] for v in page["versions"]] == ["draft", "superseded"]

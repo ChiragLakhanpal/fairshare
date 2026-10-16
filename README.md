@@ -27,8 +27,10 @@ it, built for people who do not write SQL.
    recorded: the Monday pre-call pack (one page per agency an account manager owns, with a drafted email), Agreement watch
    (every measurable clause in the agreements checked against the month, with a drafted notice or upsell), Prospect research
    (where the headroom is on a market, and what public sources say about the route, quoted with links), and CRM versus
-   reality (open opportunities whose CRM health disagrees with the data, with a drafted correction). The nightly job writes
-   the runs; the app shows them waiting. The CRM is a synthetic stand-in shaped like Dynamics 365 Sales.
+   reality (open opportunities whose CRM health disagrees with the data, with a drafted correction). The unit a person
+   decides on is a page (an agency, a clause, a market, a deal), not a run: the nightly job and Run now write the pages
+   again, the older waiting version is retired, every refresh needs a fresh approval, and each page keeps its versions
+   with who decided what and when. The CRM is a synthetic stand-in shaped like Dynamics 365 Sales.
 
 ## Data
 

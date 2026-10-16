@@ -7,7 +7,7 @@ import type { Conversation, Scope, Turn } from "./types";
 export type { Conversation, Scope, Turn };
 
 export type Mode = "ask" | "delegate";
-/** Where Delegate is: the inbox (agent null), an agent, its selected run, and the page open beside the list. */
+/** Where Delegate is: the overview (agent null), an agent, and the version of a page open beside its list (a run and an item). */
 export type DelegateView = { agent: string | null; runId: string | null; itemId: string | null };
 export type State = { conversations: Conversation[]; activeId: string | null; summaryExpanded: boolean; sidebarCollapsed: boolean; mode: Mode; delegate: DelegateView };
 

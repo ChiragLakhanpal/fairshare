@@ -10,7 +10,7 @@ export type QuickAction = "summary" | "brief" | "call" | "agreement";
 type Props = {
   collapsed: boolean; onToggle: () => void; conversations: Conversation[]; activeId: string | null; onSelect: (id: string) => void;
   onRemove: (id: string) => void; onNew: () => void; onAction: (a: QuickAction) => void; email: string | null; inSummary: boolean;
-  mode: Mode; onMode: (m: Mode) => void; agents: AgentDef[]; inboxCount: number; view: string | null; onInbox: () => void; onAgent: (key: string) => void;
+  mode: Mode; onMode: (m: Mode) => void; agents: AgentDef[]; view: string | null; onOverview: () => void; onAgent: (key: string) => void;
 };
 
 const ACTIONS: { key: QuickAction; label: string; Icon: typeof Chart }[] = [
@@ -40,7 +40,7 @@ function Dot({ tone }: { tone: "running" | "waiting" | "quiet" | "none" | "faile
   return <span aria-hidden="true" className={`mt-2 h-2 w-2 shrink-0 rounded-full ${look}`} />;
 }
 
-export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, inboxCount, view, onInbox, onAgent }: Props) {
+export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, view, onOverview, onAgent }: Props) {
   const initials = (email ?? "You").split("@")[0].split(/[._-]/).map((s) => s[0]?.toUpperCase() ?? "").join("").slice(0, 2) || "Y";
   const anyRunning = agents.some((a) => a.running);
   if (collapsed) {
@@ -74,7 +74,7 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
           ) : (
             <>
               <span className="h-2" />
-              <Tip label={`${copy.inboxTitle}: ${inboxCount}`}><button type="button" onClick={onInbox} aria-label={`${copy.inboxTitle}: ${inboxCount}`} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${view === null ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2 hover:text-ink"}`}><InboxIcon width={18} height={18} /></button></Tip>
+              <Tip label={copy.overviewTitle}><button type="button" onClick={onOverview} aria-label={copy.overviewTitle} className={`press flex h-10 w-10 items-center justify-center rounded-lg ${view === null ? "bg-white text-blue shadow-sm" : "text-ink-2 hover:bg-line-2 hover:text-ink"}`}><InboxIcon width={18} height={18} /></button></Tip>
               {agents.map((a) => {
                 const s = sidebarLine(a);
                 return (
@@ -114,15 +114,11 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
       </div>
       {mode === "delegate" ? (
         <>
-          <div className="t-label mx-2.5 mb-1.5 mt-2">{copy.agentsLabel}</div>
-          <button type="button" onClick={onInbox} aria-current={view === null ? "page" : undefined}
-            className={`press flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left ${view === null ? "bg-white shadow-sm" : "hover:bg-line-2"}`}>
-            <Dot tone={inboxCount > 0 ? "waiting" : "none"} />
-            <span className="min-w-0">
-              <span className={`block text-sm ${view === null ? "font-semibold text-navy" : "font-medium text-ink"}`}>{copy.inboxTitle}</span>
-              <span className="block text-[12.5px] text-ink-2">{inboxCount === 1 ? "1 item" : `${inboxCount} items`}</span>
-            </span>
+          <button type="button" onClick={onOverview} aria-current={view === null ? "page" : undefined}
+            className={`press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-sm ${view === null ? "bg-white font-semibold text-navy shadow-sm" : "font-medium text-ink hover:bg-line-2"}`}>
+            <InboxIcon className={view === null ? "text-blue" : "text-ink-2"} />{copy.overviewTitle}
           </button>
+          <div className="t-label mx-2.5 mb-1.5 mt-4">{copy.agentsLabel}</div>
           {agents.map((a) => {
             const s = sidebarLine(a);
             return (

@@ -9,7 +9,9 @@ through the state-table path, so the nightly job and the app write the same shap
   run(key, scope, by, mode)       facts -> prose -> check for every item the agent plans; sync, for the job and tests
   run_async(...)                  the same on the caller's loop (the server), appending items as they finish
   approve / reject                a decision on one item: re-verify an edit, write the CRM row once, save
-  save / load / list_runs         ops.agent_runs
+  supersede                       a run that wrote a page again retires its older waiting version (a fresh approval every time)
+  pages                           the unit a person decides on: one per agent and title, newest version first, with its history
+  save / load / load_runs         ops.agent_runs
 """
 from __future__ import annotations
 
@@ -150,7 +152,8 @@ class Item:
 
     def head(self) -> dict:
         """What a list row needs."""
-        return {"item_id": self.item_id, "kind": self.kind, "title": self.title, "subtitle": self.subtitle, "severity": self.severity, "summary": self.summary, "status": self.status}
+        return {"item_id": self.item_id, "kind": self.kind, "title": self.title, "subtitle": self.subtitle, "severity": self.severity, "summary": self.summary, "status": self.status,
+                "decided_at": self.decided_at, "decided_by": self.decided_by}
 
     @classmethod
     def from_json(cls, d: dict) -> "Item":
@@ -184,7 +187,9 @@ class Run:
             return "needs_approval"
         if any(i.status == "approved" for i in self.items):
             return "approved"
-        return "rejected" if self.items else "approved"   # nothing needed attention: there was nothing to decide
+        if any(i.status == "rejected" for i in self.items):
+            return "rejected"
+        return "superseded" if self.items else "approved"   # every page was written again by a later run, or there was nothing to decide
 
     def item(self, item_id: str) -> Item:
         for i in self.items:
@@ -250,7 +255,8 @@ class Unverified(Exception):
 
 
 def _now() -> str:
-    return datetime.now().isoformat(timespec="seconds")
+    """Milliseconds: two runs inside one second (the job, the tests) must still order, since the newest version of a page wins."""
+    return datetime.now().isoformat(timespec="milliseconds")
 
 
 def _q(s) -> str:
@@ -456,8 +462,12 @@ async def run_async(key: str, scope: dict, requested_by: str, mode: str = "guard
             run.progress["text"] = progress_text(run)
     except Exception as e:  # one bad block ends the run honestly; what was written stays
         run.error = f"{type(e).__name__}: {str(e)[:300]}"
-    run.finished_at = _now()
     run.progress.update(phase="done", item=None)
+    try:
+        await asyncio.to_thread(supersede, run)   # before the run reads as finished, so a poller that sees it done sees the pages right
+    except Exception as e:  # the new pages stand; the older versions keep waiting and the log says why
+        print(f"supersede after run {run.run_id}: {type(e).__name__}: {str(e)[:200]}")
+    run.finished_at = _now()
     run.progress["text"] = progress_text(run)
     await asyncio.to_thread(save, run)
     return run
@@ -497,6 +507,44 @@ def reject(run: Run, item_id: str, by: str) -> Item:
     item.status, item.decided_at, item.decided_by = "rejected", _now(), by
     save(run)
     return item
+
+
+def supersede(run: Run) -> int:
+    """A page is one agent and one title (an agency, a clause, a market, a deal). Once a run has written it again, the older
+    version still waiting is retired: the numbers may have moved, so every refresh needs a fresh approval. Decided versions
+    stay as history. Returns how many drafts were retired."""
+    titles = {i.title for i in run.items}
+    n = 0
+    if not titles:
+        return 0
+    for h in _rows(f"SELECT run_id FROM {db.AGENT_RUNS} WHERE agent = {_q(run.agent)} AND status = 'needs_approval' AND run_id <> {_q(run.run_id)}"):
+        old = load(h["run_id"])
+        hits = [i for i in old.items if i.status == "draft" and i.title in titles] if old else []
+        for i in hits:
+            i.status = "superseded"
+        if hits:
+            n += len(hits)
+            save(old)
+    return n
+
+
+def pages(runs: list[Run]) -> dict[str, list[dict]]:
+    """Every page the agents have written, by agent: one entry per title with its newest version on top and every earlier
+    version as history. The pages still waiting for a decision come first, then the rest, newest first."""
+    by: dict[tuple[str, str], list[tuple[Run, Item]]] = {}
+    for r in sorted(runs, key=lambda r: r.created_at, reverse=True):
+        for i in r.items:
+            by.setdefault((r.agent, i.title), []).append((r, i))
+    out: dict[str, list[dict]] = {}
+    for (agent, _), versions in by.items():
+        r, i = versions[0]
+        out.setdefault(agent, []).append({**i.head(), "run_id": r.run_id, "created_at": r.created_at, "scope": r.scope,
+                                          "versions": [{"run_id": vr.run_id, "item_id": vi.item_id, "created_at": vr.created_at, "scope": vr.scope,
+                                                        "status": "superseded" if k and vi.status == "draft" else vi.status,   # an older draft is replaced, whatever the row says
+                                                        "decided_at": vi.decided_at, "decided_by": vi.decided_by} for k, (vr, vi) in enumerate(versions)]})
+    for lst in out.values():
+        lst.sort(key=lambda p: p["status"] != "draft")   # already newest first; the sort is stable
+    return out
 
 
 def crm_write(agency_id: int, activity_type: str, subject: str, notes: str, by: str, run_id: str, item_id: str) -> str:
@@ -564,6 +612,10 @@ def load(run_id: str) -> Run | None:
     return _from_row(rows[0]) if rows else None
 
 
+def load_runs(limit: int = 20) -> list[Run]:
+    """The newest runs, whole: the catalog groups their items into pages."""
+    return [_from_row(r) for r in _rows(f"SELECT * FROM {db.AGENT_RUNS} ORDER BY created_at DESC LIMIT {int(limit)}")]
+
+
 def list_runs(limit: int = 20) -> list[dict]:
-    rows = _rows(f"SELECT * FROM {db.AGENT_RUNS} ORDER BY created_at DESC LIMIT {int(limit)}")
-    return [_from_row(r).header() for r in rows]
+    return [r.header() for r in load_runs(limit)]

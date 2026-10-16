@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { approvalLine, barFraction, decidedLine, draftCount, kindTag, minutesWord, nounFor, numberTitle, progressLine, proseParts, scopeLabel, sidebarLine, startedToast, statusLabel, stepStates, whenLabel } from "./runs";
+import { approvalLine, barFraction, decidedLine, draftCount, minutesWord, nounFor, numberTitle, pageLine, progressLine, proseParts, scopeLabel, sidebarLine, startedToast, statusLabel, stepStates, versionLabel, waitingLine, whenLabel } from "./runs";
 import type { AgentStep, Progress } from "./types";
 
 const steps: AgentStep[] = [
@@ -11,9 +11,7 @@ const progress = (p: Partial<Progress>): Progress => ({ done: 0, total: 0, text:
 describe("runs helpers", () => {
   it("labels statuses, kinds and nouns in plain words", () => {
     expect(statusLabel("needs_approval")).toBe("Needs approval");
-    expect(kindTag("page")).toBe("page and email");
-    expect(kindTag("clause")).toBe("alert and note");
-    expect(kindTag("odd")).toBe("item");
+    expect(statusLabel("superseded")).toBe("Replaced by a newer run");
     expect(nounFor("precall")).toEqual(["page", "pages"]);
     expect(nounFor("mystery")).toEqual(["item", "items"]);
     expect(draftCount([{ status: "draft" }, { status: "approved" }, { status: "draft" }])).toBe(2);
@@ -79,5 +77,17 @@ describe("runs helpers", () => {
     expect(whenLabel("2026-10-14T21:03:10")).toBe("October 14 at 9:03 PM");
     expect(decidedLine({ status: "approved", decided_by: "dana@example.com", decided_at: "2026-10-14T21:03:10" })).toBe("Approved by dana@example.com on October 14 at 9:03 PM.");
     expect(decidedLine({ status: "rejected", decided_by: null, decided_at: "2026-10-14T21:03:10" })).toBe("Rejected on October 14 at 9:03 PM.");
+    expect(decidedLine({ status: "superseded", decided_by: null, decided_at: null })).toBe("Replaced by a newer version.");
+  });
+
+  it("words a page row, a version and the strip", () => {
+    expect(pageLine({ status: "draft", decided_at: null })).toBe("Waiting for you");
+    expect(pageLine({ status: "approved", decided_at: "2026-10-14T21:03:10" })).toBe("Approved October 14");
+    expect(pageLine({ status: "rejected", decided_at: "2026-10-14T21:03:10.250" })).toBe("Rejected October 14");
+    expect(versionLabel({ created_at: "2026-10-15T20:57:00", scope: { market: "SEA-DEN" } })).toBe("October 15 at 8:57 PM, for SEA-DEN");
+    expect(waitingLine(0)).toBe("Nothing needs a decision right now.");
+    expect(waitingLine(1)).toBe("One page waits for your decision.");
+    expect(waitingLine(3)).toBe("Three pages wait for your decision.");
+    expect(waitingLine(12)).toBe("12 pages wait for your decision.");
   });
 });

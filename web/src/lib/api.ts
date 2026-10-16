@@ -1,5 +1,5 @@
 import { readSse } from "./sse";
-import type { Agency, AgentScope, AgentsCatalog, Answer, ApiError, Brief, Definitions, Evals, Explain, Inbox, Item, Me, Run, RunHeader, Scope, Step, Summary } from "./types";
+import type { Agency, AgentScope, AgentsCatalog, Answer, ApiError, Brief, Definitions, Evals, Explain, Item, Me, Run, Scope, Step, Summary } from "./types";
 
 async function get<T>(url: string): Promise<T> {
   const r = await fetch(url, { headers: { Accept: "application/json" } });
@@ -33,9 +33,7 @@ export const api = {
   approveBrief: (run_id: string, text?: string) => post<Brief>(`/api/brief/${run_id}/approve`, text ? { text } : {}),
   getBrief: (run_id: string) => get<Brief>(`/api/brief/${run_id}`),
   agents: () => get<AgentsCatalog>("/api/agents"),
-  inbox: () => get<Inbox>("/api/agents/inbox"),
   runAgent: (key: string, scope: AgentScope, writer?: "guarded" | "template") => post<Run>(`/api/agents/${encodeURIComponent(key)}/run`, { scope, ...(writer ? { writer } : {}) }),
-  runs: (limit = 20) => get<RunHeader[]>(`/api/agents/runs?limit=${limit}`),
   run: (run_id: string) => get<Run>(`/api/agents/runs/${encodeURIComponent(run_id)}`),
   approveItem: (run_id: string, item_id: string, text?: string) => post<Item>(`/api/agents/runs/${encodeURIComponent(run_id)}/items/${encodeURIComponent(item_id)}/approve`, text ? { text } : {}),
   rejectItem: (run_id: string, item_id: string) => post<Item>(`/api/agents/runs/${encodeURIComponent(run_id)}/items/${encodeURIComponent(item_id)}/reject`, {}),

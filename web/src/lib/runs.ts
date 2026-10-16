@@ -2,10 +2,10 @@
 // line, scope names, decided lines. Pure functions, tested in runs.test.ts.
 import { copy, minutesWord, numberWord } from "../copy";
 import { monthLabel } from "./format";
-import type { AgentDef, AgentScope, AgentStep, Item, ItemAction, Progress, RunStatus } from "./types";
+import type { AgentDef, AgentScope, AgentStep, Item, ItemAction, Page, PageVersion, Progress, RunStatus } from "./types";
 
 export function statusLabel(s: RunStatus): string {
-  return ({ running: "Running", needs_approval: "Needs approval", approved: "Approved", rejected: "Rejected", failed: "Failed" } as Record<string, string>)[s] ?? s;
+  return ({ running: "Running", needs_approval: "Needs approval", approved: "Approved", rejected: "Rejected", failed: "Failed", superseded: "Replaced by a newer run" } as Record<string, string>)[s] ?? s;
 }
 
 export function draftCount(items: Pick<Item, "status">[]): number {
@@ -15,10 +15,6 @@ export function draftCount(items: Pick<Item, "status">[]): number {
 /** What an agent produces, singular and plural: pages, alerts, briefs, notes. */
 export function nounFor(key: string): [string, string] {
   return copy.nouns[key] ?? ["item", "items"];
-}
-
-export function kindTag(kind: string): string {
-  return copy.kindTag[kind] ?? "item";
 }
 
 export function scopeLabel(scope: AgentScope): string {
@@ -39,11 +35,34 @@ export function whenLabel(iso: string | null | undefined): string {
   return `${day} at ${time}`;
 }
 
+export function dayLabel(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+}
+
 export function decidedLine(item: Pick<Item, "status" | "decided_by" | "decided_at">): string {
+  if (item.status === "superseded") return copy.replacedPlain;
   const verb = item.status === "approved" ? "Approved" : "Rejected";
   const by = item.decided_by ? ` by ${item.decided_by}` : "";
   const when = item.decided_at ? ` on ${whenLabel(item.decided_at)}` : "";
   return `${verb}${by}${when}.`;
+}
+
+/** The short status at the right of a page row: waiting, or the decision and its day. */
+export function pageLine(p: Pick<Page, "status" | "decided_at">): string {
+  if (p.status === "draft") return copy.pageWaiting;
+  if (p.status === "superseded") return copy.replacedPlain;
+  return copy.rowDecided(p.status === "approved" ? "Approved" : "Rejected", dayLabel(p.decided_at));
+}
+
+/** "October 15 at 8:57 PM, for SEA-DEN": when a version was written and for what. */
+export function versionLabel(v: Pick<PageVersion, "created_at" | "scope">): string {
+  return `${whenLabel(v.created_at)}, for ${scopeLabel(v.scope)}`;
+}
+
+export function waitingLine(n: number): string {
+  return copy.waitingLine(n);
 }
 
 export type StatusTone = "running" | "waiting" | "quiet" | "none" | "failed";

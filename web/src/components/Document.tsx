@@ -1,12 +1,12 @@
-// One item as a document: the sections with their checked numbers underlined, the email as a card, the note, and the
-// approve bar that says in plain words what approving does.
+// One version of a page as a document: the sections with their checked numbers underlined, the email as a card, the
+// note, the page's other versions, and the approve bar that says in plain words what approving does.
 import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { api } from "../lib/api";
 import { copyText, emailDraft, printElement } from "../lib/export";
-import { approvalLine, decidedLine, numberTitle, proseParts } from "../lib/runs";
-import type { ApiError, Item, Sentence } from "../lib/types";
+import { approvalLine, decidedLine, numberTitle, proseParts, versionLabel, whenLabel } from "../lib/runs";
+import type { ApiError, Item, PageVersion, Sentence } from "../lib/types";
 import { Check, Copy, Dots, External, File as FileIcon, Info, Mail } from "./Icons";
 import { SeverityChip } from "./ItemRows";
 import { Table } from "./Table";
@@ -37,7 +37,9 @@ function pageText(item: Item): string {
   return `${item.title}\n${item.subtitle}\n\n${body}${mail}`;
 }
 
-export function Document({ runId, item, onChange }: { runId: string; item: Item; onChange: (i: Item) => void }) {
+type Props = { runId: string; item: Item; versions: PageVersion[]; onOpenVersion: (v: PageVersion) => void; onChange: (i: Item) => void };
+
+export function Document({ runId, item, versions, onOpenVersion, onChange }: Props) {
   const ref = useRef<HTMLElement>(null);
   const [open, setOpen] = useState<null | "numbers" | "queries">(null);
   const [editing, setEditing] = useState(false);
@@ -53,7 +55,10 @@ export function Document({ runId, item, onChange }: { runId: string; item: Item;
     setOpen(null);
   }, [item.item_id, item.verified_text]);
 
-  const draft = item.status === "draft";
+  const current = versions[0] ?? null;
+  const mine = versions.find((v) => v.item_id === item.item_id) ?? null;
+  const replaced = current && current.item_id !== item.item_id ? current : null;   // an earlier version, whatever its row says: nothing to approve
+  const draft = item.status === "draft" && !replaced;
   const sections = item.sections?.length ? item.sections : [{ title: "", sentences: item.sentences }];
   const checked = item.numbers_checked ?? item.sentences.filter((s) => s.status === "verified").reduce((n, s) => n + (s.numbers?.length ?? 0), 0);
   const withRows = item.facts.filter((f) => f.rows.length);
@@ -97,11 +102,18 @@ export function Document({ runId, item, onChange }: { runId: string; item: Item;
 
   return (
     <article ref={ref} className="flex min-w-0 flex-1 flex-col" aria-label={item.title}>
-      <div className="max-w-[820px] px-10 pb-6 pt-7">
+      <div className="mx-auto w-full max-w-[760px] px-10 pb-8 pt-7">
+        {replaced && (
+          <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[13.5px]">
+            <span>{copy.earlierVersionNote(whenLabel(replaced.created_at))}</span>
+            <button type="button" onClick={() => onOpenVersion(replaced)} className="press font-medium text-blue hover:underline">{copy.openCurrent}</button>
+          </p>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="t-title">{item.title}</h1>
             <div className="mt-1.5 flex items-center gap-2.5 text-[14px] text-ink-2">{item.subtitle}<SeverityChip s={item.severity} /></div>
+            {mine && <div className="mt-1 text-[13px] text-ink-2">{copy.versionOf(versionLabel(mine))}</div>}
           </div>
           <div className="no-print flex shrink-0 gap-1.5">
             {withRows.length > 0 && <button type="button" className={open === "numbers" ? btnOn : btn} onClick={() => toggle("numbers")}>{open === "numbers" ? copy.hideNumbers : copy.showNumbers}</button>}
@@ -198,18 +210,34 @@ export function Document({ runId, item, onChange }: { runId: string; item: Item;
                 </ol>
               </div>
             )}
+            {versions.length > 1 && (
+              <div className="no-print mt-7">
+                <div className="t-label">{copy.versionsTitle}</div>
+                <ol className="mt-1.5 flex flex-col text-[13.5px] leading-[1.5]">
+                  {versions.map((v) => (
+                    <li key={v.item_id} className="flex items-center justify-between gap-3 border-t hairline py-2 last:border-b">
+                      <span>{versionLabel(v)}<span className="text-ink-2">{`, ${v.status === "draft" ? copy.pageWaiting.toLowerCase() : decidedLine(v).replace(/\.$/, "").toLowerCase()}`}</span></span>
+                      {v.item_id === item.item_id ? <span className="shrink-0 text-[12.5px] text-ink-2">{copy.thisVersion}</span>
+                        : <button type="button" onClick={() => onOpenVersion(v)} className="press shrink-0 font-medium text-blue hover:underline">{copy.open}</button>}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </>
         )}
       </div>
 
-      <div className="no-print sticky bottom-0 mt-auto border-t hairline bg-white/95 px-10 py-3.5 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2.5">
-          {draft && <button type="button" onClick={() => void approve()} disabled={busy} className="press rounded-lg bg-blue px-4 py-2 text-[14px] font-semibold text-white hover:bg-navy disabled:opacity-60">{copy.approveItem}</button>}
-          {draft && <button type="button" onClick={() => setEditing((e) => !e)} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{editing ? copy.doneEditing : copy.editItem}</button>}
-          {draft && <button type="button" onClick={() => void reject()} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{copy.rejectItem}</button>}
-          <span className="text-[13px] text-ink-2">{draft ? approvalLine(item.action) : `${decidedLine(item)}${note ? ` ${note}` : ""}`}</span>
+      <div className="no-print sticky bottom-0 mt-auto border-t hairline bg-white/95 py-3.5 backdrop-blur">
+        <div className="mx-auto w-full max-w-[760px] px-10">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {draft && <button type="button" onClick={() => void approve()} disabled={busy} className="press rounded-lg bg-blue px-4 py-2 text-[14px] font-semibold text-white hover:bg-navy disabled:opacity-60">{copy.approveItem}</button>}
+            {draft && <button type="button" onClick={() => setEditing((e) => !e)} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{editing ? copy.doneEditing : copy.editItem}</button>}
+            {draft && <button type="button" onClick={() => void reject()} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{copy.rejectItem}</button>}
+            <span className="text-[13px] text-ink-2">{draft ? approvalLine(item.action) : replaced ? copy.replacedLine(whenLabel(replaced.created_at)) : `${decidedLine(item)}${note ? ` ${note}` : ""}`}</span>
+          </div>
+          {problem && <p className="mt-2 text-[13.5px] text-red">{problem}</p>}
         </div>
-        {problem && <p className="mt-2 text-[13.5px] text-red">{problem}</p>}
       </div>
     </article>
   );
