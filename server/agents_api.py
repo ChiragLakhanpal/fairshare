@@ -161,6 +161,23 @@ async def approve_item(run_id: str, item_id: str, body: ApproveIn | None = None,
     return await run_in_threadpool(_decide, run_id, item_id, body.text if body else None, v.email or "laptop", True)
 
 
+class DecideIn(BaseModel):
+    approve: bool
+    item_ids: list[str] = Field(min_length=1, max_length=50)
+
+
+@router.post("/agents/runs/{run_id}/decide")
+async def decide_items(run_id: str, body: DecideIn, v: Viewer = Depends(viewer)):
+    """Several pages of one run at once; an edit stays a decision on one page."""
+    def go():
+        run = _run(run_id)
+        try:
+            return [i.to_json() for i in agents.decide(run, body.item_ids, v.email or "laptop", body.approve)]
+        except KeyError:
+            raise HTTPException(404, {"code": "no_item", "message": "No item with that id in this run."})
+    return await run_in_threadpool(go)
+
+
 @router.post("/agents/runs/{run_id}/items/{item_id}/reject")
 async def reject_item(run_id: str, item_id: str, v: Viewer = Depends(viewer)):
     return await run_in_threadpool(_decide, run_id, item_id, None, v.email or "laptop", False)

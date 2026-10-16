@@ -85,8 +85,8 @@ class Item:
             out.append(sents[i:])
         return [g for g in out if g]
 
-    def _parts(self) -> tuple[list[list[dict]], list[dict], str | None]:
-        """Body paragraphs, the email (from the sentence that starts with Subject:), and the could-not-verify note."""
+    def _parts(self) -> tuple[list[list[dict]], list[list[dict]], str | None]:
+        """Body paragraphs, the email as paragraphs (from the sentence that starts with Subject:), and the could-not-verify note."""
         body, email, note, in_email = [], [], None, False
         for g in self._grouped():
             para = []
@@ -97,9 +97,9 @@ class Item:
                     continue
                 if t.lower().startswith("subject:"):
                     in_email = True
-                (email if in_email else para).append(s)
+                para.append(s)
             if para:
-                body.append(para)
+                (email if in_email else body).append(para)
         return body, email, note
 
     def sections(self) -> list[dict]:
@@ -107,11 +107,14 @@ class Item:
         return [{"title": self.titles[i] if i < len(self.titles) else "", "sentences": para} for i, para in enumerate(body)]
 
     def email(self) -> dict | None:
+        """The subject, then the paragraphs as written (a greeting, the body, a sign-off); older pages wrote one paragraph."""
         _, mail, _ = self._parts()
         if not mail:
             return None
-        subject = re.sub(r"^subject:\s*", "", mail[0]["text"].strip(), flags=re.I).rstrip(".").strip()
-        return {"to": (self.action or {}).get("to") or "", "to_name": (self.action or {}).get("to_name") or "", "subject": subject, "sentences": mail[1:]}
+        subject = re.sub(r"^subject:\s*", "", mail[0][0]["text"].strip(), flags=re.I).rstrip(".").strip()
+        paras = [p for p in [mail[0][1:], *mail[1:]] if p]
+        return {"to": (self.action or {}).get("to") or "", "to_name": (self.action or {}).get("to_name") or "", "subject": subject,
+                "sentences": [s for p in paras for s in p], "paragraphs": paras}
 
     def note(self) -> str | None:
         return self._parts()[2]
@@ -479,11 +482,8 @@ def run(key: str, scope: dict, requested_by: str, mode: str = "guarded") -> Run:
 
 
 # ---------------------------------------------------------------- decisions
-def approve(run: Run, item_id: str, text: str | None, by: str) -> Item:
-    """An edit goes through the same checker against the same facts; the CRM row is written once; the run is saved."""
-    item = run.item(item_id)
-    if item.status != "draft":
-        return item
+def _approve(run: Run, item: Item, text: str | None, by: str) -> None:
+    """The decision itself, not yet saved: an edit goes through the same checker against the same facts; the CRM row is written once."""
     text = (text or "").strip()
     if text and text not in (item.draft, item.verified_text):
         v = verify(text, item.pool())
@@ -496,17 +496,38 @@ def approve(run: Run, item_id: str, text: str | None, by: str) -> Item:
     if crm:
         crm_write(int(crm["agency_id"]), crm["activity_type"], crm["subject"], item.verified_text, by, run.run_id, item.item_id)
     item.status, item.decided_at, item.decided_by = "approved", _now(), by
-    save(run)
+
+
+def _reject(item: Item, by: str) -> None:
+    item.status, item.decided_at, item.decided_by = "rejected", _now(), by
+
+
+def approve(run: Run, item_id: str, text: str | None, by: str) -> Item:
+    """One decision, saved; a page already decided keeps its decision."""
+    item = run.item(item_id)
+    if item.status == "draft":
+        _approve(run, item, text, by)
+        save(run)
     return item
 
 
 def reject(run: Run, item_id: str, by: str) -> Item:
     item = run.item(item_id)
-    if item.status != "draft":
-        return item
-    item.status, item.decided_at, item.decided_by = "rejected", _now(), by
-    save(run)
+    if item.status == "draft":
+        _reject(item, by)
+        save(run)
     return item
+
+
+def decide(run: Run, item_ids: list[str], by: str, approve: bool) -> list[Item]:
+    """Several decisions on one run, saved once. Pages already decided keep their decision; an unknown id raises KeyError
+    before anything is written. No edits here: an edit is a decision on one page."""
+    items = [run.item(i) for i in item_ids]
+    for item in items:
+        if item.status == "draft":
+            _approve(run, item, None, by) if approve else _reject(item, by)
+    save(run)
+    return items
 
 
 def supersede(run: Run) -> int:

@@ -104,7 +104,9 @@ def fact(fs: list[Fact], name: str) -> Fact:
 INSTRUCTIONS = """You write an agreement alert for the Sales Operations lead from the FACTS block only.
 Three sentences first: what the clause says (quote its line from the facts), where the agency stands (the value and the distance
 to the line, and the consecutive quarters where the facts give them), and what is at stake in dollars. Then a blank line and the
-draft to the agency: a line "Subject: ..." then a blank line, then "Hello <first name>," and five sentences. For a breached or
+draft to the agency, laid out as a real email: a line "Subject: ...", a blank line, "Hello <first name>," on its own line, a blank
+line, two short paragraphs separated by a blank line (the clause and the numbers, then the next step), a blank line, and one closing
+line "Best regards, Sales Operations". For a breached or
 threatened clause the draft is a notice that states the clause, the numbers and the next step; for a tier within reach it is an
 upsell note that says what a higher tier would pay. Every number you write must appear in the FACTS exactly as shown (same rounding;
 $ and % and K or M are fine). Never compute. Write shares as 40.1%, distances in points as "0.1 points above the line", money with a
@@ -164,11 +166,14 @@ def template(seed: dict, fs: list[Fact]) -> str:
     first = str(contacts.iloc[0]["contact_name"]).split()[0] if not contacts.empty else "there"
     notice = seed["status"] == "breached" or not (side == "below" and t.endswith("_tiers"))
     email = (f"Subject: {agency}: {'a note on ' if not notice else ''}{ask}.\n\n"
-             f"Hello {first}, I am writing about {ask}. " +
-             (f"The latest check puts you at {num(c['value'])}{'%' if c.get('unit') == 'pct' else (' points' if c.get('unit') == 'pts' else '')} against that line. " if c.get("value") is not None else "") +
+             f"Hello {first},\n\n"
+             f"I am writing about {ask}. " +
+             (f"The latest check puts you at {num(c['value'])}{'%' if c.get('unit') == 'pct' else (' points' if c.get('unit') == 'pts' else '')} against that line." if c.get("value") is not None else "The numbers behind it are in the monthly report.") +
+             "\n\n" +
              (f"We would like to walk through the numbers with you and agree the next step together. " if notice else
               f"A higher tier would pay {money(c.get('dollars'))} at this year's revenue, and you are {dist}{unit} from it. ") +
-             "Could we find thirty minutes next week? I will send the monthly report ahead of the call. Best regards, Sales Operations")
+             "Could we find thirty minutes next week? I will send the monthly report ahead of the call.\n\n"
+             "Best regards, Sales Operations")
     return "\n\n".join([p1, p2, email, "Could not verify: anything outside the sales data, such as a change the agency made in its booking tool."])
 
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { approvalLine, barFraction, decidedLine, draftCount, minutesWord, nounFor, numberTitle, pageLine, progressLine, proseParts, scopeLabel, sidebarLine, startedToast, statusLabel, stepStates, versionLabel, waitingLine, whenLabel } from "./runs";
+import { approvalLine, barFraction, columnWords, decidedLine, draftCount, minutesWord, nounFor, numberHint, pageLine, progressLine, proseParts, scopeLabel, sidebarLine, startedToast, statusLabel, stepStates, versionLabel, waitingLine, whenLabel } from "./runs";
 import type { AgentStep, Progress } from "./types";
 
 const steps: AgentStep[] = [
@@ -65,8 +65,29 @@ describe("runs helpers", () => {
     expect(parts).toEqual(["Harbor sold ", { raw: "$330K", source: "numbers", fact: "aa_revenue=330114.0" }, ", down ", { raw: "16.4%", source: "numbers", fact: "yoy_pct=-16.4" }, " from last year."]);
     expect(proseParts("No numbers here.", [])).toEqual(["No numbers here."]);
     expect(proseParts("Twice 5 and 5.", [{ raw: "5", source: "a", fact: "x=5" }, { raw: "5", source: "a", fact: "x=5" }])).toEqual(["Twice ", { raw: "5", source: "a", fact: "x=5" }, " and ", { raw: "5", source: "a", fact: "x=5" }, "."]);
-    expect(numberTitle({ source: "numbers", fact: "aa_revenue=330114.0" })).toBe("Matched aa_revenue=330114.0 from numbers");
-    expect(numberTitle({ source: null, fact: null })).toBe("");
+  });
+
+  it("names a column in plain words", () => {
+    expect(columnWords("aa_revenue")).toBe("AA revenue");
+    expect(columnWords("share_gap_pts")).toBe("the share gap in points");
+    expect(columnWords("yoy_pct")).toBe("the change from a year earlier");
+    expect(columnWords("seats_change_pct")).toBe("the change in seats");
+    expect(columnWords("odd_thing_usd")).toBe("odd thing in dollars");
+  });
+
+  it("explains a checked number in plain words, with where it came from", () => {
+    const facts = [
+      { name: "numbers", label: "The month's numbers", sql: "SELECT 1", source: "gold.fact_agency_sales_monthly", rows: [{ agency_name: "Harbor Business Travel", aa_revenue: 330114, yoy_pct: -16.4 }] },
+      { name: "markets", label: "The markets that moved", sql: null, source: "ops.decomposition", rows: [{ market: "LAX-JFK", share_effect: -1013 }, { market: "ORD-SFO", share_effect: -912 }] },
+    ];
+    expect(numberHint({ raw: "$330K", source: "numbers", fact: "aa_revenue=330114.0" }, facts))
+      .toBe("$330K is AA revenue for Harbor Business Travel. It came from \"The month's numbers\", which read gold.fact_agency_sales_monthly. Click to see the rows.");
+    expect(numberHint({ raw: "$912", source: "markets", fact: "share_effect=-912.0" }, facts))
+      .toBe("$912 is the share effect for ORD-SFO. It came from \"The markets that moved\", which read ops.decomposition. Click to see the rows.");
+    expect(numberHint({ raw: "16.4%", source: "web: https://example.com/a", fact: "source [2]: 16.4%" }, facts))
+      .toBe("16.4% is quoted from source [2], a public page listed under the sources. Click to see it.");
+    expect(numberHint({ raw: "5", source: "numbers", fact: "n=5.0" }, [])).toBe("5 is the count. It came from \"numbers\". Click to see the rows.");
+    expect(numberHint({ raw: "5", source: null, fact: null }, facts)).toBe("");
   });
 
   it("names a scope, a time and a decision", () => {

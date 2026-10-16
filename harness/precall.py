@@ -177,8 +177,9 @@ add up to the change, and the markets that moved most; or that there is no compa
 at stake (the clause, its status, the distance to its line and the dollars; or that there is no agreement on file); what the CRM
 stand-in shows (open opportunities, the last touch, and any disagreement between the CRM and the data); AA seats on the agency's top
 markets versus last year; and what to do on the call (three talking points, each tied to a number). Then a blank line and an email to
-the first contact named in the facts: a line "Subject: ..." followed by a blank line, then "Hello <first name>," and five sentences,
-signed with the account manager's name. The "Ready-made phrases" row is already worded the right way: copy those phrases where they fit.
+the first contact named in the facts, laid out as a real email: a line "Subject: ...", a blank line, "Hello <first name>," on its
+own line, a blank line, two short paragraphs separated by a blank line (the numbers, then the ask), a blank line, and one closing
+line "Best regards, <the account manager's name>". The "Ready-made phrases" row is already worded the right way: copy those phrases where they fit.
 Every number you write must appear in the FACTS exactly as shown (same rounding; you may add $ and % and write thousands as K and
 millions as M). Never compute, estimate or infer a number. Write a decline as "down $65K" or "a loss of $65K", never with a minus
 sign; write shares as 34.2%, changes in share as 10.1 points, money with a $. Never write a column name, a code such as
@@ -276,10 +277,12 @@ def template(seed: dict, fs: list[Fact]) -> str:
     p6 = f"Three points for the call: {ph['talking_points']}."
     first = str(ph["contact"]).split()[0] if ph.get("contact") and ph["contact"] != "no contact on file" else "there"
     email = (f"Subject: {agency}, {month_label(month)}: performance and next steps.\n\n"
-             f"Hello {first}, thank you for the time this month. AA revenue with you was {ph['revenue']}, {ph['yoy']}. "
-             f"Your {ph['share'][0].lower() + ph['share'][1:]}. "
+             f"Hello {first},\n\n"
+             f"Thank you for the time this month. AA revenue with you was {ph['revenue']}, {ph['yoy']}. "
+             f"Your {ph['share']}.\n\n"
              f"I would like to walk through what moved and what we can do together on your largest markets. "
-             f"Could we find thirty minutes next week? Best regards, {ph['manager']}")
+             f"Could we find thirty minutes next week?\n\n"
+             f"Best regards, {ph['manager']}")
     return "\n\n".join([p1, p2, p3, p4, p5, p6, email, "Could not verify: whether the agency changed a preferred-carrier setting or lost a client."])
 
 

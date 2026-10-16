@@ -4,10 +4,20 @@ import { useRef, useState } from "react";
 import { copy } from "../copy";
 import { copyText, downloadCsv, emailDraft, printElement } from "../lib/export";
 import { money, pct } from "../lib/format";
+import { proseParts } from "../lib/runs";
 import { answerBody, answerHtml, answerText, shownSentences, trustLine } from "../lib/share";
 import type { Answer as AnswerT, Call } from "../lib/types";
 import { Check, Chart, Close, Copy, Dots, File as FileIcon, Info, Mail } from "./Icons";
+import { Num } from "./Num";
 import { Table } from "./Table";
+
+/** What a tool call is called when a number points back at it. The checker names a call by its tool and its position. */
+function callName(c: Call, k: number): string {
+  return `${c.tool}#${k + 1}`;
+}
+function callLabel(c: Call): string {
+  return c.tool === "ask_metrics" ? "Genie's query" : c.tool === "run_sql" ? "the agent's query" : c.tool === "explain_change" ? "the breakdown of the change" : c.tool;
+}
 
 const btn = "press rounded-lg border border-line bg-white px-3 py-1.5 text-[13px] font-medium text-ink hover:border-blue hover:text-blue";
 const btnOn = "press rounded-lg border border-tint-line bg-tint px-3 py-1.5 text-[13px] font-medium text-navy";
@@ -55,9 +65,21 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
   const genie = a.calls.find((c) => c.genie)?.genie;
   const refusal = a.kind === "refusal" || a.kind === "general" || a.kind === "meta";
   const nothingToShow = shown.length === 0 && a.removed.length > 0;
+  const facts = a.calls.map((c, k) => ({ name: callName(c, k), label: callLabel(c), source: null, rows: c.preview }));
+  const show = (source: string) => {   // a click on a number: the rows the call returned
+    setOpen("numbers");
+    window.setTimeout(() => document.getElementById(`call-${source}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
+  };
   return (
     <div ref={ref} className="print-section">
-      <div className="text-[15.5px] leading-[1.6]">{answerBody(a)}</div>
+      <div className="text-[15.5px] leading-[1.6]">
+        {nothingToShow ? answerBody(a) : shown.map((s, i) => (
+          <span key={i}>
+            {proseParts(s.text, s.numbers ?? []).map((p, j) => (typeof p === "string" ? <span key={j}>{p}</span> : <Num key={j} n={p} facts={facts} onOpen={show} />))}
+            {i < shown.length - 1 ? " " : ""}
+          </span>
+        ))}
+      </div>
       {a.cached && <p className="mt-2 text-[13px] text-ink-2">{copy.cached(a.cached.recorded)}</p>}
       <div className="mt-2.5 flex items-start gap-1.5 text-[13.5px] leading-[1.45] text-ink-2">
         {refusal ? <Info className="mt-[3px] shrink-0" width={15} height={15} /> : <Check className="mt-[3px] shrink-0 text-blue" width={15} height={15} strokeWidth={2.5} />}
@@ -106,7 +128,7 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
       {open === "numbers" && (
         <div className="mt-3 rounded-[10px] border border-line bg-white px-[18px] py-4">
           {withRows.map((c) => (
-            <div key={c.i} className="mb-3 last:mb-0">
+            <div key={c.i} id={`call-${callName(c, a.calls.indexOf(c))}`} className="mb-3 scroll-mt-4 last:mb-0">
               <div className="text-[13px] font-semibold text-ink-2">{c.tool === "ask_metrics" ? "Genie" : c.tool === "run_sql" ? "The query" : c.tool} returned {c.rows ?? c.preview.length} {c.rows === 1 ? "row" : "rows"}.</div>
               <Table rows={c.preview} />
             </div>
@@ -119,7 +141,10 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
             <div key={c.i} className="mb-3 last:mb-0">
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
                 <h4 className="text-sm font-semibold">{c.tool === "ask_metrics" ? `Genie wrote this query against the sales metrics view${c.ms ? ` and answered in ${Math.round(c.ms / 1000)} seconds` : ""}.` : c.tool === "run_sql" ? "The agent ran this query." : `${c.tool} used ${c.sql}.`}</h4>
-                {c.genie && <a href={c.genie.url} target="_blank" rel="noreferrer" className="text-[13px]">{copy.openGenie}</a>}
+                <span className="flex items-center gap-4">
+                  {c.tool !== "explain_change" && c.sql && <button type="button" onClick={() => void copyText(c.sql ?? "")} className="press inline-flex items-center gap-1.5 text-[13px] font-medium text-blue hover:underline"><Copy width={14} height={14} />{copy.copyQuery}</button>}
+                  {c.genie && <a href={c.genie.url} target="_blank" rel="noreferrer" className="text-[13px]">{copy.openGenie}</a>}
+                </span>
               </div>
               {c.tool !== "explain_change" && <pre className="sql">{c.sql}</pre>}
               {c.preview.length > 0 && <Table rows={c.preview} />}

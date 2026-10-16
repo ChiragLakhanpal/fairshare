@@ -228,6 +228,10 @@ def test_item_sections_email_note_and_summary(state):
     assert all(s["sentences"] for s in j["sections"]) and j["sections"][0]["sentences"][0]["text"].startswith("Harbor Business Travel sold")
     assert j["email"] and j["email"]["subject"].startswith("Harbor Business Travel, September 2026") and j["email"]["to"].endswith("@harborbusinesstravel.example")
     assert j["email"]["to_name"] and j["email"]["sentences"][0]["text"].startswith("Hello ") and "Best regards" in j["email"]["sentences"][-1]["text"]
+    paras = j["email"]["paragraphs"]   # the greeting, two short paragraphs, the sign-off: the shape the mail draft keeps
+    assert len(paras) == 4 and [len(p) for p in paras] == [1, 3, 2, 1] and paras[0][0]["text"].endswith(",") and paras[-1][0]["text"].startswith("Best regards")
+    assert paras[1][2]["text"].startswith("Your AA share")
+    assert j["email"]["sentences"] == [s for p in paras for s in p]
     assert j["note"].startswith("whether the agency changed") and "Could not verify" not in j["note"]
     assert "10.1 points" in j["summary"] and "renewal" in j["summary"] and j["numbers_checked"] > 10
     assert run.progress["phase"] == "done" and run.progress["item"] is None
@@ -240,6 +244,7 @@ def test_watch_and_mismatch_items_have_summaries_and_sections(state):
     w = agents.run("watch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
     summit = next(i for i in w.items if "Summit" in i.title).to_json()
     assert "tier" in summit["summary"].lower() and "$188K" in summit["summary"] and [s["title"] for s in summit["sections"]] == ["The alert", "What to do"] and summit["email"]
+    assert len(summit["email"]["paragraphs"]) == 4 and summit["email"]["paragraphs"][0][0]["text"].startswith("Hello ")
     m = agents.run("mismatch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
     harbor = next(i for i in m.items if "Harbor" in i.title).to_json()
     assert "On track" in harbor["summary"] and len(harbor["sections"]) == 2 and harbor["email"] is None and harbor["note"]
@@ -413,3 +418,23 @@ def test_an_older_draft_reads_as_replaced_even_before_a_run_retires_it(state):
         i.status = "draft"   # as the old rows read
     page = agents.pages(runs)["fake"][0]
     assert page["status"] == "draft" and page["run_id"] == runs[1].run_id and [v["status"] for v in page["versions"]] == ["draft", "superseded"]
+
+
+# ---------------------------------------------------------------- several decisions at once
+def test_decide_many_on_one_run_writes_each_crm_row_and_saves_once(state):
+    agents.register(fake_agent())
+    run = agents.run("fake", SCOPE, "tester", mode="template")
+    a, b = run.items
+    saves = []
+    real = agents.save
+    agents.save = lambda r: (saves.append(r.run_id), real(r))[1]
+    try:
+        items = agents.decide(run, [a.item_id, b.item_id], "dana", approve=True)
+    finally:
+        agents.save = real
+    assert [i.status for i in items] == ["approved", "approved"] and saves == [run.run_id] and run.status == "approved"
+    assert len(db.state_query("SELECT * FROM aa_demo.ops.crm_activities")) == 2
+    assert agents.decide(run, [a.item_id], "dana", approve=False)[0].status == "approved"   # a decided page keeps its decision
+    with pytest.raises(KeyError):
+        agents.decide(run, ["nope"], "dana", approve=True)
+    assert agents.load(run.run_id).status == "approved"

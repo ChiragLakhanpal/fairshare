@@ -146,10 +146,58 @@ export function proseParts(text: string, numbers: { raw: string; source: string 
   return out;
 }
 
-/** The title a checked number shows on hover: the fact it matched and the query that returned it. */
-export function numberTitle(n: { source: string | null; fact: string | null }): string {
-  if (!n.source && !n.fact) return "";
-  return [n.fact ? `Matched ${n.fact}` : "", n.source ? `from ${n.source}` : ""].filter(Boolean).join(" ");
+// ponytail: the columns the four agents and the Ask tools return today; anything new falls through to the word splitter
+const COLUMN_WORDS: Record<string, string> = {
+  aa_revenue: "AA revenue", aa_revenue_prior: "AA revenue a year earlier", aa_revenue_prior_year: "AA revenue a year earlier", aa_pax: "AA passengers",
+  aa_seat_share_pct: "AA's share of seats", aa_seats_now: "AA seats now", aa_seats_prior_year: "AA seats a year earlier",
+  aa_share: "AA share", aa_share_pct: "AA share", aa_share_now_pct: "AA share", aa_share_prior_pct: "AA share a year earlier",
+  agencies: "the number of agencies", amount_usd: "the deal amount", delta_revenue: "the change in revenue", fair_revenue: "revenue at exactly fair share",
+  fair_share: "fair share", fair_share_pct: "fair share", fair_share_now_pct: "fair share", fair_share_prior_pct: "fair share a year earlier",
+  fair_share_chg_pts: "the change in fair share", fair_share_effect: "the fair share effect",
+  market_revenue: "market revenue, all carriers", market_revenue_now: "market revenue, all carriers", mix_effect: "the mix effect", months_in: "the months into the year", n: "the count",
+  revenue_goal_usd: "the annual revenue goal", revenue_now: "revenue now", revenue_prior: "revenue a year earlier",
+  revenue_vs_prior_year_pct: "the change from a year earlier", revenue_yoy_pct: "the change from a year earlier", yoy_pct: "the change from a year earlier", yoy_revenue_pct: "the change from a year earlier",
+  seats_change_pct: "the change in seats", section_number: "the clause number", share_chg_pts: "the change in AA share", share_effect: "the share effect",
+  share_gap_pts: "the share gap in points", share_gap_usd: "the share gap in dollars", volume_effect: "the volume effect",
+  ytd_revenue: "year-to-date revenue", ytd_goal: "the year-to-date goal", pace_pct: "pace to the annual goal",
+  value: "the clause's value", threshold: "the clause's line", distance: "the distance to the line", dollars: "the dollars at stake", days_since_touch: "the days since the last touch",
+};
+const WORD: Record<string, string> = { aa: "AA", yoy: "year over year", ytd: "year to date", chg: "change", pct: "percent", usd: "dollars", prior: "a year earlier" };
+
+/** A column name in plain words: "aa_revenue" is "AA revenue", "odd_thing_usd" is "odd thing in dollars". */
+export function columnWords(col: string): string {
+  const key = col.toLowerCase();
+  if (COLUMN_WORDS[key]) return COLUMN_WORDS[key];
+  const m = /^(.*)_(pct|pts|usd)$/.exec(key);
+  const base = m ? m[1] : key;
+  const unit = m ? { pct: " in percent", pts: " in points", usd: " in dollars" }[m[2]] : "";
+  return base.split("_").map((w) => WORD[w] ?? w).join(" ") + unit;
+}
+
+export type HintFact = { name: string; label: string; source: string | null; rows: Record<string, unknown>[] };
+const CONTEXT_COLS = ["agency_name", "agency", "market", "section", "opp_name", "contact_name", "quarter", "qtr", "month", "clause_type"];
+
+function rowContext(row: Record<string, unknown> | undefined): string {
+  if (!row) return "";
+  for (const c of CONTEXT_COLS) {
+    const v = row[c];
+    if (v !== undefined && v !== null && String(v).trim()) return c === "section" ? `clause ${v}` : String(v);
+  }
+  const first = Object.values(row).find((v) => typeof v === "string" && v.trim() && v.length <= 40);
+  return first ? String(first) : "";
+}
+
+/** What a checked number is and where it came from, in one plain sentence for the hover: the column in words, the row it
+ * sits on, the query's label and the table it read. A number quoted from a public page says which source. */
+export function numberHint(n: { raw: string; source: string | null; fact: string | null }, facts: HintFact[]): string {
+  if (!n.source) return "";
+  if (n.source.startsWith("web:")) return copy.numFromSource(n.raw, /source \[(\d+)\]/.exec(n.fact ?? "")?.[1] ?? "");
+  const fact = facts.find((f) => f.name === n.source);
+  const eq = (n.fact ?? "").indexOf("=");
+  const col = eq > 0 ? (n.fact as string).slice(0, eq) : "";
+  const value = eq > 0 ? Number((n.fact as string).slice(eq + 1)) : NaN;
+  const row = fact && col ? fact.rows.find((r) => Number(r[col]) === value) : undefined;
+  return copy.numHint(n.raw, col ? columnWords(col) : "a number", rowContext(row), fact?.label ?? n.source, fact?.source ?? null);
 }
 
 export { minutesWord, numberWord };

@@ -69,8 +69,9 @@ export function Delegate({ catalog, catalogError, scope, onRefresh }: Props) {
     }
   };
 
-  const onItemChange = (item: Item) => {
-    setRun((cur) => (cur ? { ...cur, items: cur.items.map((i) => (i.item_id === item.item_id ? item : i)) } : cur));
+  const onItemChange = (item: Item | null) => {   // null: several pages decided at once; the catalog and the run reload
+    if (item) setRun((cur) => (cur ? { ...cur, items: cur.items.map((i) => (i.item_id === item.item_id ? item : i)) } : cur));
+    else if (run) api.run(run.run_id).then(setRun).catch(() => {});
     onRefresh();
   };
   const open = (key: string, v: Pick<PageVersion, "run_id" | "item_id"> | null) => store.setDelegate({ agent: key, runId: v?.run_id ?? null, itemId: v?.item_id ?? null });

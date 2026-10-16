@@ -77,7 +77,7 @@ export type ItemFact = { name: string; label: string; sql: string | null; source
 export type ItemSource = { title: string; url: string; published: string | null; snippet: string };
 export type ItemAction = { type: "email" | "crm" | "none"; subject: string; body: string; crm: { agency_id: number; activity_type: string; subject: string } | null };
 export type ItemSection = { title: string; sentences: Sentence[] };
-export type ItemEmail = { to: string; to_name: string; subject: string; sentences: Sentence[] };
+export type ItemEmail = { to: string; to_name: string; subject: string; sentences: Sentence[]; paragraphs?: Sentence[][] };
 export type Item = {
   item_id: string; kind: "page" | "clause" | "prospect" | "mismatch" | string; title: string; subtitle: string; severity: Severity; status: ItemStatus;
   summary: string; sections: ItemSection[]; email: ItemEmail | null; note: string | null; numbers_checked: number;

@@ -37,6 +37,7 @@ export const api = {
   run: (run_id: string) => get<Run>(`/api/agents/runs/${encodeURIComponent(run_id)}`),
   approveItem: (run_id: string, item_id: string, text?: string) => post<Item>(`/api/agents/runs/${encodeURIComponent(run_id)}/items/${encodeURIComponent(item_id)}/approve`, text ? { text } : {}),
   rejectItem: (run_id: string, item_id: string) => post<Item>(`/api/agents/runs/${encodeURIComponent(run_id)}/items/${encodeURIComponent(item_id)}/reject`, {}),
+  decideItems: (run_id: string, item_ids: string[], approve: boolean) => post<Item[]>(`/api/agents/runs/${encodeURIComponent(run_id)}/decide`, { approve, item_ids }),
 };
 
 export type AskHandlers = { onStep: (s: Step) => void; onTool?: (c: unknown) => void; onAnswer: (a: Answer) => void; onError: (e: ApiError) => void };

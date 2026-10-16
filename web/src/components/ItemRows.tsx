@@ -17,9 +17,12 @@ export function SeverityChip({ s }: { s: Severity }) {
   return <span className={`inline-flex h-[22px] shrink-0 items-center rounded-full px-2.5 text-[12px] font-semibold ${look}`}>{copy.severity[s ?? "ok"]}</span>;
 }
 
-type RowProps = { title: string; summary: string; severity: Severity; right: string; onOpen: () => void; selected?: boolean; compact?: boolean; last?: boolean };
+type RowProps = {
+  title: string; summary: string; severity: Severity; right: string; onOpen: () => void; selected?: boolean; compact?: boolean; last?: boolean;
+  checked?: boolean; onCheck?: (v: boolean) => void;
+};
 
-export function ItemRow({ title, summary, severity, right, onOpen, selected, compact, last }: RowProps) {
+export function ItemRow({ title, summary, severity, right, onOpen, selected, compact, last, checked, onCheck }: RowProps) {
   if (compact) {
     return (
       <button type="button" onClick={onOpen} aria-current={selected ? "true" : undefined} aria-label={title}
@@ -29,15 +32,25 @@ export function ItemRow({ title, summary, severity, right, onOpen, selected, com
       </button>
     );
   }
-  return (
+  const row = (
     <button type="button" onClick={onOpen} aria-label={title}
-      className={`press grid w-full grid-cols-[10px_230px_minmax(0,1fr)_auto_16px] items-center gap-3.5 border-t hairline px-2 py-3 text-left text-[15px] text-ink hover:bg-surface/60 ${last ? "border-b" : ""}`}>
+      className={`press grid min-w-0 flex-1 grid-cols-[10px_230px_minmax(0,1fr)_auto_16px] items-center gap-3.5 px-2 py-3 text-left text-[15px] text-ink hover:bg-surface/60 ${checked ? "bg-tint/40" : ""}`}>
       <SeverityDot s={severity} />
       <span className="font-medium">{title}</span>
       <span className="leading-[1.45]">{summary}</span>
       <span className="whitespace-nowrap text-[12.5px] text-ink-2">{right}</span>
       <ChevronRight className="text-grey" />
     </button>
+  );
+  return (
+    <div className={`flex items-stretch border-t hairline ${last ? "border-b" : ""}`}>
+      {onCheck && (
+        <label className="flex shrink-0 cursor-pointer items-center pl-1 pr-1.5">
+          <input type="checkbox" className="h-4 w-4 cursor-pointer accent-[var(--color-blue)]" checked={!!checked} aria-label={copy.selectPage(title)} onChange={(e) => onCheck(e.target.checked)} />
+        </label>
+      )}
+      {row}
+    </div>
   );
 }
 

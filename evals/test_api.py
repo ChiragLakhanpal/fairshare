@@ -277,3 +277,18 @@ def test_catalog_carries_the_pages_and_a_rerun_refreshes_them(client, monkeypatc
     assert [v["status"] for v in next(p for p in pre["pages"] if p["title"] == item["title"])["versions"]] == ["draft", "approved"]
     assert [v["status"] for v in next(p for p in pre["pages"] if p["title"] != item["title"])["versions"]] == ["draft", "superseded"]
     assert client.get("/api/agents/inbox").status_code == 404
+
+
+def test_decide_several_items_of_a_run_at_once(client, monkeypatch, tmp_path):
+    _state(monkeypatch, tmp_path)
+    H = {"x-forwarded-email": "dana@example.com", "x-forwarded-user": "dana"}
+    run = client.post("/api/agents/precall/run?wait=true", json={"scope": {"manager": "Dana Whitfield", "month": "2026-09"}, "writer": "template"}, headers=H).json()
+    rid, ids = run["run_id"], [i["item_id"] for i in run["items"]]
+    r = client.post(f"/api/agents/runs/{rid}/decide", json={"approve": True, "item_ids": ids[:2]}, headers=H)
+    assert r.status_code == 200 and [i["status"] for i in r.json()] == ["approved", "approved"] and all(i["decided_by"] == "dana@example.com" for i in r.json())
+    r = client.post(f"/api/agents/runs/{rid}/decide", json={"approve": False, "item_ids": ids[2:]}, headers=H)
+    assert r.status_code == 200 and [i["status"] for i in r.json()] == ["rejected"]
+    g = client.get(f"/api/agents/runs/{rid}", headers=H).json()
+    assert [i["status"] for i in g["items"]] == ["approved", "approved", "rejected"] and g["status"] == "approved"
+    assert client.post(f"/api/agents/runs/{rid}/decide", json={"approve": True, "item_ids": ["nope"]}, headers=H).status_code == 404
+    assert client.post(f"/api/agents/runs/{rid}/decide", json={"approve": True, "item_ids": []}, headers=H).status_code == 422

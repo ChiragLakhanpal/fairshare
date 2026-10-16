@@ -5,24 +5,27 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { api } from "../lib/api";
 import { copyText, emailDraft, printElement } from "../lib/export";
-import { approvalLine, decidedLine, numberTitle, proseParts, versionLabel, whenLabel } from "../lib/runs";
-import type { ApiError, Item, PageVersion, Sentence } from "../lib/types";
+import { approvalLine, decidedLine, proseParts, versionLabel, whenLabel } from "../lib/runs";
+import type { ApiError, Item, ItemEmail, PageVersion, Sentence } from "../lib/types";
 import { Check, Copy, Dots, External, File as FileIcon, Info, Mail } from "./Icons";
 import { SeverityChip } from "./ItemRows";
+import { Num } from "./Num";
 import { Table } from "./Table";
 
 const btn = "press rounded-lg border border-line bg-white px-3 py-1.5 text-[13px] font-medium text-ink hover:border-blue hover:text-blue";
 const btnOn = "press rounded-lg border border-tint-line bg-tint px-3 py-1.5 text-[13px] font-medium text-navy";
 const menuItem = "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink outline-none data-[highlighted]:bg-surface";
 
-function Prose({ sentences, className = "" }: { sentences: Sentence[]; className?: string }) {
+type ProseProps = { sentences: Sentence[]; className?: string; facts: Item["facts"]; onOpen: (source: string) => void };
+
+function Prose({ sentences, className = "", facts, onOpen }: ProseProps) {
   const shown = sentences.filter((s) => s.status !== "flagged");
   if (shown.length === 0) return null;
   return (
     <p className={`m-0 text-[15.5px] leading-[1.6] ${className}`}>
       {shown.map((s, i) => (
         <span key={i} className={s.status === "note" ? "text-ink-2" : ""}>
-          {proseParts(s.text, s.numbers ?? []).map((p, j) => (typeof p === "string" ? <span key={j}>{p}</span> : <span key={j} className="num" title={numberTitle(p) || undefined}>{p.raw}</span>))}
+          {proseParts(s.text, s.numbers ?? []).map((p, j) => (typeof p === "string" ? <span key={j}>{p}</span> : <Num key={j} n={p} facts={facts} onOpen={onOpen} />))}
           {i < shown.length - 1 ? " " : ""}
         </span>
       ))}
@@ -30,10 +33,19 @@ function Prose({ sentences, className = "" }: { sentences: Sentence[]; className
   );
 }
 
+/** The email's paragraphs as written (a greeting, the body, a sign-off); a page written before paragraphs were kept has one. */
+function emailParagraphs(email: ItemEmail): Sentence[][] {
+  return email.paragraphs?.length ? email.paragraphs : [email.sentences];
+}
+
+function emailBody(email: ItemEmail): string {
+  return emailParagraphs(email).map((p) => p.filter((s) => s.status !== "flagged").map((s) => s.text).join(" ")).filter(Boolean).join("\n\n");
+}
+
 function pageText(item: Item): string {
   const sections = item.sections?.length ? item.sections : [{ title: "", sentences: item.sentences }];
   const body = sections.map((s) => [s.title, s.sentences.filter((x) => x.status !== "flagged").map((x) => x.text).join(" ")].filter(Boolean).join("\n")).join("\n\n");
-  const mail = item.email ? `\n\n${copy.emailSubject}: ${item.email.subject}\n${item.email.sentences.filter((x) => x.status !== "flagged").map((x) => x.text).join(" ")}` : "";
+  const mail = item.email ? `\n\n${copy.emailSubject}: ${item.email.subject}\n\n${emailBody(item.email)}` : "";
   return `${item.title}\n${item.subtitle}\n\n${body}${mail}`;
 }
 
@@ -64,6 +76,12 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
   const withRows = item.facts.filter((f) => f.rows.length);
   const withSql = item.facts.filter((f) => f.sql);
   const toggle = (k: "numbers" | "queries") => setOpen(open === k ? null : k);
+  const show = (source: string) => {   // a click on a number: the rows it came from, or the source it quotes
+    const target = source.startsWith("web:") ? "page-sources" : `fact-${source}`;
+    if (!source.startsWith("web:")) setOpen("numbers");
+    window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
+  };
+  const openDraft = (it: Item) => it.email && emailDraft(it.email.subject || it.action.subject, emailBody(it.email), it.email.to);
 
   const approve = async () => {
     setBusy(true);
@@ -73,8 +91,8 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
       const updated = await api.approveItem(runId, item.item_id, edited ? text : undefined);
       setEditing(false);
       onChange(updated);
-      if (updated.action.type === "email") {
-        emailDraft(updated.email?.subject ?? updated.action.subject, updated.action.body, updated.email?.to ?? "");
+      if (updated.action.type === "email" && updated.email) {
+        openDraft(updated);
         setNote(copy.approvedEmail);
       } else setNote(updated.action.type === "crm" ? copy.approvedCrm : copy.approvedPlain);
     } catch (e) {
@@ -101,7 +119,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
   };
 
   return (
-    <article ref={ref} className="flex min-w-0 flex-1 flex-col" aria-label={item.title}>
+    <article ref={ref} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto" aria-label={item.title}>
       <div className="mx-auto w-full max-w-[760px] px-10 pb-8 pt-7">
         {replaced && (
           <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[13.5px]">
@@ -144,7 +162,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
         {open === "numbers" && (
           <div className="mt-4 rounded-[10px] border border-line bg-surface px-[18px] py-4">
             {withRows.map((f) => (
-              <div key={f.name} className="mb-3 last:mb-0">
+              <div key={f.name} id={`fact-${f.name}`} className="mb-3 scroll-mt-4 last:mb-0">
                 <div className="text-[13px] font-semibold text-ink-2">{copy.factReturned(f.label, f.rows.length)}</div>
                 <Table rows={f.rows} />
               </div>
@@ -155,7 +173,10 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
           <div className="mt-4 rounded-[10px] border border-line bg-white px-[18px] py-4">
             {withSql.map((f) => (
               <div key={f.name} className="mb-3 last:mb-0">
-                <div className="mb-2 text-[13px] font-semibold text-ink-2">{f.label}{f.source ? ` (${f.source})` : ""}</div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-semibold text-ink-2">{f.label}{f.source ? ` (${f.source})` : ""}</span>
+                  <button type="button" onClick={() => void copyText(f.sql ?? "")} className="press inline-flex items-center gap-1.5 text-[13px] font-medium text-blue hover:underline"><Copy width={14} height={14} />{copy.copyQuery}</button>
+                </div>
                 <pre className="sql">{f.sql}</pre>
               </div>
             ))}
@@ -172,7 +193,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
             {sections.map((s, i) => (
               <section key={i} className="mt-5">
                 {s.title && <h3 className="mb-1.5 text-[15px] font-semibold text-ink">{s.title}</h3>}
-                <Prose sentences={s.sentences} />
+                <Prose sentences={s.sentences} facts={item.facts} onOpen={show} />
               </section>
             ))}
             {item.email && (
@@ -186,7 +207,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
                     <span>{copy.emailTo}</span><span className="text-ink">{item.email.to_name || item.email.to}{item.email.to_name && item.email.to ? <span className="text-ink-2"> ({item.email.to})</span> : null}</span>
                     <span>{copy.emailSubject}</span><span className="text-ink">{item.email.subject}</span>
                   </div>
-                  <Prose sentences={item.email.sentences} className="mt-3 !text-[14.5px]" />
+                  {emailParagraphs(item.email).map((p, k) => <Prose key={k} sentences={p} className="mt-3 !text-[14.5px]" facts={item.facts} onOpen={show} />)}
                 </div>
               </div>
             )}
@@ -194,7 +215,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
               <p className="mt-4 flex items-start gap-2 text-[13.5px] text-ink-2"><Info className="mt-[3px] shrink-0" width={15} height={15} /><span>{copy.notInData(item.note)}</span></p>
             )}
             {item.sources.length > 0 && (
-              <div className="mt-5">
+              <div id="page-sources" className="mt-5 scroll-mt-4">
                 <div className="t-label">{copy.sourcesTitle}</div>
                 <ol className="mt-1.5 flex flex-col gap-1.5 text-[13.5px] leading-[1.5]">
                   {item.sources.map((s, i) => (
@@ -234,6 +255,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
             {draft && <button type="button" onClick={() => void approve()} disabled={busy} className="press rounded-lg bg-blue px-4 py-2 text-[14px] font-semibold text-white hover:bg-navy disabled:opacity-60">{copy.approveItem}</button>}
             {draft && <button type="button" onClick={() => setEditing((e) => !e)} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{editing ? copy.doneEditing : copy.editItem}</button>}
             {draft && <button type="button" onClick={() => void reject()} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{copy.rejectItem}</button>}
+            {item.status === "approved" && item.email && <button type="button" onClick={() => openDraft(item)} className="press inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue"><Mail width={15} height={15} />{copy.openDraft}</button>}
             <span className="text-[13px] text-ink-2">{draft ? approvalLine(item.action) : replaced ? copy.replacedLine(whenLabel(replaced.created_at)) : `${decidedLine(item)}${note ? ` ${note}` : ""}`}</span>
           </div>
           {problem && <p className="mt-2 text-[13.5px] text-red">{problem}</p>}

@@ -30,7 +30,9 @@ it, built for people who do not write SQL.
    reality (open opportunities whose CRM health disagrees with the data, with a drafted correction). The unit a person
    decides on is a page (an agency, a clause, a market, a deal), not a run: the nightly job and Run now write the pages
    again, the older waiting version is retired, every refresh needs a fresh approval, and each page keeps its versions
-   with who decided what and when. The CRM is a synthetic stand-in shaped like Dynamics 365 Sales.
+   with who decided what and when; several pages can be approved or rejected at once. Every checked number explains itself
+   on hover in plain words (what it is, which query returned it) and opens its rows on a click. The CRM is a synthetic
+   stand-in shaped like Dynamics 365 Sales.
 
 ## Data
 
