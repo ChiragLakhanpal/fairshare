@@ -333,7 +333,7 @@ def make_writer(a: "AgentDef"):
     if thinker_backend() == "foundry":
         from harness.foundry import FoundryWriter
         return FoundryWriter(a.key)
-    instructions = a.instructions
+    instructions = writer_instructions(a)
     if instructions not in _writers:
         from agent_framework import Agent
         from harness.agent import make_client
@@ -362,17 +362,28 @@ def _display(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+FACTS_RULES = ("The user message is a FACTS block and nothing else: every frame as a table, every public source numbered. Quote numbers exactly as "
+               "shown, same rounding. Columns ending in _pct are percentages (write them with %), columns ending in _pts are points (write 'points'), "
+               "dollar amounts carry a $ (you may shorten $330,114 to $330K and $4,290,000 to $4.29M). A blank cell is a fact that is not available: "
+               "do not mention it and never write NA or NaN. Sources are public pages: quote them word for word and cite the number in brackets.")
+
+
+def writer_instructions(a: "AgentDef") -> str:
+    """What the writer is told, in the system turn: the agent's own instructions and the rules for reading the FACTS block. The
+    message itself carries data only; rule sentences inside it read as a jailbreak to Foundry's prompt shield (two legitimate
+    pages were refused on Oct 15, 2026)."""
+    return f"{a.instructions}\n\n{FACTS_RULES}"
+
+
 def facts_text(item: Item) -> str:
-    """The FACTS block for one item: every frame as a table, every source numbered, nothing else."""
+    """The FACTS block for one item: every frame as a table, every source numbered, nothing else (the rules are in writer_instructions)."""
     def table(df: pd.DataFrame) -> str:
         return _display(df).to_string(index=False) if not df.empty else "(none)"
-    parts = [f"FACTS for {item.title}" + (f" ({item.subtitle})" if item.subtitle else "") + ". Quote numbers exactly as shown, same rounding. "
-             "Columns ending in _pct are percentages (write them with %), columns ending in _pts are points (write 'points'), dollar amounts carry a $ "
-             "(you may shorten $330,114 to $330K and $4,290,000 to $4.29M). A blank cell is a fact that is not available: do not mention it and never write NA or NaN.\n"]
+    parts = [f"FACTS for {item.title}" + (f" ({item.subtitle})" if item.subtitle else "") + ".\n"]
     for f in item.facts:
         parts.append(f"{f.label}:\n{table(f.df)}" + (f"\nNote: {f.note}" if f.note else ""))
     if item.sources:
-        parts.append("SOURCES (public pages; quote them word for word and cite the number in brackets):\n" + "\n".join(
+        parts.append("SOURCES:\n" + "\n".join(
             f"[{i}] {s.get('title', '')}" + (f" ({s['published']})" if s.get("published") else "") + f" {s.get('url', '')}\n    \"{s.get('snippet', '')}\""
             for i, s in enumerate(item.sources, 1)))
     return "\n\n".join(parts)
@@ -435,6 +446,8 @@ async def run_async(key: str, scope: dict, requested_by: str, mode: str = "guard
                 resp = await writer.run(facts_text(item))
                 text = resp.text or ""
                 run.model = getattr(writer, "label", run.model)
+                if getattr(resp, "blocked", None):
+                    text = a.template(seed, fs) + f"\n\nCould not verify: Foundry's guardrail refused these facts ({resp.blocked}), so the template wrote this page without a model."
             run.progress["phase"] = "check"
             verify_item(item, text)
             item.action = a.action(seed, fs, item.verified_text)

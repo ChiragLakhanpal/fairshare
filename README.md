@@ -106,8 +106,9 @@ The four writers are also agents the Foundry project owns (Build > Agents in the
 `fairshare-agreement-watch`, `fairshare-prospect-research`, `fairshare-crm-vs-reality`). `lakehouse/foundry.py sync` pushes each
 agent's instructions as a new version when they change, with the account's content filter policy as the guardrail
 (`FOUNDRY_RAI_POLICY`, the policy's full resource id). With `FAIRSHARE_THINKER=foundry` the app calls the agent by name through
-the project's Responses API and sends the FACTS block only; the verifier then checks every number as before, and the run records
-which agent version wrote it. `lakehouse/foundry.py eval` builds a dataset from local template runs (every page plus two
+the project's Responses API and sends the FACTS block only (data, no rule sentences: those live in the agent, where the prompt
+shield cannot mistake them for a jailbreak); the verifier then checks every number as before, and the run records which agent
+version wrote it. When the guardrail refuses a page's facts, the template writes that page and says so in its note. `lakehouse/foundry.py eval` builds a dataset from local template runs (every page plus two
 adversarial rows) and runs Foundry's quality and safety evaluators against each agent. It needs a one-time sign-in (`login`),
 because the evaluation API wants a person's identity, not a key.
 

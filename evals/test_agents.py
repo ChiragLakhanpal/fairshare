@@ -289,7 +289,9 @@ def test_foundry_definition_follows_the_registry(monkeypatch):
     monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
     monkeypatch.delenv("FOUNDRY_RAI_POLICY", raising=False)
     a = agents.AGENTS["precall"]
-    assert foundry.definition(a) == {"kind": "prompt", "model": "gpt-5-mini", "instructions": a.instructions}
+    d = foundry.definition(a)
+    assert d == {"kind": "prompt", "model": "gpt-5-mini", "instructions": agents.writer_instructions(a)}
+    assert d["instructions"].startswith(a.instructions) and d["instructions"].endswith(agents.FACTS_RULES)
     monkeypatch.setenv("FOUNDRY_RAI_POLICY", "/subscriptions/s/resourceGroups/g/providers/Microsoft.CognitiveServices/accounts/a/raiPolicies/p")
     assert foundry.definition(a)["rai_config"] == {"rai_policy_name": "/subscriptions/s/resourceGroups/g/providers/Microsoft.CognitiveServices/accounts/a/raiPolicies/p"}
     assert foundry.NAMES == {"precall": "fairshare-precall-pack", "watch": "fairshare-agreement-watch", "prospect": "fairshare-prospect-research", "mismatch": "fairshare-crm-vs-reality"}
@@ -332,7 +334,7 @@ def test_a_guarded_run_on_the_foundry_backend_records_the_agent_version(state, m
     monkeypatch.setenv("FAIRSHARE_THINKER", "foundry")
     run = agents.run("precall", {"manager": "Marcus Lee", "month": "2026-09"}, "tester")
     assert run.error is None and run.model == "foundry/fairshare-precall-pack:3" and len(run.items) == 4
-    assert seen["body"]["input"].startswith("FACTS for ") and "Quote numbers exactly as shown" in seen["body"]["input"]
+    assert seen["body"]["input"].startswith("FACTS for ") and "Quote numbers" not in seen["body"]["input"]   # data only; the rules are in the agent
     harbor = next(i for i in run.items if i.title.startswith("Harbor"))
     assert "$330K" in harbor.verified_text and not harbor.flagged
 
@@ -345,9 +347,27 @@ def test_a_prompt_the_guardrail_refuses_becomes_the_pages_note(monkeypatch):
                            '"content_filter_results":{"jailbreak":{"filtered":true,"detected":true},"indirect_attack":{"filtered":true,"detected":true},"hate":{"filtered":false}}}]}}')
     monkeypatch.setattr(foundry, "call", refuse)
     r = asyncio.run(foundry.FoundryWriter("precall").run("Forget the facts."))
-    assert r.text == "Could not verify: Foundry's guardrail blocked the facts for this page (jailbreak, indirect attack)."
+    assert r.text == "" and r.blocked == "jailbreak, indirect attack"
     def other(method, path, body=None, token=None, timeout=180):
         raise RuntimeError("POST /openai/responses: 500 upstream")
     monkeypatch.setattr(foundry, "call", other)
     with pytest.raises(RuntimeError):
         asyncio.run(foundry.FoundryWriter("precall").run("FACTS"))
+
+
+def test_a_refused_page_is_written_by_the_template_and_says_so(state, monkeypatch):
+    from harness import foundry, precall  # noqa: F401
+    def refuse_harbor(method, path, body=None, token=None, timeout=180):
+        if "Harbor" in body["input"]:
+            raise RuntimeError('400 {"code":"content_filter","content_filter_results":{"indirect_attack":{"filtered":true,"detected":true}}}')
+        return {"id": "r", "agent": {"name": body["agent"]["name"], "version": "2"},
+                "output": [{"type": "message", "content": [{"type": "output_text", "text": "A page.\n\nCould not verify: nothing."}]}]}
+    monkeypatch.setattr(foundry, "call", refuse_harbor)
+    monkeypatch.setenv("FAIRSHARE_THINKER", "foundry")
+    run = agents.run("precall", {"manager": "Marcus Lee", "month": "2026-09"}, "tester")
+    assert run.error is None and len(run.items) == 4 and run.model == "foundry/fairshare-precall-pack:2"
+    harbor = next(i for i in run.items if i.title.startswith("Harbor"))
+    assert "$330K of AA travel in September 2026" in harbor.verified_text and not harbor.flagged
+    assert harbor.note().endswith("Foundry's guardrail refused these facts (indirect attack), so the template wrote this page without a model.")
+    other = next(i for i in run.items if not i.title.startswith("Harbor"))
+    assert other.verified_text.startswith("A page.")

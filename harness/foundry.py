@@ -32,13 +32,14 @@ def call(method: str, path: str, body: dict | None = None, token: str | None = N
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read() or b"{}")
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"{method} {path}: {e.code} {e.read().decode(errors='replace')[:500]}") from None
+        raise RuntimeError(f"{method} {path}: {e.code} {e.read().decode(errors='replace')[:2000]}") from None  # long enough for a content filter verdict
 
 
 def definition(a) -> dict:
     """The prompt agent a Delegate agent becomes: its instructions, the deployment, the guardrail policy when one is named
     (FOUNDRY_RAI_POLICY, the content filter policy's full resource id; the service refuses a bare name)."""
-    d = {"kind": "prompt", "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"), "instructions": a.instructions}
+    from harness.agents import writer_instructions
+    d = {"kind": "prompt", "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"), "instructions": writer_instructions(a)}
     policy = os.environ.get("FOUNDRY_RAI_POLICY", "").strip()
     if policy:
         d["rai_config"] = {"rai_policy_name": policy}
@@ -74,7 +75,7 @@ def sync(registry: dict) -> list[str]:
             out.append(f"unchanged {name}:{have['version']}")
             continue
         v = call("POST", f"/agents/{name}/versions", {"definition": wanted, "description": a.one_liner or a.summary,
-                                                      "metadata": {"source": "fairshare harness", "instructions_sha": hashlib.sha256(a.instructions.encode()).hexdigest()[:12]}})
+                                                      "metadata": {"source": "fairshare harness", "instructions_sha": hashlib.sha256(wanted["instructions"].encode()).hexdigest()[:12]}})
         out.append(f"{'updated' if have else 'created'} {name}:{v['version']}")
     return out
 
@@ -100,9 +101,9 @@ class FoundryWriter:
         except RuntimeError as e:
             if '"code":"content_filter"' not in str(e):
                 raise
-            # the guardrail refused the input before the model ran: this page carries the reason as its note and the other
-            # pages of the run go on (a planted instruction in one CRM note must not cost the whole pack)
-            return SimpleNamespace(text=f"Could not verify: Foundry's guardrail blocked the facts for this page ({blocked_by(str(e))}).", version="", id=None)
+            # the guardrail refused the input before the model ran: the run writes this page from the template instead (no model
+            # reads the facts, so nothing planted in them can act) and says so in the page's note; the other pages go on
+            return SimpleNamespace(text="", version="", id=None, blocked=blocked_by(str(e)))
         if r.version:
             self.label = f"foundry/{self.name}:{r.version}"
         return r
@@ -111,5 +112,5 @@ class FoundryWriter:
 def blocked_by(message: str) -> str:
     """The filters that fired, from the service's error text: 'jailbreak, indirect attack'."""
     import re
-    names = re.findall(r'"(\w+)":\s*\{"filtered":\s*true', message)
+    names = re.findall(r'"(\w+)":\s*\{[^{}]*"filtered":\s*true', message)   # the verdict lists detected before filtered for some filters
     return ", ".join(dict.fromkeys(n.replace("_", " ") for n in names)) or "content filter"
