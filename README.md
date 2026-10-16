@@ -110,7 +110,10 @@ the project's Responses API and sends the FACTS block only (data, no rule senten
 shield cannot mistake them for a jailbreak); the verifier then checks every number as before, and the run records which agent
 version wrote it. When the guardrail refuses a page's facts, the template writes that page and says so in its note. `lakehouse/foundry.py eval` builds a dataset from local template runs (every page plus two
 adversarial rows) and runs Foundry's quality and safety evaluators against each agent. It needs a one-time sign-in (`login`),
-because the evaluation API wants a person's identity, not a key.
+because the evaluation API wants a person's identity, not a key. First full run (Oct 15, 2026, agent version 3, 23 real pages
+and 8 adversarial rows): every real page passed relevance, coherence, fluency and the four content harms; groundedness passed
+on all but one page; the jailbreak rows were refused by the guardrail before the model ran; the indirect attack evaluator
+flagged the planted rows and two normal pages, since it reads any "change this record" as manipulated content.
 
 ## Why these choices
 
