@@ -71,6 +71,7 @@ def test_approve_is_idempotent_and_writes_one_crm_activity(state):
     agents.approve(run, run.items[0].item_id, None, "dana@example.com")
     acts = db.state_query("SELECT * FROM aa_demo.ops.crm_activities")
     assert len(acts) == 1 and acts.iloc[0]["agency_id"] == 5 and acts.iloc[0]["activity_type"] == "Test"
+    assert "+" not in acts.iloc[0]["happened_at"]   # the CRM row's stamp stays naive, like gold.crm_activities (a mix broke the pre-call facts on Oct 16, 2026)
     assert run.status == "needs_approval"  # one draft left
     assert agents.load(run.run_id).items[0].status == "approved"
 
@@ -109,6 +110,7 @@ def test_run_records_a_failed_block(state):
 def test_a_run_is_running_until_it_finishes():
     run = agents.new_run("fake", SCOPE, "tester", "template")
     assert run.status == "running" and run.to_json()["status"] == "running" and run.progress["total"] == 0
+    assert run.created_at.endswith("+00:00") and len(run.created_at) == len("2026-10-16T19:52:00.123+00:00")   # UTC with its offset, milliseconds
 
 
 # ---------------------------------------------------------------- the Monday pre-call pack

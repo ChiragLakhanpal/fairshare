@@ -272,6 +272,7 @@ def test_catalog_carries_the_pages_and_a_rerun_refreshes_them(client, monkeypatc
     page = pre["pages"][0]
     assert {"item_id", "kind", "title", "subtitle", "severity", "summary", "status", "run_id", "created_at", "scope", "decided_at", "decided_by", "versions"} <= set(page) and page["summary"]
     again = client.post("/api/agents/precall/run?wait=true", json={"scope": {"manager": "Marcus Lee", "month": "2026-09"}, "writer": "template"}).json()
+    assert again["error"] is None and len(again["items"]) == 4   # a rerun after an approval reads the CRM row the approval wrote
     pre = next(a for a in client.get("/api/agents").json()["agents"] if a["key"] == "precall")
     assert pre["waiting"] == 4 and len(pre["pages"]) == 4 and all(p["run_id"] == again["run_id"] for p in pre["pages"])
     assert [v["status"] for v in next(p for p in pre["pages"] if p["title"] == item["title"])["versions"]] == ["draft", "approved"]

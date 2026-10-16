@@ -21,7 +21,7 @@ import os
 import re
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable
 
 import pandas as pd
@@ -258,8 +258,10 @@ class Unverified(Exception):
 
 
 def _now() -> str:
-    """Milliseconds: two runs inside one second (the job, the tests) must still order, since the newest version of a page wins."""
-    return datetime.now().isoformat(timespec="milliseconds")
+    """UTC with its offset, so a browser shows the viewer's local time whether the job (UTC) or the laptop wrote the run; before
+    Oct 16, 2026 the stamps were naive and a job's 12:52 PM read as 7:52 PM. Milliseconds: two runs inside one second must
+    still order, since the newest version of a page wins."""
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
 
 def _q(s) -> str:
@@ -572,11 +574,12 @@ def crm_write(agency_id: int, activity_type: str, subject: str, notes: str, by: 
     """One activity in the CRM stand-in per approved item: a second approval of the same item replaces, never duplicates."""
     t = db.CRM_ACTIVITIES
     activity_id = uuid.uuid4().hex[:12]
+    happened = datetime.now().isoformat(timespec="seconds")   # naive, like the synthetic CRM table it is read next to: pandas refuses to mix the two
     db.state_execute([
         f"""CREATE TABLE IF NOT EXISTS {t} (activity_id STRING, agency_id INT, activity_type STRING, subject STRING, happened_at STRING,
             owner STRING, notes STRING, run_id STRING, item_id STRING)""",
         f"DELETE FROM {t} WHERE run_id = {_q(run_id)} AND item_id = {_q(item_id)}",
-        f"INSERT INTO {t} VALUES ({_q(activity_id)}, {int(agency_id)}, {_q(activity_type)}, {_q(subject)}, {_q(_now())}, {_q(by)}, {_q(notes)}, {_q(run_id)}, {_q(item_id)})"])
+        f"INSERT INTO {t} VALUES ({_q(activity_id)}, {int(agency_id)}, {_q(activity_type)}, {_q(subject)}, {_q(happened)}, {_q(by)}, {_q(notes)}, {_q(run_id)}, {_q(item_id)})"])
     return activity_id
 
 
