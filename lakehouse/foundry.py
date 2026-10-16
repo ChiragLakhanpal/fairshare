@@ -3,11 +3,12 @@
   python lakehouse/foundry.py sync                 # a new version for every agent whose instructions or guardrail changed
   python lakehouse/foundry.py list                 # what the project has, newest version each
   python lakehouse/foundry.py run precall < facts.txt   # one call through the Responses API, the way the App does it
-  python lakehouse/foundry.py login                # sign in once (device code); the evaluation API needs a person, not a key
+  python lakehouse/foundry.py login                # sign in once (a browser window opens); the evaluation API needs a person, not a key
   python lakehouse/foundry.py eval [precall watch prospect mismatch]   # dataset from local template runs, run in Foundry against each agent
 
-The key (AZURE_OPENAI_API_KEY) creates and runs agents. Evaluations go through the signed-in identity: the device-code sign-in
-keeps its tokens in the macOS keychain and a record (no secret) in data/out/foundry_auth.json. The guardrail is a policy made in
+The key (AZURE_OPENAI_API_KEY) creates and runs agents. Evaluations go through the signed-in identity: the browser sign-in keeps
+its tokens in the macOS keychain and a record (no secret) in data/out/foundry_auth.json. (The device-code flow is blocked by a
+security policy on the tenant, error 530035, Oct 15, 2026; the browser flow is what the portal itself uses.) The guardrail is a policy made in
 the portal (Build > Guardrails: the defaults plus indirect prompt injections, blocking); its full resource id in FOUNDRY_RAI_POLICY
 is what sync attaches to every version.
 """
@@ -29,7 +30,7 @@ from harness import foundry as fx  # noqa: E402
 RECORD = ROOT / "data" / "out" / "foundry_auth.json"
 SCOPE = "https://ai.azure.com/.default"
 QUALITY = ["groundedness", "relevance", "coherence", "fluency"]
-SAFETY = ["violence", "sexual", "self_harm", "hate_unfairness", "indirect_attack", "protected_material"]
+SAFETY = ["violence", "sexual", "self_harm", "hate_unfairness", "indirect_attack"]   # protected_material: "Unsupported region" here (Oct 15, 2026)
 
 
 def registry() -> dict:
@@ -43,19 +44,26 @@ def _cache():
     return TokenCachePersistenceOptions(name="fairshare")
 
 
+def _tenant() -> dict:
+    """The tenant the subscription lives in (the tid= in the portal's URL). Without it the sign-in is issued against the
+    sign-in app's own tenant, and a personal or guest account is refused there (AADSTS50020, Oct 15, 2026)."""
+    t = os.environ.get("FOUNDRY_TENANT_ID", "").strip()
+    return {"tenant_id": t} if t else {}
+
+
 def login():
-    from azure.identity import DeviceCodeCredential
-    rec = DeviceCodeCredential(cache_persistence_options=_cache()).authenticate(scopes=[SCOPE])
+    from azure.identity import InteractiveBrowserCredential
+    rec = InteractiveBrowserCredential(cache_persistence_options=_cache(), **_tenant()).authenticate(scopes=[SCOPE])
     RECORD.parent.mkdir(parents=True, exist_ok=True)
     RECORD.write_text(rec.serialize())
     print(f"signed in as {rec.username}; the record is {RECORD.relative_to(ROOT)}, the tokens stay in the keychain")
 
 
 def token(scope: str = SCOPE) -> str:
-    from azure.identity import AuthenticationRecord, DeviceCodeCredential
+    from azure.identity import AuthenticationRecord, InteractiveBrowserCredential
     if not RECORD.exists():
         sys.exit("not signed in: run `python lakehouse/foundry.py login` first")
-    cred = DeviceCodeCredential(cache_persistence_options=_cache(), authentication_record=AuthenticationRecord.deserialize(RECORD.read_text()))
+    cred = InteractiveBrowserCredential(cache_persistence_options=_cache(), authentication_record=AuthenticationRecord.deserialize(RECORD.read_text()), **_tenant())
     return cred.get_token(scope).token
 
 
@@ -120,10 +128,13 @@ def evaluate(key: str, tok: str) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"foundry-eval-{key}.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
     model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
-    ev = fx.call("POST", "/openai/evals", {"name": f"fairshare {name}", "data_source_config": {"type": "azure_ai_source", "scenario": "target_completions"},
+    # the item schema is what this api-version accepts (the newer "azure_ai_source" config answered "Unknown discriminator", Oct 15, 2026)
+    schema = {"type": "object", "properties": {k: {"type": "string"} for k in ("title", "query", "context", "ground_truth")}, "required": ["query"]}
+    ev = fx.call("POST", "/openai/evals", {"name": f"fairshare {name}", "data_source_config": {"type": "custom", "item_schema": schema, "include_sample_schema": True},
                                            "testing_criteria": criteria(model)}, token=tok)
     run = fx.call("POST", f"/openai/evals/{ev['id']}/runs", {"name": f"{name} v{have['version']} {date.today()}",
                                                              "data_source": {"type": "azure_ai_target_completions", "target": {"type": "azure_ai_agent", "name": name, "version": have["version"]},
+                                                                             "input_messages": {"type": "template", "template": [{"role": "user", "content": "{{item.query}}"}]},
                                                                              "source": {"type": "file_content", "content": rows}}}, token=tok)
     print(f"{name}: {len(rows)} rows, eval {ev['id']}, run {run['id']} ...", flush=True)
     while run.get("status") not in ("completed", "failed", "canceled"):
