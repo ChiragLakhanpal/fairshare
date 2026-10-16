@@ -2,11 +2,13 @@
 
   job_tasks.py parity                      metric view vs the twins, one run appended to ops.kpi_parity; drift fails the task
   job_tasks.py summary [databricks|none]   the Monday draft for every region, latest closed month, status draft
-  job_tasks.py agents [databricks|none]    the Delegate agents (pre-call packs, agreement watch, CRM check), waiting for approval
+  job_tasks.py agents [foundry|databricks|none]   the Delegate agents (pre-call packs, agreement watch, CRM check), waiting for approval
   --root <path>                            the synced repo root (the bundle passes it; locally the file's own location is used)
 
 Inside the job there is no warehouse connection and no token: SQL runs on the task's own Spark session
-(FAIRSHARE_BACKEND=spark) and the model, when asked for, is the workspace's serving endpoint with the job's identity.
+(FAIRSHARE_BACKEND=spark) and the model, when asked for, is the workspace's serving endpoint with the job's identity. With
+`foundry` the agents are the Foundry agents the App uses, reached with the key and the project endpoint from the `fairshare`
+secret scope (app_deploy.py secret puts them there).
 Locally the same file runs against DuckDB (FAIRSHARE_BACKEND=duckdb job_tasks.py summary) with the template writer.
 """
 import os
@@ -59,10 +61,30 @@ def managers() -> list[str]:
     return db.query("SELECT DISTINCT account_manager FROM aa_demo.gold.dim_agency ORDER BY account_manager")["account_manager"].tolist()
 
 
+def secret(key: str) -> str:
+    """A value from the fairshare secret scope: dbutils inside the job (the kernel's own, else one built on the Spark session)."""
+    du = globals().get("dbutils")
+    if du is None:
+        from pyspark.dbutils import DBUtils
+        from pyspark.sql import SparkSession
+        du = DBUtils(SparkSession.builder.getOrCreate())
+    return du.secrets.get("fairshare", key)
+
+
+def foundry_env(get=secret) -> None:
+    """What harness/foundry.py needs, from the scope: the key and the project endpoint (nothing account-specific in the bundle)."""
+    os.environ["FAIRSHARE_THINKER"] = "foundry"
+    os.environ["AZURE_OPENAI_API_KEY"] = get("azure-openai-key")
+    os.environ["FOUNDRY_PROJECT_ENDPOINT"] = get("foundry-endpoint")
+
+
 def agents_task(model: str):
     """The Delegate agents for the latest month: a pre-call pack per account manager, the agreement watch and the CRM check
-    for every region, one run each, all waiting for approval in the app. The writers use FAIRSHARE_THINKER when the job
-    sets it, else this task's model; with none they write the templates."""
+    for every region, one run each, all waiting for approval in the app. With foundry the writers are the Foundry agents;
+    otherwise FAIRSHARE_THINKER when the job sets it, else this task's model; with none they write the templates."""
+    if model == "foundry":
+        foundry_env()
+        model = "databricks"   # the loop model stays the workspace endpoint; only the writers go to Foundry
     os.environ["FAIRSHARE_MODEL"] = model
     from harness import agents, mismatch, precall, prospect, watch  # noqa: F401  (each registers its agent on import)
     month = latest_month()

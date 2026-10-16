@@ -96,7 +96,7 @@ resources:
           environment_key: fairshare
           spark_python_task:
             python_file: lakehouse/job_tasks.py
-            parameters: ["agents", "databricks", "--root", "${workspace.file_path}"]
+            parameters: ["agents", "foundry", "--root", "${workspace.file_path}"]   # the Foundry agents, with the key and endpoint from the fairshare secret scope
 
 targets:
   demo:

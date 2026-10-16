@@ -222,3 +222,17 @@ def test_decimal_columns_from_the_warehouse_become_numbers():
     pool = FactPool()
     pool.add_frame(out, "schedule")
     assert verify("DCA-BOS up 2%, CLT-LGA up 1.7%.", pool).ok
+
+
+def test_the_jobs_foundry_env_comes_from_the_secret_scope(monkeypatch):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("job_tasks", ROOT / "lakehouse" / "job_tasks.py")
+    jt = importlib.util.module_from_spec(spec)
+    monkeypatch.setenv("FAIRSHARE_BACKEND", "duckdb")
+    spec.loader.exec_module(jt)
+    for var in ("FAIRSHARE_THINKER", "AZURE_OPENAI_API_KEY", "FOUNDRY_PROJECT_ENDPOINT"):
+        monkeypatch.delenv(var, raising=False)
+    jt.foundry_env(get={"azure-openai-key": "k", "foundry-endpoint": "https://p.services.ai.azure.com/api/projects/x"}.__getitem__)
+    import os
+    assert os.environ["FAIRSHARE_THINKER"] == "foundry" and os.environ["AZURE_OPENAI_API_KEY"] == "k"
+    assert os.environ["FOUNDRY_PROJECT_ENDPOINT"].endswith("/projects/x")

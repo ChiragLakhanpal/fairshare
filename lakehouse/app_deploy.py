@@ -126,7 +126,10 @@ def secret(w):
     if THINKER_SCOPE not in {s.name for s in w.secrets.list_scopes()}:
         w.secrets.create_scope(THINKER_SCOPE)
     w.secrets.put_secret(THINKER_SCOPE, THINKER_KEY, string_value=key)
-    print(f"secret {THINKER_SCOPE}/{THINKER_KEY} is set. Next: FAIRSHARE_APP_THINKER=azure in .env, then `app_deploy.py update` and `app_deploy.py deploy`.")
+    endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT", "").strip()
+    if endpoint:  # the nightly job's agents task reads both from the scope (lakehouse/job_tasks.py foundry_env)
+        w.secrets.put_secret(THINKER_SCOPE, "foundry-endpoint", string_value=endpoint)
+    print(f"secret {THINKER_SCOPE}/{THINKER_KEY}{' and foundry-endpoint' if endpoint else ''} set. Next: FAIRSHARE_APP_THINKER=foundry in .env, then `app_deploy.py update` and `app_deploy.py deploy`.")
 
 
 def create(w):
