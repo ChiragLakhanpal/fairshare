@@ -1,5 +1,5 @@
 import { readSse } from "./sse";
-import type { Agency, AgentScope, AgentsCatalog, Answer, ApiError, Brief, Definitions, Evals, Explain, Item, Me, Run, Scope, Step, Summary } from "./types";
+import type { Agency, AgentScope, AgentsCatalog, Answer, ApiError, Brief, Definitions, Evals, Explain, Item, Me, Run, Scope, Signals, Step, Summary } from "./types";
 
 async function get<T>(url: string): Promise<T> {
   const r = await fetch(url, { headers: { Accept: "application/json" } });
@@ -24,6 +24,7 @@ export const api = {
   me: () => get<Me>("/api/me"),
   agencies: () => get<Agency[]>("/api/agencies"),
   summary: (s: Scope) => get<Summary>(`/api/summary?region=${encodeURIComponent(s.region)}&month=${encodeURIComponent(s.month)}`),
+  signals: (s: Scope) => get<Signals>(`/api/signals?region=${encodeURIComponent(s.region)}&month=${encodeURIComponent(s.month)}`),
   explain: (agency_id: number, month: string) => get<Explain>(`/api/explain?agency_id=${agency_id}&month=${encodeURIComponent(month)}`),
   agreements: (agency_id: number | null, topic: string) =>
     get<{ hits: { file: string; page: number; text: string; score: number }[] }>(`/api/agreements?topic=${encodeURIComponent(topic)}${agency_id ? `&agency_id=${agency_id}` : ""}`),

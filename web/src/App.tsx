@@ -15,10 +15,10 @@ import { TopBar } from "./components/TopBar";
 import { copy } from "./copy";
 import { api, ask, lastAnswerOf } from "./lib/api";
 import { monthLabel } from "./lib/format";
+import { SPRING, slideDirection, slideVariants } from "./lib/motion";
+import { chipsFrom } from "./lib/signals";
 import { store, useStore } from "./lib/store";
-import type { Agency, AgentsCatalog, Brief as BriefT, Me, Mover, Scope, Summary as SummaryT, Turn } from "./lib/types";
-
-const SPRING = { type: "spring" as const, bounce: 0, duration: 0.35 };
+import type { Agency, AgentsCatalog, Brief as BriefT, Me, Mover, Scope, SignalAction, Signals, Summary as SummaryT, Turn } from "./lib/types";
 
 function scopeFromUrl(): Scope {
   const u = new URL(location.href);
@@ -38,11 +38,13 @@ function Main() {
   const [summary, setSummary] = useState<SummaryT | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [signals, setSignals] = useState<Signals | null>(null);
   const [how, setHow] = useState(false);
   const [picker, setPicker] = useState<null | "call" | "agreement">(null);
   const [kpi, setKpi] = useState<string | null>(null);
   const [prefill, setPrefill] = useState<{ text: string; n: number } | undefined>();
   const [busy, setBusy] = useState(false);
+  const [barHeight, setBarHeight] = useState(0);
   const [catalog, setCatalog] = useState<AgentsCatalog | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -63,8 +65,12 @@ function Main() {
     [],
   );
   useEffect(() => {
+    void loadDelegate(); // once at the start too: the home page says how many pages wait for a decision
+  }, [loadDelegate]);
+  useEffect(() => {
     if (mode === "delegate" && !catalog) void loadDelegate();
   }, [mode, catalog, loadDelegate]);
+  const waiting = catalog?.agents.reduce((n, a) => n + a.waiting, 0) ?? 0;
   const anyRunning = !!catalog?.agents.some((a) => a.running);
   useEffect(() => {
     if (!anyRunning) return;
@@ -94,6 +100,17 @@ function Main() {
     setSummaryLoading(true);
     setSummaryError(null);
     api.summary(scope).then((s) => !gone && setSummary(s)).catch((e) => !gone && setSummaryError(e.message ?? "The summary did not load.")).finally(() => !gone && setSummaryLoading(false));
+    return () => {
+      gone = true;
+    };
+  }, [me, scope]);
+
+  // What is worth knowing this month, loaded beside the summary so the five numbers never wait for it; a failure shows no
+  // block. The old lines stay until the new ones arrive (the summary shows them only when they belong to its month).
+  useEffect(() => {
+    if (!me || !scope.month) return;
+    let gone = false;
+    api.signals(scope).then((s) => !gone && setSignals(s)).catch(() => !gone && setSignals(null));
     return () => {
       gone = true;
     };
@@ -135,7 +152,7 @@ function Main() {
       await ask({ question: q, history, genie_conversation_id: current?.genieConversationId ?? null, scope, last_answer }, {
         onStep: (s) => patch(id, idx, (t) => ({ steps: [...(t.steps ?? []), { ...s, at: Date.now() }] })),
         onAnswer: (a) => {
-          patch(id, idx, { pending: false, answer: a, text: a.verified_text || a.text });
+          patch(id, idx, { pending: false, answer: a, text: a.verified_text || a.text, fresh: true });
           if (a.genie_conversation_id) store.setGenieConversation(id, a.genie_conversation_id);
         },
         onError: (e) => patch(id, idx, { pending: false, error: e }),
@@ -156,7 +173,7 @@ function Main() {
     setBusy(true);
     try {
       const b = await api.brief(scope);
-      patch(id, 1, { pending: false, brief: b, text: b.verified_text });
+      patch(id, 1, { pending: false, brief: b, text: b.verified_text, fresh: true });
     } catch (e) {
       patch(id, 1, { pending: false, error: { code: "network", message: (e as Error).message } });
     } finally {
@@ -183,10 +200,24 @@ function Main() {
   };
   const onWhy = (m: Mover) => void send(`Why is ${m.agency} ${m.share_chg_pts < 0 ? "down" : "up"} in ${monthLabel(scope.month)}?`);
   const onApproved = (index: number, b: BriefT) => active && patch(active.id, index, { brief: b });
+  const onTyped = (index: number) => active && patch(active.id, index, { fresh: false });
+  const openDelegate = (agent: string | null) => {
+    store.setDelegate({ agent, runId: null, itemId: null });
+    store.setMode("delegate");
+  };
+  // a "worth knowing" line's one action: ask its question, open the agent whose pages hold it, or open a definition
+  const onSignal = (a: SignalAction) => {
+    if (a.kind === "ask") void send(a.question);
+    else if (a.kind === "delegate") openDelegate(a.agent);
+    else setKpi(a.kpi);
+  };
+  // the suggestion chips follow the month's signals while a model is connected; without one, the three recorded answers
+  const chips = me && me.model !== "none" ? chipsFrom(signals?.signals, copy.chips) : copy.chips;
 
   const summaryBlock = (
     <div className="mx-auto w-full max-w-[760px] px-6 pb-2 pt-9">
-      <Summary summary={summary} loading={summaryLoading} error={summaryError} name={me?.name ?? null} onWhy={onWhy} onAsk={(q) => void send(q)} />
+      <Summary summary={summary} loading={summaryLoading} error={summaryError} name={me?.name ?? null} onWhy={onWhy} onAsk={(q) => void send(q)}
+        signals={signals} waiting={waiting} onAction={onSignal} onOpenDelegate={() => openDelegate(null)} />
     </div>
   );
 
@@ -202,12 +233,16 @@ function Main() {
         </motion.div>
         <section className="flex min-w-0 flex-1 flex-col">
           <TopBar me={me} scope={scope} onScope={setScope} />
+          {/* The two modes trade places along a takeoff diagonal: Delegate arrives from the right, Ask from the left. */}
+          <AnimatePresence mode="wait" initial={false} custom={slideDirection(mode)}>
           {mode === "delegate" ? (
-            <div className="flex-1"><Delegate catalog={catalog} catalogError={catalogError} scope={scope} onRefresh={loadDelegate} /></div>
+            <motion.div key="delegate" custom={1} variants={slideVariants(reduced)} initial="initial" animate="animate" exit="exit" className="flex-1">
+              <Delegate catalog={catalog} catalogError={catalogError} scope={scope} onRefresh={loadDelegate} />
+            </motion.div>
           ) : (
-            <>
+            <motion.div key="ask" custom={-1} variants={slideVariants(reduced)} initial="initial" animate="animate" exit="exit" className="flex min-w-0 flex-1 flex-col">
               {active && <SummaryStrip summary={summary} expanded={summaryExpanded} onToggle={() => store.setSummaryExpanded(!summaryExpanded)} />}
-              <div className={`flex-1 ${active ? "pb-28" : "pb-52"}`}>
+              <div className="flex-1" style={{ paddingBottom: barHeight ? barHeight + 16 : active ? 144 : 280 }}>
                 {active ? (
                   <>
                     <AnimatePresence initial={false}>
@@ -218,15 +253,16 @@ function Main() {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    <Conversation c={active} onFollowUp={(q) => void send(q)} onHow={() => setHow(true)} onApproved={onApproved} />
+                    <Conversation c={active} onFollowUp={(q) => void send(q)} onHow={() => setHow(true)} onApproved={onApproved} onTyped={onTyped} signals={signals} onAction={onSignal} />
                   </>
                 ) : (
                   summaryBlock
                 )}
               </div>
-              <FloatingBar ref={inputRef} busy={busy} showChips={!active} followUp={!!active} onSend={(q) => void send(q)} onStop={() => abortRef.current?.abort()} onHow={() => setHow(true)} prefill={prefill} />
-            </>
+              <FloatingBar ref={inputRef} busy={busy} showChips={!active} chips={chips} followUp={!!active} onSend={(q) => void send(q)} onStop={() => abortRef.current?.abort()} onHow={() => setHow(true)} prefill={prefill} onHeight={setBarHeight} />
+            </motion.div>
           )}
+          </AnimatePresence>
         </section>
       </div>
       <HowItWorks open={how} onOpenChange={setHow} me={me} />

@@ -1,12 +1,15 @@
 import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
-import { useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { copyText, downloadCsv, emailDraft, printElement } from "../lib/export";
 import { money, pct } from "../lib/format";
-import { proseParts } from "../lib/runs";
+import { proseParts, type ProsePart } from "../lib/runs";
 import { answerBody, answerHtml, answerText, shownSentences, trustLine } from "../lib/share";
+import { charCount, revealParts, useTyping } from "../lib/typing";
 import type { Answer as AnswerT, Call } from "../lib/types";
+import { CopyLink } from "./Feedback";
 import { Check, Chart, Close, Copy, Dots, File as FileIcon, Info, Mail } from "./Icons";
 import { Num } from "./Num";
 import { Table } from "./Table";
@@ -52,8 +55,11 @@ function Breakdown({ call, markets }: { call: Call; markets?: Call }) {
   );
 }
 
-export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: string) => void; onHow: () => void }) {
+type Props = { a: AnswerT; onFollowUp: (q: string) => void; onHow: () => void; fresh?: boolean; onTyped?: () => void };
+
+export function Answer({ a, onFollowUp, onHow, fresh = false, onTyped }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
   const explain = a.calls.find((c) => c.tool === "explain_change" && c.preview.length);
   const explainMarkets = a.calls.filter((c) => c.tool === "explain_change").at(1);
   const [open, setOpen] = useState<null | "numbers" | "query" | "breakdown">(explain ? "breakdown" : null);
@@ -70,16 +76,20 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
     setOpen("numbers");
     window.setTimeout(() => document.getElementById(`call-${source}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
   };
+  // A fresh answer types itself out, checked numbers and all, and the checks and buttons under it appear once it has.
+  const run: ProsePart[] = nothingToShow ? [answerBody(a)] : shown.flatMap((s, i) => [...proseParts(s.text, s.numbers ?? []), ...(i < shown.length - 1 ? [" "] : [])]);
+  const { shown: budget, done } = useTyping(charCount(run), `${a.question}|${a.text}`, fresh && !reduced);
+  useEffect(() => {
+    if (done && fresh) onTyped?.();
+  }, [done, fresh, onTyped]);
+  const visible = done ? run : revealParts(run, budget);
   return (
     <div ref={ref} className="print-section">
       <div className="text-[15.5px] leading-[1.6]">
-        {nothingToShow ? answerBody(a) : shown.map((s, i) => (
-          <span key={i}>
-            {proseParts(s.text, s.numbers ?? []).map((p, j) => (typeof p === "string" ? <span key={j}>{p}</span> : <Num key={j} n={p} facts={facts} onOpen={show} />))}
-            {i < shown.length - 1 ? " " : ""}
-          </span>
-        ))}
+        {visible.map((p, j) => (typeof p === "string" ? <span key={j}>{p}</span> : <Num key={j} n={p} facts={facts} onOpen={show} />))}
+        {!done && <span className="caret" aria-hidden="true" />}
       </div>
+      <motion.div initial={false} animate={{ opacity: done ? 1 : 0 }} transition={{ duration: 0.25 }} aria-hidden={!done} className={done ? "" : "pointer-events-none"}>
       {a.cached && <p className="mt-2 text-[13px] text-ink-2">{copy.cached(a.cached.recorded)}</p>}
       <div className="mt-2.5 flex items-start gap-1.5 text-[13.5px] leading-[1.45] text-ink-2">
         {refusal ? <Info className="mt-[3px] shrink-0" width={15} height={15} /> : <Check className="mt-[3px] shrink-0 text-blue" width={15} height={15} strokeWidth={2.5} />}
@@ -88,7 +98,7 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
           <Popover.Root>
             <Popover.Trigger asChild><button type="button" className="border-b border-dotted border-grey text-ink-2 hover:text-ink">{copy.howChecked}</button></Popover.Trigger>
             <Popover.Portal>
-              <Popover.Content side="bottom" align="start" sideOffset={8} className="z-30 w-[420px] max-w-[92vw] rounded-[10px] border border-line bg-white px-4 py-3.5 text-[13.5px] leading-[1.5] shadow-xl">
+              <Popover.Content side="bottom" align="start" sideOffset={8} className="menu z-30 w-[420px] max-w-[92vw] rounded-[10px] border border-line bg-white px-4 py-3.5 text-[13.5px] leading-[1.5] shadow-xl">
                 <div className="flex items-baseline justify-between gap-3"><span className="text-[15px] font-semibold">How this answer was checked</span><Popover.Close aria-label="Close" className="text-ink-2 hover:text-ink"><Close /></Popover.Close></div>
                 <p className="mt-1.5 text-ink">The agent can only state numbers it received from a query. Before you saw this answer, a checker compared each of its {nums} numbers with the query results, at the same rounding. If a sentence had carried a number no query returned, the checker would have removed it and told you.</p>
                 <p className="mt-2 text-[12.5px] text-ink-2">{copy.howScoresLine} <button type="button" className="text-blue hover:underline" onClick={onHow}>See how this app gets an answer.</button></p>
@@ -115,7 +125,7 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
         <Dropdown.Root>
           <Dropdown.Trigger asChild><button type="button" aria-label={copy.more} className="press rounded-lg px-2 py-1.5 text-ink-2 hover:bg-surface hover:text-ink"><Dots /></button></Dropdown.Trigger>
           <Dropdown.Portal>
-            <Dropdown.Content align="start" sideOffset={6} className="z-20 min-w-[230px] rounded-lg border border-line bg-white p-1.5 shadow-xl">
+            <Dropdown.Content align="start" sideOffset={6} className="menu z-20 min-w-[230px] rounded-lg border border-line bg-white p-1.5 shadow-xl">
               <Dropdown.Item className={item} onSelect={() => void copyText(answerText(a), answerHtml(a))}><Copy className="text-ink-2" />{copy.copyAnswer}</Dropdown.Item>
               <Dropdown.Item className={item} onSelect={() => emailDraft(a.question, `${answerBody(a)}\n\n${trustLine(a)}`)}><Mail className="text-ink-2" />{copy.emailAnswer}</Dropdown.Item>
               <Dropdown.Item className={item} onSelect={() => printElement(ref.current)}><FileIcon className="text-ink-2" />{copy.pdfAnswer}</Dropdown.Item>
@@ -142,7 +152,7 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
                 <h4 className="text-sm font-semibold">{c.tool === "ask_metrics" ? `Genie wrote this query against the sales metrics view${c.ms ? ` and answered in ${Math.round(c.ms / 1000)} seconds` : ""}.` : c.tool === "run_sql" ? "The agent ran this query." : `${c.tool} used ${c.sql}.`}</h4>
                 <span className="flex items-center gap-4">
-                  {c.tool !== "explain_change" && c.sql && <button type="button" onClick={() => void copyText(c.sql ?? "")} className="press inline-flex items-center gap-1.5 text-[13px] font-medium text-blue hover:underline"><Copy width={14} height={14} />{copy.copyQuery}</button>}
+                  {c.tool !== "explain_change" && c.sql && <CopyLink text={c.sql} />}
                   {c.genie && <a href={c.genie.url} target="_blank" rel="noreferrer" className="text-[13px]">{copy.openGenie}</a>}
                 </span>
               </div>
@@ -154,9 +164,10 @@ export function Answer({ a, onFollowUp, onHow }: { a: AnswerT; onFollowUp: (q: s
       )}
       {a.follow_ups.length > 0 && (
         <div className="no-print mt-3.5 flex flex-wrap gap-2">
-          {a.follow_ups.map((f) => <button key={f} type="button" onClick={() => onFollowUp(f)} className="press rounded-lg border border-line bg-white px-3 py-[7px] text-left text-[13.5px] font-medium text-ink hover:border-blue hover:text-blue">{f}</button>)}
+          {a.follow_ups.map((f) => <button key={f} type="button" onClick={() => onFollowUp(f)} className="press rounded-lg border border-line bg-white px-3 py-[7px] text-left text-[13.5px] font-medium text-ink transition-colors hover:border-blue hover:text-blue">{f}</button>)}
         </div>
       )}
+      </motion.div>
     </div>
   );
 }

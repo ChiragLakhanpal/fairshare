@@ -4,6 +4,7 @@ import { copy } from "../copy";
 import { api } from "../lib/api";
 import type { Definitions } from "../lib/types";
 import { Check, Close } from "./Icons";
+import { Lines } from "./Skeleton";
 
 const PLAIN: Record<string, string> = {
   aa_revenue: "AA revenue is the ticketed revenue sold on AA by the agency, in US dollars, for the markets and months you picked.",
@@ -17,23 +18,25 @@ const PLAIN: Record<string, string> = {
 
 export function DefinitionWindow({ kpi, onClose }: { kpi: string | null; onClose: () => void }) {
   const [defs, setDefs] = useState<Definitions | null>(null);
+  const [failed, setFailed] = useState(false);
   const [formula, setFormula] = useState(false);
   useEffect(() => {
-    if (kpi && !defs) api.definitions().then(setDefs).catch(() => setDefs(null));
-  }, [kpi, defs]);
+    if (kpi && !defs && !failed) api.definitions().then(setDefs).catch(() => setFailed(true));
+  }, [kpi, defs, failed]);
   const d = defs?.kpis.find((k) => k.kpi === kpi);
   const parity = defs?.parity;
   const when = parity ? new Date(parity.run_at).toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "";
   return (
     <Dialog.Root open={!!kpi} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/20" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(440px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-line bg-white px-5 py-4 text-[13.5px] leading-[1.5] shadow-2xl">
+        <Dialog.Overlay className="overlay fixed inset-0 z-40 bg-ink/20" />
+        <Dialog.Content className="dialog fixed left-1/2 top-1/2 z-50 w-[min(440px,94vw)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-line bg-white px-5 py-4 text-[13.5px] leading-[1.5] shadow-2xl">
           <div className="flex items-baseline justify-between gap-3">
             <Dialog.Title className="text-[15px] font-semibold text-ink">{d?.display_name ?? kpi}</Dialog.Title>
-            <Dialog.Close aria-label={copy.closeWindow} className="text-ink-2 hover:text-ink"><Close /></Dialog.Close>
+            <Dialog.Close aria-label={copy.closeWindow} className="text-ink-2 transition-colors hover:text-ink"><Close /></Dialog.Close>
           </div>
           <Dialog.Description className="mt-1.5 text-ink">{PLAIN[kpi ?? ""] ?? d?.definition_en ?? ""}</Dialog.Description>
+          {!defs && !failed && <div className="mt-3"><Lines n={2} label={copy.defLoading} /></div>}
           {parity && (
             <p className="mt-2 flex items-start gap-1.5 text-[12.5px] text-ink-2"><Check className="mt-[3px] shrink-0 text-blue" width={13} height={13} strokeWidth={2.5} /><span>{parity.drift === 0 ? copy.defCheck(when, parity.rows) : copy.defCheckDrift(when, parity.drift)}</span></p>
           )}

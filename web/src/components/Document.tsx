@@ -1,37 +1,58 @@
 // One version of a page as a document: the sections with their checked numbers underlined, the email as a card, the
 // note, the page's other versions, and the approve bar that says in plain words what approving does.
 import * as Dropdown from "@radix-ui/react-dropdown-menu";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { api } from "../lib/api";
 import { copyText, emailDraft, printElement } from "../lib/export";
 import { approvalLine, decidedLine, proseParts, versionLabel, whenLabel } from "../lib/runs";
+import { charCount, revealParts, useTyping } from "../lib/typing";
 import type { ApiError, Item, ItemEmail, PageVersion, Sentence } from "../lib/types";
-import { Check, Copy, Dots, External, File as FileIcon, Info, Mail } from "./Icons";
+import { CopyLink, DrawnCheck } from "./Feedback";
+import { Check, Copy, Dots, External, File as FileIcon, Info, Mail, Spinner } from "./Icons";
 import { SeverityChip } from "./ItemRows";
 import { Num } from "./Num";
 import { Table } from "./Table";
 
-const btn = "press rounded-lg border border-line bg-white px-3 py-1.5 text-[13px] font-medium text-ink hover:border-blue hover:text-blue";
+const btn = "press rounded-lg border border-line bg-white px-3 py-1.5 text-[13px] font-medium text-ink transition-colors hover:border-blue hover:text-blue";
 const btnOn = "press rounded-lg border border-tint-line bg-tint px-3 py-1.5 text-[13px] font-medium text-navy";
 const menuItem = "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink outline-none data-[highlighted]:bg-surface";
 
-type ProseProps = { sentences: Sentence[]; className?: string; facts: Item["facts"]; onOpen: (source: string) => void };
+type ProseProps = { sentences: Sentence[]; className?: string; facts: Item["facts"]; onOpen: (source: string) => void; limit?: number };
 
-function Prose({ sentences, className = "", facts, onOpen }: ProseProps) {
-  const shown = sentences.filter((s) => s.status !== "flagged");
-  if (shown.length === 0) return null;
+const shownOf = (sentences: Sentence[]) => sentences.filter((s) => s.status !== "flagged");
+/** How many characters a paragraph types: its sentences and the spaces between them. */
+function proseChars(sentences: Sentence[]): number {
+  const shown = shownOf(sentences);
+  return shown.reduce((n, s, i) => n + charCount(proseParts(s.text, s.numbers ?? [])) + (i < shown.length - 1 ? 1 : 0), 0);
+}
+
+/** A paragraph of checked sentences. With `limit` set, only that many characters show, the way a page types itself out. */
+function Prose({ sentences, className = "", facts, onOpen, limit = Infinity }: ProseProps) {
+  const shown = shownOf(sentences);
+  if (shown.length === 0 || limit <= 0) return null;
+  let left = limit;
   return (
     <p className={`m-0 text-[15.5px] leading-[1.6] ${className}`}>
-      {shown.map((s, i) => (
-        <span key={i} className={s.status === "note" ? "text-ink-2" : ""}>
-          {proseParts(s.text, s.numbers ?? []).map((p, j) => (typeof p === "string" ? <span key={j}>{p}</span> : <Num key={j} n={p} facts={facts} onOpen={onOpen} />))}
-          {i < shown.length - 1 ? " " : ""}
-        </span>
-      ))}
+      {shown.map((s, i) => {
+        if (left <= 0) return null;
+        const parts = [...proseParts(s.text, s.numbers ?? []), ...(i < shown.length - 1 ? [" "] : [])];
+        const vis = revealParts(parts, left);
+        left -= charCount(parts);
+        return (
+          <span key={i} className={s.status === "note" ? "text-ink-2" : ""}>
+            {vis.map((p, j) => (typeof p === "string" ? <span key={j}>{p}</span> : <Num key={j} n={p} facts={facts} onOpen={onOpen} />))}
+            {Number.isFinite(limit) && left < 0 && <span className="caret" aria-hidden="true" />}
+          </span>
+        );
+      })}
     </p>
   );
 }
+
+// a page types itself out the first time it is opened in a session; opening it again shows it at once
+const typedOnce = new Set<string>();
 
 /** The email's paragraphs as written (a greeting, the body, a sign-off); a page written before paragraphs were kept has one. */
 function emailParagraphs(email: ItemEmail): Sentence[][] {
@@ -52,11 +73,12 @@ function pageText(item: Item): string {
 type Props = { runId: string; item: Item; versions: PageVersion[]; onOpenVersion: (v: PageVersion) => void; onChange: (i: Item) => void };
 
 export function Document({ runId, item, versions, onOpenVersion, onChange }: Props) {
+  const reduced = useReducedMotion();
   const ref = useRef<HTMLElement>(null);
   const [open, setOpen] = useState<null | "numbers" | "queries">(null);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(item.verified_text);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<null | "approve" | "reject">(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -84,7 +106,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
   const openDraft = (it: Item) => it.email && emailDraft(it.email.subject || it.action.subject, emailBody(it.email), it.email.to);
 
   const approve = async () => {
-    setBusy(true);
+    setBusy("approve");
     setProblem(null);
     try {
       const edited = editing && text.trim() !== item.verified_text.trim();
@@ -100,11 +122,11 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
       const removed = err.removed?.map((r) => `"${r.sentence}" (${r.reason})`).join("; ");
       setProblem(err.code === "unverified" ? `${err.message} ${removed ?? ""}`.trim() : `${copy.errorGeneric} (${err.message ?? ""})`.trim());
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
   const reject = async () => {
-    setBusy(true);
+    setBusy("reject");
     setProblem(null);
     try {
       const updated = await api.rejectItem(runId, item.item_id);
@@ -114,9 +136,23 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
     } catch (e) {
       setProblem(`${copy.errorGeneric} (${(e as ApiError).message ?? ""})`.trim());
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
+  const status = draft ? approvalLine(item.action) : replaced ? copy.replacedLine(whenLabel(replaced.created_at)) : `${decidedLine(item)}${note ? ` ${note}` : ""}`;
+
+  // the sections, then the email's paragraphs, type out as one run; each paragraph gets the part of the budget past its start
+  const emailParas = item.email ? emailParagraphs(item.email) : [];
+  const runs = [...sections.map((s) => s.sentences), ...emailParas];
+  const offsets = runs.reduce<number[]>((acc, r) => [...acc, (acc[acc.length - 1] ?? 0) + proseChars(r)], []);
+  const total = offsets[offsets.length - 1] ?? 0;
+  const fresh = !typedOnce.has(item.item_id) && !editing;
+  const { shown: budget, done } = useTyping(total, item.item_id, fresh && !reduced);
+  useEffect(() => {
+    if (done) typedOnce.add(item.item_id);
+  }, [done, item.item_id]);
+  const limitOf = (k: number) => (done ? Infinity : budget - (k === 0 ? 0 : offsets[k - 1]));
+  const emailAt = sections.length;
 
   return (
     <article ref={ref} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto" aria-label={item.title}>
@@ -137,9 +173,9 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
             {withRows.length > 0 && <button type="button" className={open === "numbers" ? btnOn : btn} onClick={() => toggle("numbers")}>{open === "numbers" ? copy.hideNumbers : copy.showNumbers}</button>}
             {withSql.length > 0 && <button type="button" className={open === "queries" ? btnOn : btn} onClick={() => toggle("queries")}>{open === "queries" ? copy.hideQueries : copy.showQueries}</button>}
             <Dropdown.Root>
-              <Dropdown.Trigger asChild><button type="button" aria-label={copy.moreForPage} className="press flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-line bg-white text-ink-2 hover:text-ink"><Dots /></button></Dropdown.Trigger>
+              <Dropdown.Trigger asChild><button type="button" aria-label={copy.moreForPage} className="press flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-line bg-white text-ink-2 transition-colors hover:text-ink"><Dots /></button></Dropdown.Trigger>
               <Dropdown.Portal>
-                <Dropdown.Content align="end" sideOffset={6} className="z-20 min-w-[220px] rounded-lg border border-line bg-white p-1.5 shadow-xl">
+                <Dropdown.Content align="end" sideOffset={6} className="menu z-20 min-w-[220px] rounded-lg border border-line bg-white p-1.5 shadow-xl">
                   <Dropdown.Item className={menuItem} onSelect={() => void copyText(pageText(item))}><Copy className="text-ink-2" />{copy.copyPage}</Dropdown.Item>
                   <Dropdown.Item className={menuItem} onSelect={() => printElement(ref.current)}><FileIcon className="text-ink-2" />{copy.printPage}</Dropdown.Item>
                 </Dropdown.Content>
@@ -175,7 +211,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
               <div key={f.name} className="mb-3 last:mb-0">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <span className="text-[13px] font-semibold text-ink-2">{f.label}{f.source ? ` (${f.source})` : ""}</span>
-                  <button type="button" onClick={() => void copyText(f.sql ?? "")} className="press inline-flex items-center gap-1.5 text-[13px] font-medium text-blue hover:underline"><Copy width={14} height={14} />{copy.copyQuery}</button>
+                  <CopyLink text={f.sql ?? ""} />
                 </div>
                 <pre className="sql">{f.sql}</pre>
               </div>
@@ -191,12 +227,14 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
         ) : (
           <>
             {sections.map((s, i) => (
-              <section key={i} className="mt-5">
-                {s.title && <h3 className="mb-1.5 text-[15px] font-semibold text-ink">{s.title}</h3>}
-                <Prose sentences={s.sentences} facts={item.facts} onOpen={show} />
-              </section>
+              (done || limitOf(i) > 0) && (
+                <section key={i} className="mt-5">
+                  {s.title && <h3 className="mb-1.5 text-[15px] font-semibold text-ink">{s.title}</h3>}
+                  <Prose sentences={s.sentences} facts={item.facts} onOpen={show} limit={limitOf(i)} />
+                </section>
+              )
             ))}
-            {item.email && (
+            {item.email && (done || limitOf(emailAt) > 0) && (
               <div className="mt-6 overflow-hidden rounded-xl border border-line">
                 <div className="flex items-center justify-between gap-3 bg-surface px-4 py-2.5">
                   <span className="inline-flex items-center gap-2 text-[13px] font-semibold"><Mail width={15} height={15} />{copy.draftEmail}</span>
@@ -207,10 +245,11 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
                     <span>{copy.emailTo}</span><span className="text-ink">{item.email.to_name || item.email.to}{item.email.to_name && item.email.to ? <span className="text-ink-2"> ({item.email.to})</span> : null}</span>
                     <span>{copy.emailSubject}</span><span className="text-ink">{item.email.subject}</span>
                   </div>
-                  {emailParagraphs(item.email).map((p, k) => <Prose key={k} sentences={p} className="mt-3 !text-[14.5px]" facts={item.facts} onOpen={show} />)}
+                  {emailParas.map((p, k) => <Prose key={k} sentences={p} className="mt-3 !text-[14.5px]" facts={item.facts} onOpen={show} limit={limitOf(emailAt + k)} />)}
                 </div>
               </div>
             )}
+            <motion.div initial={false} animate={{ opacity: done ? 1 : 0 }} transition={{ duration: 0.25 }} aria-hidden={!done}>
             {item.note && (
               <p className="mt-4 flex items-start gap-2 text-[13.5px] text-ink-2"><Info className="mt-[3px] shrink-0" width={15} height={15} /><span>{copy.notInData(item.note)}</span></p>
             )}
@@ -245,6 +284,7 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
                 </ol>
               </div>
             )}
+            </motion.div>
           </>
         )}
       </div>
@@ -252,11 +292,15 @@ export function Document({ runId, item, versions, onOpenVersion, onChange }: Pro
       <div className="no-print sticky bottom-0 mt-auto border-t hairline bg-white/95 py-3.5 backdrop-blur">
         <div className="mx-auto w-full max-w-[760px] px-10">
           <div className="flex flex-wrap items-center gap-2.5">
-            {draft && <button type="button" onClick={() => void approve()} disabled={busy} className="press rounded-lg bg-blue px-4 py-2 text-[14px] font-semibold text-white hover:bg-navy disabled:opacity-60">{copy.approveItem}</button>}
-            {draft && <button type="button" onClick={() => setEditing((e) => !e)} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{editing ? copy.doneEditing : copy.editItem}</button>}
-            {draft && <button type="button" onClick={() => void reject()} disabled={busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{copy.rejectItem}</button>}
-            {item.status === "approved" && item.email && <button type="button" onClick={() => openDraft(item)} className="press inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue"><Mail width={15} height={15} />{copy.openDraft}</button>}
-            <span className="text-[13px] text-ink-2">{draft ? approvalLine(item.action) : replaced ? copy.replacedLine(whenLabel(replaced.created_at)) : `${decidedLine(item)}${note ? ` ${note}` : ""}`}</span>
+            {draft && <button type="button" onClick={() => void approve()} disabled={!!busy} className="press inline-flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-navy disabled:opacity-60">{busy === "approve" && <Spinner width={13} height={13} />}{copy.approveItem}</button>}
+            {draft && <button type="button" onClick={() => setEditing((e) => !e)} disabled={!!busy} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink transition-colors hover:border-blue hover:text-blue">{editing ? copy.doneEditing : copy.editItem}</button>}
+            {draft && <button type="button" onClick={() => void reject()} disabled={!!busy} className="press inline-flex items-center gap-2 rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink transition-colors hover:border-blue hover:text-blue">{busy === "reject" && <Spinner width={13} height={13} />}{copy.rejectItem}</button>}
+            {item.status === "approved" && item.email && <button type="button" onClick={() => openDraft(item)} className="press inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink transition-colors hover:border-blue hover:text-blue"><Mail width={15} height={15} />{copy.openDraft}</button>}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span key={status} initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ duration: 0.2 }} className="inline-flex items-center gap-1.5 text-[13px] text-ink-2">
+                {item.status === "approved" && note && <DrawnCheck className="text-blue" />}{status}
+              </motion.span>
+            </AnimatePresence>
           </div>
           {problem && <p className="mt-2 text-[13.5px] text-red">{problem}</p>}
         </div>

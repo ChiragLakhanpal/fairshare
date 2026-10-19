@@ -1,4 +1,5 @@
-// What an agent does, in order: the explanation when idle, the live progress while it runs.
+// What an agent does, in order: the explanation when idle, the live progress while it runs. A step fills in with a short
+// transition and the line to the next step fills left to right, so progress reads as movement, not as a swap.
 import { copy } from "../copy";
 import type { StepState } from "../lib/runs";
 import type { AgentStep } from "../lib/types";
@@ -15,14 +16,18 @@ export function Stepper({ steps, states, line, fraction, note }: Props) {
           const st = states[i] ?? "idle";
           return (
             <li key={s.key} className="contents">
-              <div className={`flex w-[118px] shrink-0 flex-col items-center gap-2 text-center leading-[1.3] ${st === "idle" ? "text-grey" : "text-ink"}`} aria-current={st === "current" ? "step" : undefined}>
-                <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 text-[12px] font-semibold ${st === "done" ? "border-blue bg-blue text-white" : st === "current" ? "border-blue bg-white" : "border-line bg-white text-ink-2"}`}>
+              <div className={`flex w-[118px] shrink-0 flex-col items-center gap-2 text-center leading-[1.3] transition-colors duration-200 ${st === "idle" ? "text-grey" : "text-ink"}`} aria-current={st === "current" ? "step" : undefined}>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 text-[12px] font-semibold transition-[background-color,border-color,color] duration-200 ${st === "done" ? "border-blue bg-blue text-white" : st === "current" ? "border-blue bg-white" : "border-line bg-white text-ink-2"}`}>
                   {st === "done" ? <Check width={12} height={12} strokeWidth={3} /> : st === "current" ? <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue" /> : i + 1}
                 </span>
                 <span className="text-[13px] font-semibold">{s.title}</span>
                 <span className={`-mt-1 text-[12px] ${st === "idle" ? "text-grey" : "text-ink-2"}`}>{s.sub}</span>
               </div>
-              {i < steps.length - 1 && <div className={`mt-[13px] h-0.5 min-w-3 flex-1 ${st === "done" ? "bg-blue" : "bg-line-2"}`} aria-hidden="true" />}
+              {i < steps.length - 1 && (
+                <div className="mt-[13px] h-0.5 min-w-3 flex-1 overflow-hidden rounded bg-line-2" aria-hidden="true">
+                  <div className="h-full bg-blue transition-[width] duration-300 ease-out" style={{ width: st === "done" ? "100%" : "0%" }} />
+                </div>
+              )}
             </li>
           );
         })}

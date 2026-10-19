@@ -136,9 +136,14 @@ export const copy = {
   defCheck: (when: string, n: number) => `Power BI uses the same definition. The two were compared on ${when} and all ${n.toLocaleString("en-US")} values matched.`,
   defCheckDrift: (when: string, n: number) => `Power BI uses the same definition. The two were compared on ${when} and ${n} values did not match.`,
   showFormula: "Show the formula",
+  defLoading: "Loading the check against Power BI.",
   showEveryCheck: "Show every check",
   closeWindow: "Close this window",
   emptyMovers: "There is no decomposition for this month yet.",
+  signalsTitle: "Worth knowing this month",
+  signalsRelated: (month: string) => `Worth knowing for ${month}:`,
+  waitingHome: (n: number) => `${capital(numberWord(n))} ${n === 1 ? "page waits" : "pages wait"} for your decision in Delegate.`,
+  openDelegate: "Open Delegate",
 
   // Delegate: the agents, their runs and approvals. Full sentences a 10th grader follows; the CRM is always "the CRM stand-in".
   modeAsk: "Ask",

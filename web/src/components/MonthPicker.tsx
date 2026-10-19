@@ -28,7 +28,7 @@ export function MonthPicker({ months, value, onChange }: { months: string[]; val
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="start" sideOffset={6} aria-label={copy.monthPicker} className="z-30 w-[352px] rounded-xl border border-line bg-white p-3.5 shadow-xl">
+        <Popover.Content align="start" sideOffset={6} aria-label={copy.monthPicker} className="menu z-30 w-[352px] rounded-xl border border-line bg-white p-3.5 shadow-xl">
           <div className="flex items-center justify-between px-1 pb-2.5">
             <button type="button" aria-label={copy.yearBefore} className={nav} disabled={year <= minYear} onClick={() => setYear(String(Number(year) - 1))}><ChevronLeft width={14} height={14} /></button>
             <span className="text-[15px] font-semibold">{year}</span>

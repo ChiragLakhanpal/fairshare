@@ -18,7 +18,13 @@ with made-up agencies on top. One screen, one Monday."
 
 **1:00 The app opens on the month (two minutes).** All regions, September. "This is what an account manager sees on Monday:
 one sentence, five numbers, the three agencies that moved, who is behind pace. Hover a word like fair share and you get the
-definition; click it and you get the Power BI check." Then the sidebar: "Write my Monday brief." Point at the checks: "every
+definition; click it and you get the Power BI check." Then the block under it, "Worth knowing this month": "before I ask
+anything, it tells me what deserves attention: Summit two points from an incentive tier worth $188K, Harbor at 96% of its
+revenue commitment with $46K of incentive at stake, a $5M renewal the CRM calls on track while share fell ten points, the
+largest capacity move, last week's corporate bookings. No model wrote these. Each is a fixed query and a template sentence,
+checked like every other sentence here; hover a number and it says which query it came from. The suggested questions under
+the chat bar follow these lines, and each line has one action: ask, or open the page in Delegate that already holds the
+drafted note." Then the sidebar: "Write my Monday brief." Point at the checks: "every
 sentence here was checked against its query; the brief tells you when it removed one." If a red box appears: "this sentence
 the model wrote on its own; no query supports it, so it never reaches the VP. A person still presses Approve, and that opens
 the email." Do not fake it; the brief says exactly what it removed.

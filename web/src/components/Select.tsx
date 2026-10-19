@@ -17,7 +17,7 @@ export function Select({ label, value, options, onChange, disabled }: Props) {
         </button>
       </Dropdown.Trigger>
       <Dropdown.Portal>
-        <Dropdown.Content align="start" sideOffset={6} aria-label={label} className="z-30 min-w-[var(--radix-dropdown-menu-trigger-width)] rounded-xl border border-line bg-white p-1.5 shadow-xl">
+        <Dropdown.Content align="start" sideOffset={6} aria-label={label} className="menu z-30 min-w-[var(--radix-dropdown-menu-trigger-width)] rounded-xl border border-line bg-white p-1.5 shadow-xl">
           <Dropdown.RadioGroup value={value} onValueChange={onChange}>
             {options.map((o) => (
               <Dropdown.RadioItem key={o.value} value={o.value}

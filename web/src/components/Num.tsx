@@ -16,7 +16,7 @@ export function Num({ n, facts, onOpen }: { n: N; facts: HintFact[]; onOpen?: (s
           onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && n.source) { e.preventDefault(); onOpen?.(n.source); } }}>{n.raw}</span>
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content side="bottom" align="start" sideOffset={6} className="z-30 max-w-[320px] rounded-md bg-ink px-3 py-2 text-[13px] leading-snug text-white shadow-lg">{hint}</Tooltip.Content>
+        <Tooltip.Content side="bottom" align="start" sideOffset={6} className="menu z-30 max-w-[320px] rounded-md bg-ink px-3 py-2 text-[13px] leading-snug text-white shadow-lg">{hint}</Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
   );

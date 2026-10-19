@@ -1,16 +1,19 @@
 // One agent: what it does, the scope and Run now, the stepper that becomes the progress, and its pages: the ones waiting
 // for a decision first, then the decided ones. With a page open, the pages move to a narrow list beside the document.
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import { api } from "../lib/api";
 import { toast } from "../lib/export";
 import { monthLabel } from "../lib/format";
+import { ENTER, LEAVE, rise, stagger } from "../lib/motion";
 import { barFraction, nounFor, pageLine, progressLine, stepStates } from "../lib/runs";
 import type { AgentDef, AgentScope, AgentsCatalog, Item, Page, PageVersion, Run, Scope } from "../lib/types";
 import { Document } from "./Document";
-import { ChevronLeft, Play } from "./Icons";
+import { ChevronLeft, Play, Spinner } from "./Icons";
 import { ItemRow, QueuedRow, WritingRow } from "./ItemRows";
 import { Select } from "./Select";
+import { Rows } from "./Skeleton";
 import { Stepper } from "./Stepper";
 
 type Props = {
@@ -20,6 +23,7 @@ type Props = {
 };
 
 export function AgentView({ agent, catalog, scope, run, runLoading, runError, itemId, starting, onRun, onOpenVersion, onItemChange }: Props) {
+  const reduced = useReducedMotion();
   const [noun, nouns] = nounFor(agent.key);
   const [manager, setManager] = useState(catalog.managers[0] ?? "");
   const [market, setMarket] = useState(catalog.markets[0]?.market ?? "");
@@ -39,6 +43,7 @@ export function AgentView({ agent, catalog, scope, run, runLoading, runError, it
   const count = copy.pagesCount(pages.length, noun, nouns, agent.waiting);
   const selected = run && itemId ? run.items.find((i) => i.item_id === itemId) ?? null : null;
   const page = itemId ? pages.find((p) => p.versions.some((v) => v.item_id === itemId)) ?? null : null;
+  const enter = (i: number) => ({ initial: reduced ? false : rise.initial, animate: rise.animate, transition: { duration: 0.22, delay: stagger(i) } });
 
   // Several pages at once: the waiting ones carry a checkbox; a bar below the list approves or rejects the picked ones, one call per run.
   const waitingPages = pages.filter((p) => p.status === "draft");
@@ -70,13 +75,15 @@ export function AgentView({ agent, catalog, scope, run, runLoading, runError, it
     return (
       <div className="flex h-[calc(100vh-56px)] min-h-0">
         <aside className="w-[300px] shrink-0 overflow-y-auto border-r hairline bg-surface/50 px-3 py-4" aria-label={count}>
-          <button type="button" onClick={() => onOpenVersion(null)} className="press mb-3 inline-flex items-center gap-1 px-3.5 text-[14px] font-medium text-blue hover:underline"><ChevronLeft width={14} height={14} />{agent.name}</button>
+          <button type="button" onClick={() => onOpenVersion(null)} className="group press mb-3 inline-flex items-center gap-1 px-3.5 text-[14px] font-medium text-blue hover:underline"><ChevronLeft width={14} height={14} />{agent.name}</button>
           <div className="t-label px-3.5 pb-2">{count}</div>
           <div className="flex flex-col gap-1">
             {pages.map((p) => <ItemRow key={p.item_id} compact title={p.title} summary={p.summary || p.subtitle} severity={p.severity} right={p.status === "draft" ? "" : pageLine(p)} selected={p === page} onOpen={() => onOpenVersion(p)} />)}
           </div>
         </aside>
-        <Document runId={run.run_id} item={selected} versions={page?.versions ?? []} onOpenVersion={onOpenVersion} onChange={onItemChange} />
+        <motion.div key={selected.item_id} initial={reduced ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <Document runId={run.run_id} item={selected} versions={page?.versions ?? []} onOpenVersion={onOpenVersion} onChange={onItemChange} />
+        </motion.div>
       </div>
     );
   }
@@ -94,8 +101,8 @@ export function AgentView({ agent, catalog, scope, run, runLoading, runError, it
         {agent.scope_kind === "manager" && <Select label={copy.pickManager} value={manager} options={catalog.managers.map((m) => ({ value: m, label: m }))} onChange={setManager} disabled={running || starting} />}
         {agent.scope_kind === "market" && <Select label={copy.pickMarket} value={market} options={catalog.markets.map((m) => ({ value: m.market, label: m.market }))} onChange={setMarket} disabled={running || starting} />}
         <button type="button" onClick={start} disabled={running || starting || !ready}
-          className={`press inline-flex h-[34px] items-center gap-2 rounded-md px-4 text-[14px] font-semibold text-white ${running || starting ? "bg-grey" : "bg-blue hover:bg-navy"} disabled:cursor-default`}>
-          {running ? copy.running : starting ? copy.runStarting : <><Play width={11} height={11} />{copy.runNow}</>}
+          className={`press inline-flex h-[34px] items-center gap-2 rounded-md px-4 text-[14px] font-semibold text-white transition-colors ${running || starting ? "bg-grey" : "bg-blue hover:bg-navy"} disabled:cursor-default`}>
+          {running ? <><Spinner width={13} height={13} />{copy.running}</> : starting ? <><Spinner width={13} height={13} />{copy.runStarting}</> : <><Play width={11} height={11} />{copy.runNow}</>}
         </button>
         <span className="text-[13px] text-ink-2">{agent.scope_kind === "region" ? copy.scopeFromFilters(regionLabel) : copy.timeHint(live?.progress.total || null, nouns)}</span>
       </div>
@@ -120,25 +127,30 @@ export function AgentView({ agent, catalog, scope, run, runLoading, runError, it
           {running && live && live.progress.total > live.progress.done && <WritingRow title={live.progress.item ?? copy.nextUp(noun)} />}
           {running && Array.from({ length: queued }).map((_, k) => <QueuedRow key={k} label={copy.nextUp(noun)} last={k === queued - 1 && pages.length === 0} />)}
           {pages.map((p, k) => (
-            <ItemRow key={p.item_id} title={p.title} summary={p.summary || p.subtitle} severity={p.severity} right={pageLine(p)} last={k === pages.length - 1} onOpen={() => onOpenVersion(p)}
-              checked={picked.includes(p.item_id)} onCheck={p.status === "draft" && waitingPages.length > 1 ? (on) => pick(p, on) : undefined} />
+            <motion.div key={p.item_id} {...enter(k)}>
+              <ItemRow title={p.title} summary={p.summary || p.subtitle} severity={p.severity} right={pageLine(p)} last={k === pages.length - 1} onOpen={() => onOpenVersion(p)}
+                checked={picked.includes(p.item_id)} onCheck={p.status === "draft" && waitingPages.length > 1 ? (on) => pick(p, on) : undefined} />
+            </motion.div>
           ))}
           {!running && pages.length === 0 && !runError && (
-            runLoading ? <p className="text-[13.5px] text-ink-2">{copy.runLoading}</p>
+            runLoading ? <Rows n={3} label={copy.runLoading} />
               : <p className="text-[14px] text-ink-2">{agent.last_run && agent.last_run.status !== "failed" ? copy.lastRunEmpty : copy.noRunsForAgent}</p>
           )}
         </div>
-        {pickedPages.length > 0 && (
-          <div className="sticky bottom-0 mt-2 border-t hairline bg-white/95 py-3 backdrop-blur" role="region" aria-label={copy.selectedCount(pickedPages.length, noun, nouns)}>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-[14px] font-semibold">{copy.selectedCount(pickedPages.length, noun, nouns)}</span>
-              <button type="button" onClick={() => void decideAll(true)} disabled={deciding} className="press rounded-lg bg-blue px-4 py-2 text-[14px] font-semibold text-white hover:bg-navy disabled:opacity-60">{copy.approveSelected}</button>
-              <button type="button" onClick={() => void decideAll(false)} disabled={deciding} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink hover:border-blue hover:text-blue">{copy.rejectSelected}</button>
-              <button type="button" onClick={() => setPicked([])} disabled={deciding} className="press text-[14px] font-medium text-blue hover:underline">{copy.clearSelection}</button>
-              <span className="text-[13px] text-ink-2">{copy.bulkHint}</span>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {pickedPages.length > 0 && (
+            <motion.div initial={reduced ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0, transition: ENTER }} exit={{ opacity: 0, y: 16, transition: LEAVE }}
+              className="sticky bottom-0 mt-2 border-t hairline bg-white/95 py-3 backdrop-blur" role="region" aria-label={copy.selectedCount(pickedPages.length, noun, nouns)}>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-[14px] font-semibold">{copy.selectedCount(pickedPages.length, noun, nouns)}</span>
+                <button type="button" onClick={() => void decideAll(true)} disabled={deciding} className="press inline-flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-navy disabled:opacity-60">{deciding && <Spinner width={13} height={13} />}{copy.approveSelected}</button>
+                <button type="button" onClick={() => void decideAll(false)} disabled={deciding} className="press rounded-lg border border-line bg-white px-3.5 py-2 text-[14px] font-semibold text-ink transition-colors hover:border-blue hover:text-blue">{copy.rejectSelected}</button>
+                <button type="button" onClick={() => setPicked([])} disabled={deciding} className="press text-[14px] font-medium text-blue hover:underline">{copy.clearSelection}</button>
+                <span className="text-[13px] text-ink-2">{copy.bulkHint}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

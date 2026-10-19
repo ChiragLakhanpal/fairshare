@@ -12,6 +12,28 @@ const summary = {
   movers: [{ agency_id: 5, agency: "Harbor Business Travel", region: "East", share_now_pct: 34.2, share_prior_pct: 44.3, share_chg_pts: -10.1, revenue_now: 330114, yoy_pct: -16.4 }],
   behind_pace: [{ agency_id: 5, agency: "Harbor Business Travel", pace_pct: 96.1, aa_revenue: 330114, yoy_pct: -16.4 }], calls: [], agency_count: 4,
 };
+// What the home page says is worth knowing: one line about an agency (its action opens Delegate) and one about the network (its action asks).
+const signals = {
+  region: "All", month: "2026-09",
+  signals: [
+    { kind: "clause", severity: "watch", agency: "Harbor Business Travel", chip: "What does Harbor Business Travel's agreement say about its revenue commitment?",
+      sentence: { text: "Harbor Business Travel is at 96.1% of its revenue commitment, with $46K of advanced incentive at risk.", status: "verified",
+        numbers: [{ raw: "96.1%", source: "signals#1", fact: "value_pct=96.1" }, { raw: "$46K", source: "signals#1", fact: "dollars=46357.0" }] },
+      action: { kind: "delegate", agent: "watch", label: "Open Agreement watch" } },
+    { kind: "capacity", severity: "watch", agency: null, chip: "How did AA's seats on ORD-SFO change against last year?",
+      sentence: { text: "AA cut seats 4.4% on ORD-SFO against last September, and fair share there fell 1.3 points, the largest capacity move this month.", status: "verified",
+        numbers: [{ raw: "4.4%", source: "signals#2", fact: "seats_yoy_pct=-4.4" }, { raw: "1.4 points", source: "signals#2", fact: "fair_chg_pts=-1.3" }] },
+      action: { kind: "ask", question: "How did AA's seats on ORD-SFO change against last year?", label: "Ask about the market" } },
+  ],
+  calls: [
+    { i: 1, tool: "signals", args: { block: "agreement checks", table: "ops.agreement_checks" }, sql: "SELECT 1", rows: 1, note: "", preview: [{ agency_name: "Harbor Business Travel", value_pct: 96.1, dollars: 46357 }], genie: null, ms: 0 },
+    { i: 2, tool: "signals", args: { block: "capacity moves", table: "gold.fact_market_capacity" }, sql: "SELECT 2", rows: 1, note: "", preview: [{ market: "ORD-SFO", seats_yoy_pct: -4.4, fair_chg_pts: -1.3 }], genie: null, ms: 0 },
+  ],
+};
+const catalog = {
+  agents: [{ key: "watch", name: "Agreement watch", summary: "", one_liner: "", cadence: "", steps: [], reads: [], writes: [], approver: "", scope_kind: "region", last_run: null, waiting: 2, running: null, pages: [] }],
+  managers: [], markets: [], crm_label: "the CRM stand-in",
+};
 const allRemoved = [
   'id: 1\nevent: status\ndata: {"type":"status","phase":"model","text":"I am reading your question and choosing the query.","t_ms":0}\n\n',
   'id: 2\nevent: answer\ndata: {"question":"q","text":"Harbor sold $999K. Source: ask_metrics.","model":"x","kind":"numbers","sentences":[{"text":"Harbor sold $999K.","status":"flagged","numbers":[{"raw":"$999K","source":null,"fact":null}]},{"text":"Source: ask_metrics.","status":"note","numbers":[]}],"removed":[{"sentence":"Harbor sold $999K.","reason":"no query supports $999K"}],"could_not_verify":[],"verified_text":"Source: ask_metrics.","calls":[],"sources":[],"follow_ups":[],"genie_conversation_id":null,"timing":{"total_ms":1,"tools_ms":0},"cached":null,"trace_url":null}\n\n',
@@ -41,6 +63,8 @@ test.afterAll(() => slow.close());
 async function mock(page: Page) {
   await page.route("**/api/me", (r) => r.fulfill({ json: me }));
   await page.route("**/api/summary**", (r) => r.fulfill({ json: summary }));
+  await page.route("**/api/signals**", (r) => r.fulfill({ json: signals }));
+  await page.route("**/api/agents", (r) => r.fulfill({ json: catalog }));
   await page.route("**/api/definitions", (r) => r.fulfill({ json: { kpis: [{ kpi: "fair_share", display_name: "Fair share", definition_en: "The exact wording.", metric_view_expr: "SUM(x)", dax_twin: "", twin_sql: "" }], parity: { run_id: "a", run_at: "2026-10-12T07:49:32", kpis: 6, rows: 1500, drift: 0, grid: {}, drifting: [], source: "csv" }, runs: [] } }));
   await page.route("**/api/ask", (r) => r.fulfill({ status: 200, headers: { "content-type": "text/event-stream" }, body: sse }));
 }
@@ -158,4 +182,54 @@ test("while an answer is in flight the steps show their workings and a running c
   await expect(page.getByText(/^[2-9] s$/)).toBeVisible();
   await expect(page.getByText("Harbor sold $330K, down 16.4%.")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("I am running a query on your data.")).toHaveCount(0);
+});
+
+test("the first screen says what is worth knowing, suggests questions from it, and a line's action asks", async ({ page }) => {
+  await mock(page);
+  await page.goto("/");
+  await expect(page.getByText("Two pages wait for your decision in Delegate.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Worth knowing this month" })).toBeVisible();
+  await expect(page.getByText(/Harbor Business Travel is at 96\.1% of its revenue commitment/)).toBeVisible();
+  // the chips come from the signals while a model is connected
+  await expect(page.getByRole("button", { name: "What does Harbor Business Travel's agreement say about its revenue commitment?" })).toBeVisible();
+  // a checked number says what it is and where it came from (the webfont arriving reflows the line, so wait for it before hovering)
+  await page.evaluate(() => document.fonts.ready);
+  await page.getByText("$46K", { exact: true }).hover();
+  await expect(page.getByRole("tooltip")).toContainText('It came from "agreement checks", which read ops.agreement_checks.');
+  // a line's action sends its question; the answer about Harbor carries the related line about Harbor
+  await page.getByRole("button", { name: "Ask about the market" }).click();
+  await expect(page.locator("section").getByText("How did AA's seats on ORD-SFO change against last year?", { exact: true })).toBeVisible();
+  await expect(page.getByText("Harbor sold $330K, down 16.4%.")).toBeVisible();
+  await expect(page.getByText(/Worth knowing for September 2026: Harbor Business Travel is at 96\.1%/)).toBeVisible();
+});
+
+test("loading is a skeleton, not a line of text, and the mode switch lands on the Delegate overview", async ({ page }) => {
+  await mock(page);
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  await page.route("**/api/summary**", async (r) => { await wait(1200); await r.fulfill({ json: summary }); });
+  await page.route("**/api/agents", async (r) => { await wait(2500); await r.fulfill({ json: catalog }); });
+  await page.goto("/");
+  const busy = page.locator('[aria-busy="true"]');
+  await expect(busy.first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: summary.headline })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("heading", { name: "Worth knowing this month" })).toBeVisible();
+  await page.getByRole("button", { name: "Delegate", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Delegate", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(busy.first()).toBeVisible();
+  await expect(page.getByText("Loading the agents.")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("button", { name: /Agreement watch/ }).first()).toBeVisible();
+  await expect(busy).toHaveCount(0);
+});
+
+test("an answer types itself out, and its checks and buttons appear once it has", async ({ page }) => {
+  await mock(page);
+  await page.goto("/");
+  await page.getByLabel("Ask a question").fill("Why is Harbor down this month?");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".caret")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show the query" })).toHaveCount(0);
+  await expect(page.getByText("Harbor sold $330K, down 16.4%.")).toBeVisible();
+  await expect(page.locator(".caret")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Show the query" })).toBeVisible();
 });

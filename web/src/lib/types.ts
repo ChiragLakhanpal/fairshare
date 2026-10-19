@@ -53,6 +53,11 @@ export type Definitions = {
   runs: { run_id: string; run_at: string; kpis: number; rows: number; drift: number }[];
 };
 
+export type SignalAction = { kind: "ask"; question: string; label: string } | { kind: "delegate"; agent: string; label: string } | { kind: "definitions"; kpi: string; label: string };
+/** One "worth knowing" line on the home page: a sentence checked against its own query, the agency it is about, one action, a question for the chips. */
+export type Signal = { kind: string; severity: Severity; agency: string | null; sentence: Sentence; action: SignalAction; chip: string | null };
+export type Signals = { region: string; month: string; signals: Signal[]; calls: Call[] };
+
 export type RunStatus = "running" | "needs_approval" | "approved" | "rejected" | "failed" | "superseded";
 export type ItemStatus = "draft" | "approved" | "rejected" | "superseded";
 export type AgentScope = { manager?: string; region?: string; month?: string; market?: string };
@@ -92,5 +97,6 @@ export type Run = {
 export type Turn = {
   role: "user" | "assistant"; text: string; at: number;
   answer?: Answer; brief?: Brief; error?: ApiError; steps?: Step[]; pending?: boolean;
+  fresh?: boolean;   // just arrived: it types itself out once, then the flag clears
 };
 export type Conversation = { id: string; title: string; createdAt: number; updatedAt: number; scope: Scope; genieConversationId?: string | null; turns: Turn[] };

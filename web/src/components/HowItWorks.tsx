@@ -4,6 +4,7 @@ import { copy } from "../copy";
 import { api } from "../lib/api";
 import type { Evals, Me } from "../lib/types";
 import { Check, ChevronRight, Close, External } from "./Icons";
+import { TableRows } from "./Skeleton";
 
 const PATH = [
   ["Your data", "Agency sales, seats, goals and agreements"],
@@ -53,8 +54,8 @@ export function HowItWorks({ open, onOpenChange, me }: { open: boolean; onOpenCh
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/30" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[min(760px,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-xl bg-white px-7 pb-6 pt-6 shadow-2xl">
+        <Dialog.Overlay className="overlay fixed inset-0 z-40 bg-ink/30" />
+        <Dialog.Content className="dialog fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[min(760px,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-xl bg-white px-7 pb-6 pt-6 shadow-2xl">
           <div className="flex items-baseline justify-between gap-4">
             <Dialog.Title className="text-xl font-semibold tracking-tight">{copy.howTitle}</Dialog.Title>
             <Dialog.Close aria-label={copy.closeWindow} className="text-ink-2 hover:text-ink"><Close width={20} height={20} /></Dialog.Close>
@@ -73,7 +74,7 @@ export function HowItWorks({ open, onOpenChange, me }: { open: boolean; onOpenCh
           </div>
           <div>
             <div className="t-label">{copy.howScores}</div>
-            {evals === undefined && <p className="mt-2 text-[13px] text-ink-2">{copy.howLoading}</p>}
+            {evals === undefined && <div className="mt-3"><TableRows n={8} label={copy.howLoading} /></div>}
             {evals === null && <p className="mt-2 text-[13px] text-ink-2">{copy.howUnavailable}</p>}
             {evals && (
               <>

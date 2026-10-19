@@ -26,7 +26,7 @@ export function ItemRow({ title, summary, severity, right, onOpen, selected, com
   if (compact) {
     return (
       <button type="button" onClick={onOpen} aria-current={selected ? "true" : undefined} aria-label={title}
-        className={`press block w-full rounded-[10px] px-3.5 py-2.5 text-left ${selected ? "bg-white shadow-sm" : "hover:bg-white/70"}`}>
+        className={`press block w-full rounded-[10px] px-3.5 py-2.5 text-left transition-colors ${selected ? "bg-white shadow-sm" : "hover:bg-white/70"}`}>
         <span className="flex items-center gap-2"><SeverityDot s={severity} /><span className="min-w-0 flex-1 truncate font-semibold text-ink">{title}</span><span className="shrink-0 text-[12px] text-ink-2">{right}</span></span>
         <span className="mt-0.5 block pl-4 text-[13px] leading-[1.4] text-ink-2">{summary}</span>
       </button>
@@ -34,12 +34,12 @@ export function ItemRow({ title, summary, severity, right, onOpen, selected, com
   }
   const row = (
     <button type="button" onClick={onOpen} aria-label={title}
-      className={`press grid min-w-0 flex-1 grid-cols-[10px_230px_minmax(0,1fr)_auto_16px] items-center gap-3.5 px-2 py-3 text-left text-[15px] text-ink hover:bg-surface/60 ${checked ? "bg-tint/40" : ""}`}>
+      className={`group press grid min-w-0 flex-1 grid-cols-[10px_230px_minmax(0,1fr)_auto_16px] items-center gap-3.5 px-2 py-3 text-left text-[15px] text-ink transition-colors hover:bg-surface/60 ${checked ? "bg-tint/40" : ""}`}>
       <SeverityDot s={severity} />
       <span className="font-medium">{title}</span>
       <span className="leading-[1.45]">{summary}</span>
       <span className="whitespace-nowrap text-[12.5px] text-ink-2">{right}</span>
-      <ChevronRight className="text-grey" />
+      <ChevronRight className="nudge text-grey" />
     </button>
   );
   return (

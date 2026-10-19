@@ -28,3 +28,4 @@ export const Trash = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="
 export const ChatIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M21 12a8 8 0 01-8 8H8l-5 3 1.5-4.5A8 8 0 1121 12z" /></svg>;
 export const Agents = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><rect x="4" y="8" width="16" height="12" rx="3" /><path d="M12 8V4M8 4h8M9 14h.01M15 14h.01M9 17h6" /></svg>;
 export const Play = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)} fill="currentColor" stroke="none"><path d="M7 5v14l12-7z" /></svg>;
+export const Spinner = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)} strokeWidth={2.5} className={`animate-spin ${p.className ?? ""}`}><path d="M12 3a9 9 0 019 9" /></svg>;

@@ -9,7 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from fairshare import db, dbx
 from fairshare.db import ROOT
-from harness import agent as harness_agent, facts, summary, tools
+from harness import agent as harness_agent, facts, signals, summary, tools
 from harness.tools import explain_change
 from server import drafts, validate
 from server.context import Viewer, viewer
@@ -79,6 +79,16 @@ async def get_summary(region: str, month: str, v: Viewer = Depends(viewer)):
               for b in records(f["behind_pace"], 100)]
     return {"region": region, "month": month, "prior_month": _prior(month), "kpis": kpis, "movers": records(f["movers"]),
             "behind_pace": behind, "agency_count": int(len(f["agencies"])), "headline": summary.headline(f, month), "calls": calls_json(ctx.calls)}
+
+
+@router.get("/signals")
+async def get_signals(region: str, month: str, v: Viewer = Depends(viewer)):
+    """What is worth knowing this month: ranked lines from fixed queries, each verified against its own rows, no model.
+    Loaded beside the summary so the five numbers never wait for it."""
+    region, month = validate.scope(region, month)
+    ctx = facts.reset()
+    lines = await run_in_threadpool(signals.build, region, month)
+    return {"region": region, "month": month, "signals": lines, "calls": calls_json(ctx.calls)}
 
 
 @router.get("/explain")

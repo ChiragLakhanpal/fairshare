@@ -19,7 +19,7 @@ export function Term({ kpi, children, onOpen }: { kpi: string; children: ReactNo
           <button type="button" className="term inline cursor-help bg-transparent p-0 text-inherit" onClick={() => (onOpen ? onOpen(kpi) : window.dispatchEvent(new CustomEvent("fairshare:kpi", { detail: kpi })))}>{children}</button>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content side="bottom" align="start" sideOffset={6} className="z-30 max-w-[300px] rounded-md bg-ink px-3 py-2 text-[13px] leading-snug text-white shadow-lg">
+          <Tooltip.Content side="bottom" align="start" sideOffset={6} className="menu z-30 max-w-[300px] rounded-md bg-ink px-3 py-2 text-[13px] leading-snug text-white shadow-lg">
             {ONE_LINE[kpi] ?? kpi} Click the word for the full definition and how it is checked.
           </Tooltip.Content>
         </Tooltip.Portal>

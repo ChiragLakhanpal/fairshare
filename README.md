@@ -10,7 +10,12 @@ the same metric view, standing in for Power BI: pace, share against fair share, 
 *where* and stops there. The app is what happens next: one screen that opens on the month's summary, with a chat bar over
 it, built for people who do not write SQL.
 
-1. **The summary**: one sentence, five numbers, the three agencies that moved, who is behind pace. Every KPI word opens its
+1. **The summary**: one sentence, five numbers, the three agencies that moved, who is behind pace. Under them, what is worth
+   knowing this month before anyone asks: the clauses close to their line with the dollars at stake, a deal the CRM calls
+   healthy while share fell, a share streak, the largest capacity move, last week's corporate bookings. Each line is template
+   prose from a fixed query (`harness/signals.py`), checked by the verifier like every other sentence, with one action (ask,
+   open the Delegate page, open the definition); the suggested questions under the chat bar follow these lines, and an answer
+   about an agency carries the line about that agency. No model runs on this page. Every KPI word opens its
    definition and the Power BI check. "Write my Monday brief" turns it into prose: every number is checked against its query,
    a sentence the model wrote that no query supports is removed and shown, and a person approves and sends.
 2. **Why**: ask why an agency is down. The change is decomposed into volume, mix and share, with a fair-share diagnostic
