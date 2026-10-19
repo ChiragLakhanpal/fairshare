@@ -74,7 +74,8 @@ BTS T-100 + synthetic agency layer + 4 agreements
      the mirrored catalog, the agency portal, the harness hosted in Microsoft Foundry
 ```
 
-`docs/architecture.svg` is the picture; `docs/walkthrough.md` is the ten-minute version.
+`docs/architecture.svg` is the picture; `docs/walkthrough.md` is the ten-minute version. `docs/diagrams/` holds the presentation diagrams,
+American Airlines branded, with slide images in `docs/diagrams/export/`.
 
 ## Run it
 

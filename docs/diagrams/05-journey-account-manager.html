@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account manager: Monday before agency calls</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #ffffff;
+      --color-ink:    #36495a;
+      --color-muted:  #5a7181;
+      --color-accent: #006cbf;
+      --font-sans:    'Inter', system-ui, sans-serif;
+      --font-mono:    'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+           display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1360px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+               text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-sans); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2.25rem); font-weight: 600;
+         letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+    .note { margin-top: 1rem; font-size: 0.875rem; line-height: 1.5; color: var(--color-muted); }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">fairshare · step by step</p>
+    <h1>Account manager: Monday before agency calls</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="05-journey-account-manager-title 05-journey-account-manager-desc">
+        <title id="05-journey-account-manager-title">Account manager: Monday before agency calls</title>
+        <desc id="05-journey-account-manager-desc">Sequence of Delegate's Monday pre-call pack: the nightly job asks the fairshare runtime for one page per agency, an AI Foundry writer drafts it from facts only, the verifier checks every number, and the page waits for the account manager, who approves it (the activity is logged and the email draft opens) or rejects it.</desc>
+        <rect width="100%" height="100%" fill="#ffffff"/>
+        <g data-brand="aa-logo" aria-hidden="true"><svg x="40" y="24" width="143.48" height="22" viewBox="0 0 300 46" aria-hidden="true"><linearGradient id="aa-logo-a" gradientUnits="userSpaceOnUse" x1="282.3005" x2="282.3005" y1="26.0772" y2="55.6668"><stop offset="0" stop-color="#ed1c24"/><stop offset=".1263" stop-color="#e81b23"/><stop offset=".2703" stop-color="#db1a21"/><stop offset=".4229" stop-color="#c4171d"/><stop offset=".5816" stop-color="#a41317"/><stop offset=".7436" stop-color="#7b0e10"/><stop offset=".7546" stop-color="#780e0f"/></linearGradient><linearGradient id="aa-logo-b" gradientUnits="userSpaceOnUse" x1="268.8272" x2="279.6261" y1="28.5396" y2="28.5396"><stop offset="0" stop-color="#69231d"/><stop offset=".2647" stop-color="#8d2922"/><stop offset=".5812" stop-color="#b22f26"/><stop offset=".8377" stop-color="#c93329"/><stop offset="1" stop-color="#d1342a"/></linearGradient><linearGradient id="aa-logo-c" gradientUnits="userSpaceOnUse" x1="267.6408" x2="279.6741" y1="26.9613" y2="19.731"><stop offset=".1" stop-color="#e7ebee"/><stop offset=".3511" stop-color="#d5dce0"/><stop offset=".8549" stop-color="#a5b4bb"/><stop offset="1" stop-color="#96a7b0"/></linearGradient><linearGradient id="aa-logo-d" gradientUnits="userSpaceOnUse" x1="261.0076" x2="261.0076" y1="20.8726" y2=".4301"><stop offset="0" stop-color="#1c2f72"/><stop offset=".1275" stop-color="#174687"/><stop offset=".4038" stop-color="#0d72af"/><stop offset=".6512" stop-color="#0692cc"/><stop offset=".8584" stop-color="#02a6de"/><stop offset="1" stop-color="#00ade4"/></linearGradient><path d="m274.15 41.58c2.61 4.29 6.78 4.2 7.89 4.2h13.41l-15.82-19.2c-7.3.3-11.16 4.98-10.37 6.94z" fill="url(#aa-logo-a)"/><path d="m269.26 33.53c-.02-.03-.43-1-.43-2.17 0-4.38 3.89-6.9 8.3-7.8l2.5 3.03c-7.3.29-11.16 4.97-10.37 6.94z" fill="url(#aa-logo-b)"/><path d="m275.36 19.27c-6.67 0-11.65 1.1-11.65 3.71 0 .96.3 1.79 1.12 3.26l4.43 7.28c-.02-.03-.43-1-.43-2.17 0-4.38 3.89-6.9 8.3-7.8 1.28-.26 2.6-.39 3.88-.39 1.08 0 2.1.06 2.88.34-.46-1.68-1.68-4.23-8.53-4.23z" fill="url(#aa-logo-c)"/><path d="m257.82 14.73c1.83 3.01 2.51 3.76 6.88 3.76h8.34l-11.5-14.52c-2.54-3.14-4-3.71-6.33-3.76h-6.23z" fill="url(#aa-logo-d)"/><path d="m130.35 36.68v-10.95c0-2.09-.95-3.37-2.74-3.37-2.37 0-3.94 2.52-3.94 5.92v8.4h-3.84s0-12.11 0-12.45c0-1.37-.13-3.37-.19-4.5h3.09c.35 0 .45.15.46.46.01.36.04 2.12.04 2.12h.09c.47-.8 1.65-2.93 5.2-2.93 3.66 0 5.71 2.5 5.71 5.31v12h-3.88zm-30.08-3.72c.1 0 .25.07.28.36.07.81.1 2.13.11 2.54-.77.39-2.44 1.14-4.48 1.14-5.14 0-8.28-2.98-8.28-8.81 0-5.46 2.8-8.82 8.28-8.82 1.82 0 3.49.64 4.48 1.14 0 .6-.06 1.97-.11 2.55-.02.24-.14.36-.28.36-.15 0-.2-.04-.3-.08-1.24-.61-2.4-.9-3.45-.9-3.27 0-4.61 2.14-4.61 5.76 0 3.22 1.08 5.75 4.61 5.75 1.35 0 2.58-.48 3.35-.85.2-.1.24-.14.4-.14zm13.3 3.72c-.31 0-.57-.1-.6-.55-.04-.55-.11-1.62-.11-1.62-.28.31-1.68 2.5-5.2 2.5-3.37 0-5.31-2.6-5.31-5.45 0-3.96 3.84-5.94 9.54-5.94h.76v-.62c0-1.78-1.26-2.73-3.62-2.73-2.12 0-3.89.75-4.57 1.09-.05.02-.17.1-.29.1-.18 0-.29-.11-.3-.31-.03-.64-.1-1.86-.11-2.64.69-.27 3-1.12 5.53-1.12 5.04 0 7.2 2.34 7.2 6.07v6.61c0 2.41.22 3.99.3 4.62 0-.01-2.95-.01-3.22-.01zm-.93-8.6s-.58 0-.65 0c-4.83 0-5.79 1.68-5.79 3.39 0 1.39.92 2.72 2.73 2.72 2.4 0 3.71-2.32 3.71-4.76zm-48.27 4.88c.21 0 .27.19.29.38.07.72.13 2.36.12 2.77-.41.13-2.48.89-5.26.89-5.4 0-8.64-2.79-8.64-8.81 0-5.15 2.77-8.82 7.75-8.82 4.88 0 7.21 3.27 7.21 7.32 0 .48-.05 1.28-.14 2.35h-10.87c0 2.9 1.85 4.98 5.25 4.98 1.88 0 3.38-.67 3.97-.96.11-.06.18-.1.32-.1zm-9.5-6.5h7.13c.15-2.73-1.28-4.26-3.45-4.26-2.27 0-3.57 1.64-3.68 4.26zm-10.64 10.22v-10.84c0-1.95-.83-3.47-2.82-3.47-2.25 0-3.54 2.46-3.54 5.9v8.42h-3.85v-10.89c0-1.78-.74-3.44-2.81-3.44-2.28 0-3.55 2.45-3.55 6.02v8.29h-3.85s0-10.71 0-12.35c0-1.59-.14-3.85-.19-4.6h3.08c.35 0 .46.11.47.47.01.45.04 2.1.04 2.1h.09c.24-.48 1.5-2.93 5.03-2.93 3.29 0 4.55 2.36 4.86 3.09.3-.64 1.77-3.09 5.08-3.09 3.45 0 5.8 1.85 5.8 5.57v11.74h-3.84zm28.42-8.27v8.27h-3.85s0-11.42 0-12.6c0-1.21-.14-3.52-.19-4.36h3.11c.33 0 .44.14.44.47.01.5.04 2.1.04 2.1h.09c.31-.73 1.4-2.93 4.59-2.93 1.07 0 1.87.34 2 .4 0 .73-.08 2.33-.12 2.76-.02.28-.15.37-.28.37s-.19-.03-.27-.06c-.24-.1-.8-.27-1.57-.27-2.06.01-3.99 1.49-3.99 5.85zm8.26 8.27v-16.95h3.84v16.95zm-.05-19.43v-3.72h3.94v3.72zm-62.88 19.43-1.77-5h-9.42l-1.77 5h-4.02l8.45-22.26h4.48l8.31 22.26zm-6.44-18.2h-.07l-3.6 10.18h7.28zm226.82 18.52c5.01 0 7.41-2.05 7.41-5.09 0-3-2.13-4.26-4.39-5-.65-.21-1.28-.42-1.87-.62-1.54-.51-2.35-1.18-2.35-2.18 0-1.06.96-1.8 2.97-1.8 1.78 0 3.24.73 3.81 1 .1.04.18.11.34.11.12 0 .27-.08.29-.38.04-.57.11-1.6.11-2.59-.47-.21-2.15-1.08-4.86-1.08-4.14 0-6.68 2.15-6.68 4.99 0 2.75 1.88 4.01 3.96 4.7.48.16 1.36.45 1.88.63 2.16.72 2.78 1.37 2.78 2.38 0 1.32-1.41 1.97-3.82 1.97-1.98 0-3.35-.73-3.9-.98-.11-.05-.18-.11-.33-.11-.28 0-.29.38-.29.44-.01.18-.1 1.94-.1 2.52.43.21 2.4 1.09 5.04 1.09zm-9.01-4.04c.21 0 .28.19.29.38.07.72.13 2.36.12 2.77-.41.13-2.48.89-5.26.89-5.4 0-8.64-2.79-8.64-8.8 0-5.16 2.77-8.83 7.74-8.83 4.89 0 7.21 3.27 7.21 7.32 0 .48-.05 1.28-.14 2.35h-10.87c0 2.89 1.85 4.97 5.25 4.97 1.88 0 3.37-.67 3.96-.96.13-.04.2-.09.34-.09zm-9.5-6.5h7.12c.15-2.73-1.29-4.26-3.45-4.26-2.26 0-3.56 1.64-3.67 4.26zm-10.65 10.22v-10.95c0-2.09-.95-3.37-2.74-3.37-2.37 0-3.94 2.52-3.94 5.92v8.4h-3.85s0-12.11 0-12.45c0-1.37-.13-3.37-.19-4.5h3.09c.35 0 .45.14.45.46.01.36.04 2.12.04 2.12h.09c.46-.8 1.65-2.93 5.19-2.93 3.66 0 5.7 2.5 5.7 5.31v12h-3.84zm-35.04-8.27v8.27h-3.86s0-11.42 0-12.6c0-1.21-.14-3.52-.19-4.35h3.11c.34 0 .43.14.44.47.01.5.03 2.1.03 2.1h.09c.3-.73 1.4-2.93 4.59-2.93 1.07 0 1.86.35 1.99.4 0 .73-.08 2.33-.12 2.75-.03.28-.15.37-.28.37s-.19-.03-.26-.06c-.24-.1-.8-.27-1.58-.27-2.03.01-3.96 1.49-3.96 5.85zm12.27 8.27v-23.13h-3.85v23.13zm-24.16 0v-16.95h3.85v16.95zm-.05-19.43v-3.72h3.94v3.72zm28.41 19.43v-16.95h3.85v16.95zm-.05-19.43v-3.72h3.94v3.72zm-34.15 19.43-1.76-5h-9.43l-1.77 5h-4.02l8.44-22.26h4.48l8.31 22.26zm-6.45-18.2h-.07l-3.6 10.18h7.28zm149.02 26.29c0 .57-.45 1.02-1.02 1.02s-1.02-.45-1.02-1.02c0-.56.45-1.02 1.02-1.02.57-.01 1.02.45 1.02 1.02zm-1.84 0c0 .45.37.82.82.82s.82-.37.82-.82-.37-.82-.82-.82c-.46-.01-.82.36-.82.82zm.79.06h-.09v.42h-.18v-1.02h.3c.23 0 .36.12.36.3 0 .21-.17.26-.2.27l.25.45h-.21zm-.02-.12c.15 0 .23-.07.23-.17s-.08-.17-.23-.17c-.05 0-.07.01-.07.01v.33c0-.01.04 0 .07 0z" fill="#36495a"/></svg><line x1="197.48" y1="27" x2="197.48" y2="43" stroke="#d0dae0" stroke-width="1"/><text x="211.48" y="38.0" fill="#5a7181" font-size="8" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">FAIRSHARE · SALES AI &amp; INNOVATION</text></g>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5a7181"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#006cbf"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5a7181" stroke-width="1.2"/></marker></defs>
+        <line x1="132" y1="144" x2="132" y2="644" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="380" y1="144" x2="380" y2="644" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="624" y1="144" x2="624" y2="644" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="872" y1="144" x2="872" y2="644" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="1128" y1="144" x2="1128" y2="644" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+        <rect x="524" y="420" width="632" height="208" rx="4" fill="rgba(54,73,90,0.02)" stroke="rgba(54,73,90,0.22)" stroke-width="1"/>
+        <rect x="524" y="420" width="40" height="16" rx="2" fill="#ffffff" stroke="rgba(54,73,90,0.22)" stroke-width="1"/>
+        <text x="544" y="432" fill="#5a7181" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.12em" text-anchor="middle">ALT</text>
+        <line x1="532" y1="552" x2="1148" y2="552" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="536" y="452" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">[approves]</text>
+        <text x="536" y="572" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">[rejects]</text>
+        <rect x="620" y="180" width="8" height="180" fill="rgba(54,73,90,0.06)" stroke="#5a7181" stroke-width="0.8"/>
+        <rect x="376" y="252" width="8" height="36" fill="rgba(54,73,90,0.06)" stroke="#5a7181" stroke-width="0.8"/>
+        <rect x="620" y="380" width="8" height="240" fill="rgba(54,73,90,0.06)" stroke="#5a7181" stroke-width="0.8"/>
+        <line x1="136" y1="184" x2="620" y2="184" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 628 212 L 660 212 L 660 228 L 628 228" fill="none" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="620" y1="256" x2="384" y2="256" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="384" y1="284" x2="620" y2="284" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <path d="M 628 312 L 660 312 L 660 328 L 628 328" fill="none" stroke="#006cbf" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <line x1="628" y1="356" x2="868" y2="356" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+        <line x1="868" y1="384" x2="628" y2="384" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="628" y1="412" x2="868" y2="412" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <line x1="868" y1="480" x2="628" y2="480" stroke="#006cbf" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <line x1="628" y1="508" x2="1124" y2="508" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="628" y1="536" x2="1124" y2="536" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 628 600 L 660 600 L 660 616 L 628 616" fill="none" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="174.5" y="162" width="163.0" height="16" rx="2" fill="#ffffff"/><text x="256.0" y="174" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">write one page per agency</tspan></text>
+        <rect x="668.0" y="198" width="156.8" height="16" rx="2" fill="#ffffff"/><text x="672" y="210" fill="#5a7181" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">fixed SQL: numbers, why,</tspan></text>
+        <rect x="668.0" y="212" width="138.2" height="16" rx="2" fill="#ffffff"/><text x="672" y="224" fill="#5a7181" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">agreement, open deals</tspan></text>
+        <rect x="436.0" y="234" width="132.0" height="16" rx="2" fill="#ffffff"/><text x="502.0" y="246" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">facts only, no tools</tspan></text>
+        <rect x="400.0" y="262" width="204.0" height="16" rx="2" fill="#ffffff"/><text x="502.0" y="274" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Geist Mono', ui-monospace, monospace">gpt-5-mini</tspan><tspan font-family="'Inter', system-ui, sans-serif"> drafts page + email</tspan></text>
+        <rect x="668.0" y="298" width="144.4" height="16" rx="2" fill="#ffffff"/><text x="672" y="310" fill="#006cbf" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">verifier: every number</tspan></text>
+        <rect x="668.0" y="312" width="57.6" height="16" rx="2" fill="#ffffff"/><text x="672" y="324" fill="#006cbf" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">vs. rows</tspan></text>
+        <rect x="641.7" y="334" width="212.6" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="346" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">page waits; older version retired</tspan></text>
+        <rect x="675.8" y="362" width="144.4" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="374" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">opens Delegate, Monday</tspan></text>
+        <rect x="641.7" y="390" width="212.6" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="402" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">numbers, why, cited clause, email</tspan></text>
+        <rect x="654.1" y="458" width="187.8" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="470" fill="#006cbf" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">approve (edits checked again)</tspan></text>
+        <rect x="638.9" y="486" width="218.2" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="498" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">log activity </tspan><tspan font-family="'Geist Mono', ui-monospace, monospace">ops.crm_activities</tspan></text>
+        <rect x="641.7" y="514" width="212.6" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="526" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">open the draft; app sends nothing</tspan></text>
+        <rect x="668.0" y="586" width="132.0" height="16" rx="2" fill="#ffffff"/><text x="672" y="598" fill="#5a7181" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">page closed, nothing</tspan></text>
+        <rect x="668.0" y="600" width="94.8" height="16" rx="2" fill="#ffffff"/><text x="672" y="612" fill="#5a7181" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">logged or sent</tspan></text>
+        <rect x="40" y="72" width="184" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
+        <svg x="122" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
+        <text x="132" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">Nightly job</text>
+        <text x="132" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">fairshare nightly, 6 am</text>
+        <rect x="280" y="72" width="200" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
+        <svg x="370" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M22.379 23.343a1.62 1.62 0 0 0 1.536-2.14v.002L17.35 1.76A1.62 1.62 0 0 0 15.816.657H8.184A1.62 1.62 0 0 0 6.65 1.76L.086 21.204a1.62 1.62 0 0 0 1.536 2.139h4.741a1.62 1.62 0 0 0 1.535-1.103l.977-2.892 4.947 3.675c.28.208.618.32.966.32m-3.084-12.531 3.624 10.739a.54.54 0 0 1-.51.713v-.001h-.03a.54.54 0 0 1-.322-.106l-9.287-6.9h4.853m6.313 7.006c.116-.326.13-.694.007-1.058L9.79 1.76a1.722 1.722 0 0 0-.007-.02h6.034a.54.54 0 0 1 .512.366l6.562 19.445a.54.54 0 0 1-.338.684" fill="#36495a"/></svg>
+        <text x="380" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">AI Foundry writer</text>
+        <text x="380" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">fairshare-precall-pack</text>
+        <rect x="524" y="72" width="200" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
+        <svg x="614" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
+        <text x="624" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">fairshare runtime</text>
+        <text x="624" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">ops.agent_runs</text>
+        <rect x="780" y="72" width="184" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
+        <svg x="862" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#36495a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
+        <text x="872" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">Account manager</text>
+        <text x="872" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Delegate mode</text>
+        <rect x="1016" y="72" width="224" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
+        <svg x="1102" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.805 11.322v4.889a2.536 2.536 0 0 1-1.643 2.374l-1.732.652a.507.507 0 0 1-.686-.475v-5.956l-3.392 1.239a1.015 1.015 0 0 0-.664.953v7.986c0 .705.7 1.195 1.363.953l10.161-3.713a2.535 2.535 0 0 0 1.666-2.382V7.696a2.537 2.537 0 0 1-1.666 2.381l-3.407 1.245Zm0-.532V9.323a2.537 2.537 0 0 0-1.645-2.375l-1.728-.65a.508.508 0 0 0-.686.475v4.59c0 .701-.695 1.191-1.355.956L3.795 9.963a1.015 1.015 0 0 1-.674-.956V1.015c0-.701.695-1.191 1.356-.955l14.718 5.256A2.538 2.538 0 0 1 20.83 7.21c-.136.861-1.05 2.128-1.79 2.398l-3.235 1.182Z" fill="#36495a"/></svg>
+        <svg x="1130" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.5V2.55q0-.44.3-.75.3-.3.75-.3h12.9q.44 0 .75.3.3.3.3.75V10.85l1.24.72h.01q.1.07.18.18.07.12.07.25zm-6-8.25v3h3v-3zm0 4.5v3h3v-3zm0 4.5v1.83l3.05-1.83zm-5.25-9v3h3.75v-3zm0 4.5v3h3.75v-3zm0 4.5v2.03l2.41 1.5 1.34-.8v-2.73zM9 3.75V6h2l.13.01.12.04v-2.3zM5.98 15.98q.9 0 1.6-.3.7-.32 1.19-.86.48-.55.73-1.28.25-.74.25-1.61 0-.83-.25-1.55-.24-.71-.71-1.24t-1.15-.83q-.68-.3-1.55-.3-.92 0-1.64.3-.71.3-1.2.85-.5.54-.75 1.3-.25.74-.25 1.63 0 .85.26 1.56.26.72.74 1.23.48.52 1.17.81.69.3 1.56.3zM7.5 21h12.39L12 16.08V17q0 .41-.3.7-.29.3-.7.3H7.5zm15-.13v-7.24l-5.9 3.54Z" fill="#36495a"/></svg>
+        <text x="1128" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">Dynamics 365 + Outlook</text>
+        <text x="1128" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">stand-in CRM</text>
+        <line x1="40" y1="656" x2="1240" y2="656" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>
+        <line x1="40" y1="674" x2="68" y2="674" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="76" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Request</text>
+        <line x1="150" y1="674" x2="178" y2="674" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="186" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Reply</text>
+        <line x1="248" y1="674" x2="276" y2="674" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+        <text x="284" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Notice, no reply</text>
+        <line x1="412" y1="674" x2="440" y2="674" stroke="#006cbf" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+        <text x="448" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Checked, then approved</text>
+        <text x="1240" y="678" fill="#36495a" font-size="14" font-family="'Inter', system-ui, sans-serif" font-style="italic" text-anchor="end">Today the account manager builds this by hand before every call.</text>
+      </svg>
+    </div>
+    <p class="note">Today's process is how the role was described in round one.</p>
+  </div>
+</body>
+</html>
