@@ -62,7 +62,7 @@ asking for, all 20 on the third run; every run is logged. The same twenty sit in
 grades Genie too: its judge gave 15 the first time, and it caught a percent multiplied by 100 that my matcher had let through;
 three instruction lines later, 20 under both judges." Open How it works in the app: the twenty questions, one row each, with
 the four marks (Genie, Databricks's judge, backed, judged) and the links out to the Benchmarks tab, MLflow and the job. Then the
-MLflow experiment: one trace per answer, model calls and tool calls in order.
+MLflow experiment: the laptop runs that had tracing on, one trace per answer, model calls and tool calls in order. The App runs without tracing, so a live answer there has no trace.
 Then one click: the same app running inside the workspace as a Databricks App, signed in as you (the sidebar says so). "SQL, Genie and the model run
 with the viewer's permissions, never a service principal's, so an agency user would only ever see their own rows. The model in
 there is Databricks-hosted Qwen3-Next, because a Free Edition app cannot reach Foundry; same harness, same verifier, and
@@ -98,7 +98,7 @@ director should want: rules, a review loop, a gate.
 - Why Agent Framework and not Agent Bricks Supervisor? Because the harness you described is Microsoft's; the demo puts a Genie agent inside it, which is the shape you said. Supervisor would be the all-Databricks version of the same thing.
 - Why not Genie agent mode for "why"? For a known "why" (volume, mix, share) a fixed decomposition is consistent across analysts; agent mode is for the open-ended exploration after that.
 - What about per-agency security? Genie runs as the asking user; Unity Catalog row filters do the rest; the harness carries the user's token, never a service principal.
-- How do you know it is right? Twenty questions with known answers before and after every change, the verifier on every answer, and traces for anything that goes wrong.
+- How do you know it is right? Twenty questions with known answers before and after every change, the verifier on every answer, and MLflow traces on the laptop runs (the App itself runs without them).
 - What is fake? The agencies, the corporates, the contracts, and the seats: one made-up seat share per route, because the T-100 loader has never run. The Power BI twin is a second SQL implementation because Power BI Desktop is Windows only.
 - Why an app and not just the dashboard? The dashboard is the leadership view: what and where, one glance. The app is the conversation: why, the agreement, a verified summary, and the query one click away. Both read one metric view, so they cannot disagree.
 - Why React and FastAPI and not Streamlit? Granular control of the experience for non-technical people: progressive disclosure, a floating chat bar, windows where the information is needed, exports; and a per-request identity so two viewers never share a token or a fact pool.

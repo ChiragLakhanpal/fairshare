@@ -60,7 +60,7 @@ Made-up seat shares + synthetic agency layer + 4 agreements
   -> Genie Agent over the metric view
   -> harness (Microsoft Agent Framework): ask_metrics | run_sql | explain_change | search_contracts
      three rules (numbers only from tools; cite the SQL; "Could not verify" for the rest), a deterministic verifier
-     on every answer, OpenTelemetry traces to MLflow, 20 benchmark questions in a pre-commit hook
+     on every answer, MLflow traces on laptop runs (FAIRSHARE_TRACES; the App runs without them), 20 benchmark questions in a pre-commit hook
   -> the agreements read once by the thinking model into gold.contract_clauses (page citations), checked monthly by SQL
      into ops.agreement_checks; a CRM stand-in (contacts, opportunities, activities) in gold; the app's own writes in ops
   -> Delegate (harness/agents.py): precall | watch | prospect | mismatch, each facts (SQL) -> prose (a writer with no tools,

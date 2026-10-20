@@ -10,6 +10,7 @@ by 100), and one answer gave the percent change without the dollar change. Three
 later (q04 says `Q3 2025`, not `2025`): 20/20 under both. The `*-genie-eval.json` files hold Genie's SQL and the reason codes.
 On Oct 19 the in-space score went 17/20 (q09, q10 and q17 missed), 17/20 on an unchanged rerun (q07, q10 and q11 missed), then
 20/20: the judge is column-strict and Genie's SQL varies from run to run, so q07, q09, q10, q11 and q17 now say which columns to show.
+On Oct 20, 2026 the MLflow experiment held traces from the three Oct 12 harness runs (08:11, 08:24 and 08:25: 120 traces, an answer and a judge call for each of the 20 questions in each run) and none from the Oct 13 runs, so the Qwen3-Next run behind the measured slide was not traced.
 
 | run | label | backend | Genie pass | harness supported | harness correct | model |
 |---|---|---|---|---|---|---|
