@@ -184,7 +184,7 @@ gold.dim_agency(agency_id, agency_name, agency_type, region, account_manager)
 gold.dim_market(market_id, origin, dest, region, aa_hub_origin)
 gold.fact_market_capacity(market_id, sales_month, aa_seats, total_seats, aa_seat_share, is_projected, source)  -- aa_seat_share is fair share
 gold.agency_goals(agency_id, goal_year, revenue_goal_usd, share_goal)
-gold.agency_pace(agency_id, goal_year, sales_month, aa_revenue, ytd_revenue, revenue_goal_usd, ytd_goal, pace_pct)
+gold.agency_pace(agency_id, goal_year, sales_month, aa_revenue, ytd_revenue, revenue_goal_usd, ytd_goal, pace_pct, attainment_pct, months_reported)  -- ytd_goal = goal * months_reported / 12
 gold.fact_corporate_bookings(booking_id, ticket_number, corp_id, booking_date, travel_date, origin, dest, channel, fare_usd, ticket_count, cabin, agency_id)
 gold.fact_corporate_bookings_weekly(week_start, corp_id, booked_revenue, tickets, prior_week_revenue, wow_pct)
 gold.dim_corporate(corp_id, corp_name, industry, hq_city, contract_start, contract_end, annual_commitment_usd)
@@ -239,10 +239,10 @@ def explain_change(agency: Annotated[str, "Agency name, or a distinctive part of
         mo = _month(month)
     except ValueError as e:
         return str(e)
-    like = agency.replace("'", "''").lower()
+    like = db.literal(f"%{agency.lower()}%")
     head = db.query(f"""
         SELECT a.agency_name, d.* FROM aa_demo.ops.decomposition d JOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id
-        WHERE LOWER(a.agency_name) LIKE '%{like}%' AND d.sales_month = DATE '{mo}'""")
+        WHERE LOWER(a.agency_name) LIKE {like} AND d.sales_month = DATE '{mo}'""")
     if head.empty:
         ctx.record("explain_change", {"agency": agency, "month": month}, None, note="no decomposition row")
         return (f"No decomposition for '{agency}' in {mo[:7]}: either the agency name did not match, or there is no same month "

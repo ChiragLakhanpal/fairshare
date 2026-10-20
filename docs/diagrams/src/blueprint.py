@@ -2,9 +2,10 @@
 of visibility; the work that stays hidden sits below it. The one focal cell is the verifier. A platform mark in a cell's
 corner says where that work runs.
 
-    python3 docs/diagrams/src/blueprint.py   # writes docs/diagrams/02-answer-checked.html
+    python3 docs/diagrams/src/blueprint.py   # writes docs/diagrams/02-answer-checked.html and 02-answer-checked-animated.html
 
-The data-* contract is diagram-design's; scripts/verify-service-blueprint.py in the plugin reads it back.
+The data-* contract is diagram-design's; scripts/verify-service-blueprint.py in the plugin reads it back. The animated page steps
+one layer at a time: the stage headers, the three lines and the legend stay put, and each row of cells comes in as one group.
 """
 from __future__ import annotations
 
@@ -24,14 +25,14 @@ DBX, AZ = "databricks", "azure"
 ROWS = [
     ("customer", ("ACCOUNT", "MANAGER"), 128, [
         ("Asks a question", None, ()), ("Watches the steps", None, ()), ("Keeps waiting", None, ()),
-        ("Sees nothing yet", None, ()), ("Hovers a number", None, ())]),
+        ("Sees nothing yet", None, ()), ("Clicks a number", None, ())]),
     ("frontstage", ("THE APP",), 216, [
         ("Suggested questions", None, ()), ("Progress steps", None, ()), ("Steps keep moving", None, ()),
         ("Answer held back", None, ()), ("Answer with its query", None, ())]),
     ("backstage", ("BEHIND THE", "SCREEN"), 304, [
         ("Router picks tools", None, ()), ("Genie runs the query", "fairshare sales metrics", (DBX,)),
         ("Model writes from rows", None, (DBX, AZ)), ("Unproven sentences cut", "verifier", ()),
-        ("Trace logged", "MLflow fairshare", (DBX,))]),
+        ("Trace on laptop runs", "MLflow fairshare", (DBX,))]),
     ("support", ("FOUNDATIONS",), 392, [
         ("Runs as the viewer", "Unity Catalog aa_demo", (DBX,)), ("Defined once", "gold.sales_metrics", (DBX,)),
         ("Clauses cite the page", None, ()), ("Numbers only from tools", None, ()), ("Tested on 20 questions", None, ())]),
@@ -40,7 +41,12 @@ FOCAL = ("backstage", "check")
 LINES = [("interaction", 212, "rgba(54,73,90,0.18)", 1), ("visibility", 300, "rgba(54,73,90,0.65)", 2),
          ("internal-interaction", 388, "rgba(54,73,90,0.18)", 1)]
 HIDDEN_FILL, HIDDEN_STROKE = "rgba(54,73,90,0.06)", aa.MUTED
-CAPTION = ("FOCAL CELL", "A sentence whose number no query returned never reaches the screen.")
+CAPTION = ("FOCAL CELL", "A sentence whose number no query returned is cut from the answer, and the app shows what it cut.")
+# the motion steps, one per layer from the top row down; the verifier's caption comes in with the backstage row it explains
+STEPS = ["The account manager asks, watches, waits, then clicks a number",
+         "The app shows its steps and holds the answer back, then shows it with its query",
+         "Behind the screen, the verifier cuts any sentence whose number no query returned",
+         "The foundations under every step: access, definitions, clauses, tools and tests"]
 
 
 def text(x, y, s, *, size, fill, family, weight=None, anchor="middle", spacing=None, italic=False):
@@ -79,7 +85,7 @@ def cell(layer, stage, x, y, name, real, marks, focal):
     return out
 
 
-def body():
+def body(motion=False):
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(),
            # the hidden-work band behind the backstage and support rows
            f'<rect x="{LEFT}" y="304" width="{RIGHT - LEFT}" height="168" fill="rgba(54,73,90,0.03)"/>']
@@ -89,17 +95,24 @@ def body():
         out.append(text(x + COL // 2, 108, sname, size=16, fill=aa.INK, family=aa.SANS, weight=600))
     for role, y, stroke, w in LINES:
         out.append(f'<line x1="{LEFT}" y1="{y}" x2="{RIGHT}" y2="{y}" stroke="{stroke}" stroke-width="{w}" data-role="{role}"/>')
-    for layer, label, top, cells in ROWS:
-        out.append(f'<g data-layer="{layer}">')
+    caption = [text(LEFT, 532, CAPTION[0], size=8, fill=aa.MUTED, family=aa.MONO, anchor="start", spacing="0.18em"),
+               text(LEFT + 104, 532, CAPTION[1], size=14, fill=aa.INK, family=aa.SANS, anchor="start", italic=True)]
+    assert len(STEPS) == len(ROWS)
+    for n, (layer, label, top, cells) in enumerate(ROWS):
+        row = [f'<g data-layer="{layer}">']
         mid = top + ROW // 2
         for k, line in enumerate(label):
             y = mid + 3 + (k - (len(label) - 1) / 2) * 12
-            out.append(text(LEFT - 8, int(y), line, size=8, fill=aa.MUTED, family=aa.MONO, anchor="end", spacing="0.12em"))
+            row.append(text(LEFT - 8, int(y), line, size=8, fill=aa.MUTED, family=aa.MONO, anchor="end", spacing="0.12em"))
         for (sid, _), x, (name, real, marks) in zip(STAGES, X, cells):
-            out += cell(layer, sid, x, top, name, real, marks, (layer, sid) == FOCAL)
-        out.append("</g>")
-    out.append(text(LEFT, 532, CAPTION[0], size=8, fill=aa.MUTED, family=aa.MONO, anchor="start", spacing="0.18em"))
-    out.append(text(LEFT + 104, 532, CAPTION[1], size=14, fill=aa.INK, family=aa.SANS, anchor="start", italic=True))
+            row += cell(layer, sid, x, top, name, real, marks, (layer, sid) == FOCAL)
+        row.append("</g>")
+        if motion:
+            out.append(aa.motion_item(n + 1, STEPS[n], row + (caption if layer == FOCAL[0] else [])))
+        else:
+            out += row
+    if not motion:
+        out += caption
     # legend strip: the bottom of the frame, after a hairline
     out.append(f'<line x1="{LEFT}" y1="596" x2="{RIGHT}" y2="596" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>')
     out.append(text(LEFT, 628, "LEGEND", size=8, fill=aa.MUTED, family=aa.MONO, anchor="start", spacing="0.14em"))
@@ -117,11 +130,15 @@ def body():
 
 
 TITLE = "How an answer gets checked"
+EYEBROW = "fairshare · how an answer is checked"
 DESC = ("Service blueprint of one question in five steps, with what the account manager does and sees above the line of "
         "visibility and the hidden lookup, writing and checking below it, marked by where each piece runs; the focal cell "
         "is the verifier cutting any sentence whose number no query returned.")
 
 if __name__ == "__main__":
-    html = aa.page(slug="02-answer-checked", title=TITLE, desc=DESC, eyebrow="fairshare · how an answer is checked", body=body(), vw=VW, vh=VH)
+    html = aa.page(slug="02-answer-checked", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=body(), vw=VW, vh=VH)
     (aa.OUT / "02-answer-checked.html").write_text(html, encoding="utf-8")
-    print("wrote 02-answer-checked.html")
+    html = aa.animated(slug="02-answer-checked-animated", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=body(True), steps=len(STEPS),
+                       css=aa.FADE_ONLY, vw=VW, vh=VH)
+    (aa.OUT / "02-answer-checked-animated.html").write_text(html, encoding="utf-8")
+    print("wrote 02-answer-checked.html and 02-answer-checked-animated.html")

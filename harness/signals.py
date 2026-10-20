@@ -204,7 +204,7 @@ def build(region: str, month: str) -> list[dict]:
             add("capacity", "watch" if fair < 0 else "ok", f"{head}, and fair share there {'fell' if fair < 0 else 'rose'} {num(abs(fair))} points, the largest capacity move this month.",
                 df, src, {"kind": "ask", "question": q, "label": "Ask about the market"}, q, None)
         if bool(df["is_projected"].fillna(False).any()):
-            add("projected", "watch", f"The seat data for {label} is last year's, because BTS has not published this month yet, so fair share is an estimate until it does.",
+            add("projected", "watch", f"The seat data for {label} is last year's, because this month's seat file is not in yet, so fair share is an estimate until it is.",
                 df, src, {"kind": "definitions", "kpi": "fair_share", "label": "See how fair share is defined"}, None, None)
 
     weekly = block("corporate weekly bookings", lambda: weekly_block(mo))

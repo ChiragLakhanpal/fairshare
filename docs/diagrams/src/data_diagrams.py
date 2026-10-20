@@ -1,19 +1,18 @@
 """06 and 07, the data section: where the numbers come from, and what fair share means.
 
-    python3 docs/diagrams/src/data_diagrams.py   # writes docs/diagrams/06-data-pipeline.html and 07-fair-share.html
+    .venv/bin/python docs/diagrams/src/data_diagrams.py   # writes docs/diagrams/06-data-pipeline.html, 06-data-pipeline-animated.html and 07-fair-share.html
 
-Every number comes from data_numbers.py, which runs one query per number on the local lakehouse. Generic icons are
-diagram-design's Tabler set, read from references/primitive-icons.md so they stay in step with the plugin.
+Every number comes from deck_facts.py, which runs one query per number on the local lakehouse (the deck reads the same file).
+Generic icons are diagram-design's Tabler set, read from references/primitive-icons.md so they stay in step with the plugin.
 """
 from __future__ import annotations
 
 import re
 
 import aa
-from data_numbers import numbers
+from deck_facts import DATED, fact, query
 
 VW, VH = 1280, 720
-N = numbers()
 ICON_DOC = aa.SCRIPTS.parent / "skills" / "diagram-design" / "references" / "primitive-icons.md"
 
 
@@ -61,17 +60,33 @@ def tier_x(i):
     return TIER_X0 + i * (TIER_W + TIER_GAP)
 
 
-def pipeline() -> str:
+PIPELINE_STEPS = [  # the motion steps of 06, left to right; each arrow comes in with what it points at
+    "The sources: seat shares, agency sales, agreements and the CRM",
+    "Every source lands in bronze, as delivered",
+    "Cleaning gives silver, with each ticket loaded once and one spelling per channel",
+    "Shaping gives gold, one row per agency, route and month",
+    "Defining writes each of the seven numbers once: six in the metric view gold.sales_metrics, and pace in gold.agency_pace",
+    "The app, the dashboard, Genie and the Ask agent read the metric view; the Delegate agents run their own SQL on gold",
+    "Every query runs as the person asking, under Unity Catalog",
+]
+
+
+def pipeline(motion=False) -> str:
     tiers = [  # name, schema, big number, unit, chips; the last tier is the focal one
-        ("As delivered", "bronze", fmt(N["bookings_delivered"]), "booking rows", [f"{N['bronze_tables']} tables, as sent"]),
-        ("Cleaned", "silver", fmt(N["bookings_cleaned"]), "booking rows",
-         [f"−{N['bookings_delivered'] - N['bookings_cleaned']} tickets loaded twice",
-          f"{N['channel_spellings_delivered']} channel spellings → {N['channel_spellings_cleaned']}"]),
-        ("Ready to use", "gold", fmt(N["gold_rows"]), "rows", ["per agency, route, month"]),
-        ("Defined once", "gold.sales_metrics", str(N["kpis"]), "numbers", ["checked vs Power BI"]),
+        ("As delivered", "bronze", fmt(fact("bookings_delivered")), "booking rows", [f"{fact('bronze_tables')} tables, as sent"]),
+        ("Cleaned", "silver", fmt(fact("bookings_cleaned")), "booking rows",
+         [f"−{fact('duplicate_tickets')} tickets loaded twice",
+          f"{fact('channel_spellings_delivered')} channel spellings → {fact('channel_spellings_cleaned')}"]),
+        ("Ready to use", "gold", fmt(fact("sales_rows")), "rows", ["per agency, route, month"]),
+        ("Defined once", "gold.sales_metrics", str(fact("kpis")), "numbers", [f"{DATED['twins_checked']['value']} checked each night", "pace in gold.agency_pace"]),
     ]
     arcs = [("CLEAN", False), ("SHAPE", False), ("DEFINE", True)]
-    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', markers()]
+    # Every mark is kept with its motion step (1 to 7), in paint order. Static flattens them as they are; motion groups them by step,
+    # and inside a step the marks keep that order, so a bridge still paints under the tier it points at.
+    parts = []
+
+    def put(step, markup):
+        parts.append((step, markup))
 
     # promotions as orthogonal bridges over the top, drawn before the cards (connector rule 1: no curves): up from the
     # left tier's top edge at 2/3 of its width, across, and down into the next tier's top edge at 1/3, r=8 corners, so
@@ -80,28 +95,28 @@ def pipeline() -> str:
     for i, (label, focal) in enumerate(arcs):
         sx, ex = tier_x(i) + TIER_W * 2 // 3, tier_x(i + 1) + TIER_W // 3
         stroke, width, marker = (aa.ACCENT, 1.6, "arrow-accent") if focal else (aa.MUTED, 1.4, "arrow")
-        out.append(f'<path d="M {sx},{TIER_Y} V {run_y + 8} A 8 8 0 0 1 {sx + 8},{run_y} H {ex - 8} A 8 8 0 0 1 {ex},{run_y + 8} V {TIER_Y}" '
+        put(3 + i, f'<path d="M {sx},{TIER_Y} V {run_y + 8} A 8 8 0 0 1 {sx + 8},{run_y} H {ex - 8} A 8 8 0 0 1 {ex},{run_y + 8} V {TIER_Y}" '
                    f'fill="none" stroke="{stroke}" stroke-width="{width}" stroke-linejoin="round" marker-end="url(#{marker})"/>')
         mid, w = (sx + ex) / 2, -(-(len(label) * 0.70 * 12 + 16) // 4) * 4  # 0.62em mono + 0.08em tracking per char, padded
-        out.append(f'<rect x="{mid - w / 2}" y="{run_y - 26}" width="{w}" height="18" fill="{aa.PAPER}"/>')  # mask, 8px above the run
-        out.append(text(mid, run_y - 13, label, size=12, weight=400, color=stroke, anchor="middle", mono=True, spacing="0.08em"))
+        put(3 + i, f'<rect x="{mid - w / 2}" y="{run_y - 26}" width="{w}" height="18" fill="{aa.PAPER}"/>')  # mask, 8px above the run
+        put(3 + i, text(mid, run_y - 13, label, size=12, weight=400, color=stroke, anchor="middle", mono=True, spacing="0.08em"))
 
     # sources into the first tier, and the readers out of the last, on straight runs at the shared ports
-    sources = [("csv", None, "BTS T-100 seats", "real, public"), ("users", None, "Agency sales", "synthetic"),
-               ("file", None, f"{N['agreements']} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
+    sources = [("csv", None, "Seat shares", "made up, one per route"), ("users", None, "Agency sales", "synthetic"),
+               ("file", None, f"{fact('agreements')} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
     readers = [("desktop", "The app"), ("monitoring", "Dashboard"), ("search", "Genie"), ("robot", "Agents")]
-    out.append(eyebrow(40, ATTACH[0] - 44, "Sources"))
-    out.append(eyebrow(tier_x(3) + TIER_W + 52, ATTACH[0] - 44, "Read by"))
+    put(1, eyebrow(40, ATTACH[0] - 44, "Sources"))
+    put(6, eyebrow(tier_x(3) + TIER_W + 52, ATTACH[0] - 44, "Read by"))
     for y, (tab, brand, name, tag) in zip(ATTACH, sources):
-        out.append(f'<line x1="260" y1="{y}" x2="{TIER_X0 - 2}" y2="{y}" stroke="{aa.MUTED}" stroke-width="1.4" marker-end="url(#arrow)"/>')
-        out.append(tabler(tab, 40, y - 14, 28) if tab else aa.icon(brand, 42, y - 12, 24))
-        out.append(text(80, y - 2, name, size=16))
-        out.append(text(80, y + 16, tag, size=12, weight=400, color=aa.MUTED, mono=True))
+        put(2, f'<line x1="260" y1="{y}" x2="{TIER_X0 - 2}" y2="{y}" stroke="{aa.MUTED}" stroke-width="1.4" marker-end="url(#arrow)"/>')  # into bronze
+        put(1, tabler(tab, 40, y - 14, 28) if tab else aa.icon(brand, 42, y - 12, 24))
+        put(1, text(80, y - 2, name, size=16))
+        put(1, text(80, y + 16, tag, size=12, weight=400, color=aa.MUTED, mono=True))
     rx = tier_x(3) + TIER_W
     for y, (tab, name) in zip(ATTACH, readers):
-        out.append(f'<line x1="{rx + 2}" y1="{y}" x2="{rx + 42}" y2="{y}" stroke="{aa.MUTED}" stroke-width="1.4" marker-end="url(#arrow)"/>')
-        out.append(tabler(tab, rx + 52, y - 14, 28))
-        out.append(text(rx + 92, y + 6, name, size=16))
+        put(6, f'<line x1="{rx + 2}" y1="{y}" x2="{rx + 42}" y2="{y}" stroke="{aa.MUTED}" stroke-width="1.4" marker-end="url(#arrow)"/>')
+        put(6, tabler(tab, rx + 52, y - 14, 28))
+        put(6, text(rx + 92, y + 6, name, size=16))
 
     # the tier cards
     for i, (name, schema, big, unit, chips) in enumerate(tiers):
@@ -109,25 +124,31 @@ def pipeline() -> str:
         cx = x + TIER_W / 2
         fill, stroke, sw, band = (("rgba(0,108,191,0.07)", aa.ACCENT, 1.6, "rgba(0,108,191,0.14)") if focal
                                   else ("#ffffff", aa.MUTED if i == 0 else aa.INK, 1, "rgba(90,113,129,0.10)" if i == 0 else "rgba(54,73,90,0.06)"))
-        out.append(f'<g data-tier="{schema}"><rect x="{x}" y="{TIER_Y}" width="{TIER_W}" height="{TIER_H}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
-        out.append(f'<path d="M {x + 6},{TIER_Y} H {x + TIER_W - 6} A 6 6 0 0 1 {x + TIER_W},{TIER_Y + 6} V {TIER_Y + 48} H {x} V {TIER_Y + 6} A 6 6 0 0 1 {x + 6},{TIER_Y} Z" fill="{band}"/>')
-        out.append(text(cx, TIER_Y + 30, name, size=16, anchor="middle"))
-        out.append(text(cx, TIER_Y + 76, schema, size=12, weight=400, color=aa.ACCENT if focal else aa.MUTED, anchor="middle", mono=True))
-        out.append(text(cx, TIER_Y + 156, big, size=40, color=aa.ACCENT if focal else aa.INK, anchor="middle"))
-        out.append(text(cx, TIER_Y + 182, unit, size=12, weight=400, color=aa.MUTED, anchor="middle", mono=True))
+        put(2 + i, f'<g data-tier="{schema}"><rect x="{x}" y="{TIER_Y}" width="{TIER_W}" height="{TIER_H}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
+        put(2 + i, f'<path d="M {x + 6},{TIER_Y} H {x + TIER_W - 6} A 6 6 0 0 1 {x + TIER_W},{TIER_Y + 6} V {TIER_Y + 48} H {x} V {TIER_Y + 6} A 6 6 0 0 1 {x + 6},{TIER_Y} Z" fill="{band}"/>')
+        put(2 + i, text(cx, TIER_Y + 30, name, size=16, anchor="middle"))
+        put(2 + i, text(cx, TIER_Y + 76, schema, size=12, weight=400, color=aa.ACCENT if focal else aa.MUTED, anchor="middle", mono=True))
+        put(2 + i, text(cx, TIER_Y + 156, big, size=40, color=aa.ACCENT if focal else aa.INK, anchor="middle"))
+        put(2 + i, text(cx, TIER_Y + 182, unit, size=12, weight=400, color=aa.MUTED, anchor="middle", mono=True))
         for k, chip in enumerate(chips):
             cy = TIER_Y + 232 + k * 36
-            out.append(f'<rect x="{x + 8}" y="{cy}" width="{TIER_W - 16}" height="24" rx="2" fill="#ffffff" stroke="{aa.RULE_SOLID}" stroke-width="1"/>')
-            out.append(text(cx, cy + 16, chip, size=11, weight=400, color=aa.INK, anchor="middle"))  # plain words, so Inter, not mono
-        out.append("</g>")
+            put(2 + i, f'<rect x="{x + 8}" y="{cy}" width="{TIER_W - 16}" height="24" rx="2" fill="#ffffff" stroke="{aa.RULE_SOLID}" stroke-width="1"/>')
+            put(2 + i, text(cx, cy + 16, chip, size=11, weight=400, color=aa.INK, anchor="middle"))  # plain words, so Inter, not mono
+        put(2 + i, "</g>")
 
     # who can see what: the one sentence of governance, on a quiet strip under the tiers
     sy = TIER_Y + TIER_H + 36
-    out.append(f'<rect x="{TIER_X0}" y="{sy}" width="{tier_x(3) + TIER_W - TIER_X0}" height="40" rx="6" fill="{aa.PAPER2}"/>')
-    out.append(tabler("lock", TIER_X0 + 16, sy + 8, 24))
-    out.append(text(TIER_X0 + 52, sy + 26, "Every query runs as the person asking", size=16))
-    out.append(text(tier_x(3) + TIER_W - 16, sy + 26, "Unity Catalog aa_demo", size=12, weight=400, color=aa.MUTED, anchor="end", mono=True))
-    out.append(aa.brand())
+    put(7, f'<rect x="{TIER_X0}" y="{sy}" width="{tier_x(3) + TIER_W - TIER_X0}" height="40" rx="6" fill="{aa.PAPER2}"/>')
+    put(7, tabler("lock", TIER_X0 + 16, sy + 8, 24))
+    put(7, text(TIER_X0 + 52, sy + 26, "Every query runs as the person asking", size=16))
+    put(7, text(tier_x(3) + TIER_W - 16, sy + 26, "Unity Catalog aa_demo", size=12, weight=400, color=aa.MUTED, anchor="end", mono=True))
+    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', markers()]
+    if motion:
+        assert {n for n, _ in parts} == set(range(1, len(PIPELINE_STEPS) + 1)), "every motion step needs its marks"
+        out += [aa.motion_item(n, words, [m for step, m in parts if step == n]) for n, words in enumerate(PIPELINE_STEPS, 1)]
+    else:
+        out += [m for _, m in parts]
+    out.append(aa.brand(tag="fairshare · synthetic data"))
     return "\n        ".join(out)
 
 
@@ -161,16 +182,16 @@ def grid(x0, y0, aa_cells, premium, glyph):
 
 
 def fair_share() -> str:
-    fair, share, gap, usd = N["fair_share_pct"], N["aa_share_pct"], N["gap_pts"], N["gap_usd"]
+    fair, share, gap, usd = fact("summit_q3_fair_share"), fact("summit_q3_aa_share"), fact("summit_q3_gap_pts"), fact("summit_q3_gap_usd")
     fair_cells, share_cells = round(fair), round(share)  # ponytail: a 100-cell grid rounds to whole cells; the labels carry the decimals
     gy, ax, bx = 168, 96, 456
-    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand()]
+    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     # A: seats on the route, the fair share
     out.append(text(ax, gy - 46, "Seats on DFW to Chicago", size=16))
-    out.append(text(ax, gy - 24, "BTS T-100 · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
+    out.append(text(ax, gy - 24, "made-up seat shares · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
     out.append(f'<g data-grid="seats">{grid(ax, gy, fair_cells, 0, seat)}</g>')
     out.append(text(ax, gy + GRID + 56, f"{fair}%", size=40, color=aa.ACCENT))
-    out.append(text(ax, gy + GRID + 84, "are AA's: the fair share", size=16, color=aa.MUTED))
+    out.append(text(ax, gy + GRID + 84, "AA's made-up seat share: the fair share", size=16, color=aa.MUTED))
     # B: the agency's sales on the same route, the AA share and the premium above fair share
     out.append(text(bx, gy - 46, "Summit's sales on the same route", size=16))
     out.append(text(bx, gy - 24, "Summit Travel Partners · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
@@ -189,7 +210,7 @@ def fair_share() -> str:
     out.append(text(px, gy + 252, "same route, same quarter", size=12, weight=400, color=aa.MUTED, mono=True))
     # the one sentence that defines it
     cy = gy + GRID + 140
-    out.append(text(ax, cy, f"An agency that sold every airline in proportion to its seats would give AA {fair}% here. Summit gives {share}%.",
+    out.append(text(ax, cy, f"With the made-up seat shares, an agency that sold every airline in proportion to its seats would give AA {fair}% here. Summit gives {share}%.",
                     size=14, weight=400, color=aa.INK, italic=True))
     # legend strip
     ly = VH - 40
@@ -205,13 +226,31 @@ def fair_share() -> str:
     return "\n        ".join(out)
 
 
+def check_claims() -> None:
+    """What these two figures say about the data, checked on every build so a rebuilt lakehouse cannot quietly change the story."""
+    one = lambda sql: query(sql)[0]["value"]  # noqa: E731
+    assert one("SELECT COUNT(DISTINCT ticket_number) AS value FROM aa_demo.silver.fact_corporate_bookings") == fact("bookings_cleaned"), \
+        "silver should hold exactly one row per ticket"
+    assert one("""SELECT COUNT(*) AS value FROM (SELECT DISTINCT agency_id, market_id, sales_month
+                                               FROM aa_demo.gold.fact_agency_sales_monthly) AS t""") == fact("sales_rows"), \
+        "gold should hold one row per agency, route and month"
+    assert one("""SELECT COUNT(*) AS value FROM aa_demo.gold.fact_market_capacity
+                  WHERE is_projected AND sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'""") == 0, \
+        "Q3 2026 capacity should not be a projection"
+
+
 if __name__ == "__main__":
+    check_claims()
     pages = [("06-data-pipeline", "Where the numbers come from", "fairshare · the data",
-              "Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once in the metric view that the app, the dashboard, Genie and the agents all read.",
+              "Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once, six in the metric view that Genie, the dashboard, the app and the Ask agent read and pace in gold.agency_pace.",
               pipeline()),
              ("07-fair-share", "What fair share means", "fairshare · the data",
-              f"Two grids of one hundred: AA's {N['fair_share_pct']}% share of the seats on DFW to Chicago in Q3 2026, and the {N['aa_share_pct']}% of Summit Travel Partners' sales on that route that went to AA, a premium of {N['gap_pts']} points.",
+              f"Two grids of one hundred: the made-up seat share for AA on DFW to Chicago in Q3 2026, {fact('summit_q3_fair_share')}%, and the {fact('summit_q3_aa_share')}% of Summit Travel Partners' sales on that route that went to AA, a premium of {fact('summit_q3_gap_pts')} points.",
               fair_share())]
     for slug, title, eyebrow_text, desc, body in pages:
         (aa.OUT / f"{slug}.html").write_text(aa.page(slug=slug, title=title, desc=desc, eyebrow=eyebrow_text, body=body), encoding="utf-8")
         print("wrote", f"{slug}.html")
+    slug, title, eyebrow_text, desc, _ = pages[0]  # 06 also steps forward, one tier at a time
+    page = aa.animated(slug=f"{slug}-animated", title=title, desc=desc, eyebrow=eyebrow_text, body=pipeline(True), steps=len(PIPELINE_STEPS), css=aa.FADE_ONLY)
+    (aa.OUT / f"{slug}-animated.html").write_text(page, encoding="utf-8")
+    print("wrote", f"{slug}-animated.html")

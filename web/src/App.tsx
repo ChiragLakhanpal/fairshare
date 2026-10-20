@@ -8,12 +8,14 @@ import { DefinitionWindow } from "./components/DefinitionWindow";
 import { Delegate } from "./components/Delegate";
 import { FloatingBar } from "./components/FloatingBar";
 import { HowItWorks } from "./components/HowItWorks";
+import { Present } from "./components/Present";
 import { Sidebar, type QuickAction } from "./components/Sidebar";
 import { Summary } from "./components/Summary";
 import { SummaryStrip } from "./components/SummaryStrip";
 import { TopBar } from "./components/TopBar";
 import { copy } from "./copy";
 import { api, ask, lastAnswerOf } from "./lib/api";
+import { KEYS } from "./lib/deck";
 import { monthLabel } from "./lib/format";
 import { SPRING, slideDirection, slideVariants } from "./lib/motion";
 import { chipsFrom } from "./lib/signals";
@@ -25,8 +27,25 @@ function scopeFromUrl(): Scope {
   return { region: u.searchParams.get("region") || "All", month: u.searchParams.get("month") || "" };
 }
 
+// The slide the deck left to open the app, while its way back is set. Blocked storage keeps nothing, and then there is none.
+function deckReturn(): string | null {
+  try {
+    return sessionStorage.getItem(KEYS.ret);
+  } catch {
+    return null;
+  }
+}
+function clearDeckReturn(): void {
+  try {
+    sessionStorage.removeItem(KEYS.ret);
+  } catch {
+    // the deck clears it when it opens again
+  }
+}
+
 export function App() {
   const path = location.pathname;
+  if (path === "/present") return <Present />;
   if (path.startsWith("/brief/")) return <BriefPage runId={path.slice("/brief/".length)} />;
   return <Main />;
 }
@@ -47,6 +66,7 @@ function Main() {
   const [barHeight, setBarHeight] = useState(0);
   const [catalog, setCatalog] = useState<AgentsCatalog | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [fromDeck] = useState(deckReturn); // read once: the deck's jump is a full page load
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -84,6 +104,18 @@ function Main() {
     u.searchParams.set("region", s.region);
     u.searchParams.set("month", s.month);
     history.replaceState(null, "", u);
+  }, []);
+
+  // The deck's "Ask it live" opens /?q=<question>: the question goes into the box once, and the URL is clean again. The timer
+  // is not cleared on cleanup: StrictMode runs this effect twice in development, and the second run finds no q.
+  useEffect(() => {
+    const u = new URL(location.href);
+    const q = u.searchParams.get("q");
+    if (!q) return;
+    setPrefill({ text: q, n: Date.now() });
+    u.searchParams.delete("q");
+    history.replaceState(null, "", u);
+    setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
   useEffect(() => {
@@ -227,7 +259,7 @@ function Main() {
         <motion.div className="sticky top-0 h-screen shrink-0 overflow-hidden" animate={{ width: collapsed ? 56 : 256 }} transition={reduced ? { duration: 0 } : SPRING} initial={false}>
           <Sidebar collapsed={collapsed} onToggle={() => store.setSidebarCollapsed(!collapsed)} conversations={conversations} activeId={activeId}
             onSelect={(id) => store.setActive(id)} onRemove={(id) => store.remove(id)} onNew={() => store.newChat()} onAction={onAction} email={me?.email ?? null} inSummary={!activeId || summaryExpanded}
-            mode={mode} onMode={(m) => store.setMode(m)} agents={catalog?.agents ?? []} view={delegateView.agent}
+            mode={mode} onMode={(m) => store.setMode(m)} agents={catalog?.agents ?? []} view={delegateView.agent} deck={fromDeck} onDeck={clearDeckReturn}
             onOverview={() => { store.setDelegate({ agent: null, runId: null, itemId: null }); store.setMode("delegate"); }}
             onAgent={(k) => { store.setDelegate({ agent: k, runId: null, itemId: null }); store.setMode("delegate"); }} />
         </motion.div>

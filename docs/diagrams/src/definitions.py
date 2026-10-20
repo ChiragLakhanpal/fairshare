@@ -1,16 +1,20 @@
 """09: the seven numbers as a visual glossary. One card per definition in ops.kpi_definitions (lakehouse/04_definitions.sql):
-the name, a small picture of the idea, one plain sentence, and where it lives (the metric view measure, with its Power BI
-twin). A strip underneath tells the one time the nightly parity check caught a drift.
+the name, a small picture of the idea, one plain sentence, and where it lives (the metric view measure; six are checked
+every night against a SQL twin of the Power BI measure). A strip underneath tells the one time the nightly parity check
+caught a drift.
 
-    python3 docs/diagrams/src/definitions.py   # writes docs/diagrams/09-definitions.html
+    .venv/bin/python docs/diagrams/src/definitions.py   # writes docs/diagrams/09-definitions.html
 
-No data numbers are printed; the count of seven and the drift story come from data_numbers_2.py (ops.kpi_definitions).
+The only data numbers printed are the counts of the Oct 12 replay (the drift story). They are dated facts in deck_facts.py,
+so a refreshed app/cache/kpi_parity.csv cannot change this figure.
 """
 from __future__ import annotations
 
 import aa
+from deck_facts import DATED
 
 VW, VH = 1280, 720
+NO_TWIN = {"pace_pct"}  # the one number with no SQL twin, so no Power BI mark on its card
 INK_A = lambda a: f"rgba(54,73,90,{a})"
 TINT = "rgba(90,113,129,0.15)"
 STROKE_ICON = 'fill="none" stroke="{c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'
@@ -46,6 +50,11 @@ def wrap(s, max_px, size=13, em=0.57):
     lines.append(cur)
     assert len(lines) <= 2, f"too long for its card: {s!r}"
     return lines
+
+
+def replay() -> tuple[int, int]:
+    """(red, all) agency-months of the retired passenger-based twin's run on Oct 12, counted once and kept as dated facts."""
+    return DATED["parity_red"]["value"], DATED["parity_rows"]["value"]
 
 
 def tag(x, y, s):  # a tiny word under a visual
@@ -153,17 +162,18 @@ def card(x, y, w, name, picture, sentence, measure):
         out.append(text(x + 20, y + 146 + i * 18, line, 13, aa.INK))
     out.append(aa.icon("databricks", x + 20, y + 178, 14))
     out.append(text(x + 40, y + 190, measure, 11, aa.MUTED, family=aa.MONO))
-    out.append(aa.icon("powerbi", x + w - 34, y + 178, 14))
+    if measure not in NO_TWIN:
+        out.append(aa.icon("powerbi", x + w - 34, y + 178, 14))
     return out
 
 
 def build():
-    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand()]
+    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     out.append(text(40, 100, "Seven numbers, each defined once", 16, aa.INK, 600))
     out.append(aa.icon("databricks", 40, 112, 14))
     out.append(text(60, 124, "metric view gold.sales_metrics (pace: gold.agency_pace)", 12, aa.MUTED, family=aa.MONO))
     out.append(aa.icon("powerbi", 532, 112, 14))
-    out.append(text(552, 124, "Power BI twin of each one, checked every night", 12, aa.MUTED, family=aa.MONO))
+    out.append(text(552, 124, "SQL twin of the Power BI measure for six, checked every night", 12, aa.MUTED, family=aa.MONO))
     for row in (0, 1):
         x = 40
         for r, w, name, pic, sentence, measure in CARDS:
@@ -174,9 +184,10 @@ def build():
     # the drift the nightly check caught, as three steps
     y = 600
     out.append(text(40, y, "HOW A DEFINITION STAYS HONEST", 8, aa.MUTED, 500, aa.MONO).replace("<text ", '<text letter-spacing="0.18em" ', 1))
+    red, rows = replay()
     steps = [("file", "AA share v1 counted passengers", "twin_sql_retired", aa.MUTED),
-             ("alert", "Nightly check vs Power BI: red every month", "ops.kpi_parity", aa.INK),
-             ("check", "v2 counts revenue, same pull request", "twin_version v2", aa.INK)]
+             ("alert", f"Oct 12 replay: {red} of {rows} agency-months red", "ops.kpi_parity", aa.INK),
+             ("check", "v2 counts revenue; nightly checks green", "twin_version v2", aa.INK)]
     xs, widths = (40, 420, 900), (340, 440, 340)
     for (ic, line, mono, color), sx, sw in zip(steps, xs, widths):
         dash = ' stroke-dasharray="4,3"' if ic == "file" else ""
@@ -193,7 +204,7 @@ def build():
 
 TITLE = "The seven numbers"
 DESC = ("Visual glossary of the seven fairshare numbers, AA revenue, AA share, fair share, the share gap in points and dollars, "
-        "year over year change and pace against goal, each defined once in the metric view with a Power BI twin.")
+        "year over year change and pace against goal, each defined once in the metric view; six are checked every night against a SQL twin of the Power BI measure.")
 
 if __name__ == "__main__":
     html = aa.page(slug="09-definitions", title=TITLE, desc=DESC, eyebrow="fairshare · the data", body=build())

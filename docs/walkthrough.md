@@ -6,19 +6,18 @@ Then one layer deeper only if asked. Numbers below are from the local build; re-
 
 **0:00 The dashboard (one minute).** The AI/BI dashboard, already open (the first load after a publish takes a minute on the
 free warehouse). "This is the Monday view a sales director has today, on the same metric view everything else here uses.
-September close: the network is at 139% of pace, AA share 37.8% against a fair share of 39%. The red bar on the left is what
+September close: the network is at 140% of pace, AA share 37.8% against a fair share of 39%. The red bar on the left is what
 moved: Harbor Business Travel, ten points of share below last September. The dashboard can show you that. It cannot tell you
 why, whether it is capacity or the agency, what the agreement says, or whether the number is right. That is what the app
 is for." If there is time, pick Harbor in the Agency filter: the trend line shows the collapse from February and the
 partial recovery, with fair share flat at 40%. One sentence on placement: "At American this is the Power BI report on the
 mirrored catalog, same definitions." Then the question: "An account manager at my current company asks me the same thing yours
 ask you: why is Summit's share down on Dallas to Chicago, and what does their contract say about it? Today that is a ticket, a
-query, and a few days. I built a small version of what I think your global sales agent should be, on public airline seat data,
-with made-up agencies on top. One screen, one Monday."
+query, and a few days. I built a small version of what I think your global sales agent should be, on made-up agencies, sales and seats. One screen, one Monday."
 
 **1:00 The app opens on the month (two minutes).** All regions, September. "This is what an account manager sees on Monday:
 one sentence, five numbers, the three agencies that moved, who is behind pace. Hover a word like fair share and you get the
-definition; click it and you get the Power BI check." Then the block under it, "Worth knowing this month": "before I ask
+definition; click it and you get the check against a SQL copy of the Power BI measure." Then the block under it, "Worth knowing this month": "before I ask
 anything, it tells me what deserves attention: Summit two points from an incentive tier worth $188K, Harbor at 96% of its
 revenue commitment with $46K of incentive at stake, a $5M renewal the CRM calls on track while share fell ten points, the
 largest capacity move, last week's corporate bookings. No model wrote these. Each is a fixed query and a template sentence,
@@ -63,7 +62,7 @@ asking for, all 20 on the third run; every run is logged. The same twenty sit in
 grades Genie too: its judge gave 15 the first time, and it caught a percent multiplied by 100 that my matcher had let through;
 three instruction lines later, 20 under both judges." Open How it works in the app: the twenty questions, one row each, with
 the four marks (Genie, Databricks's judge, backed, judged) and the links out to the Benchmarks tab, MLflow and the job. Then the
-MLflow experiment: one trace per answer, model calls and tool calls in order.
+MLflow experiment: the laptop runs that had tracing on, one trace per answer, model calls and tool calls in order. The App runs without tracing, so a live answer there has no trace.
 Then one click: the same app running inside the workspace as a Databricks App, signed in as you (the sidebar says so). "SQL, Genie and the model run
 with the viewer's permissions, never a service principal's, so an agency user would only ever see their own rows. The model in
 there is Databricks-hosted Qwen3-Next, because a Free Edition app cannot reach Foundry; same harness, same verifier, and
@@ -99,8 +98,8 @@ director should want: rules, a review loop, a gate.
 - Why Agent Framework and not Agent Bricks Supervisor? Because the harness you described is Microsoft's; the demo puts a Genie agent inside it, which is the shape you said. Supervisor would be the all-Databricks version of the same thing.
 - Why not Genie agent mode for "why"? For a known "why" (volume, mix, share) a fixed decomposition is consistent across analysts; agent mode is for the open-ended exploration after that.
 - What about per-agency security? Genie runs as the asking user; Unity Catalog row filters do the rest; the harness carries the user's token, never a service principal.
-- How do you know it is right? Twenty questions with known answers before and after every change, the verifier on every answer, and traces for anything that goes wrong.
-- What is fake? The agencies, the corporates, the contracts. The seats are BTS T-100. The Power BI twin is a second SQL implementation because Power BI Desktop is Windows only.
+- How do you know it is right? Twenty questions with known answers before and after every change, the verifier on every answer, and MLflow traces on the laptop runs (the App itself runs without them).
+- What is fake? The agencies, the corporates, the contracts, and the seats: one made-up seat share per route, because the T-100 loader has never run. The Power BI twin is a second SQL implementation because Power BI Desktop is Windows only.
 - Why an app and not just the dashboard? The dashboard is the leadership view: what and where, one glance. The app is the conversation: why, the agreement, a verified summary, and the query one click away. Both read one metric view, so they cannot disagree.
 - Why React and FastAPI and not Streamlit? Granular control of the experience for non-technical people: progressive disclosure, a floating chat bar, windows where the information is needed, exports; and a per-request identity so two viewers never share a token or a fact pool.
 - What about Genie App Builder? It would let a sales team describe a view and get an app inside an App Space, one governance boundary for identities, scopes and cost. It is in Beta and not on Free Edition, so this app is a classic Databricks App. The harness and the verifier are what would make those self-built views trustworthy.

@@ -164,3 +164,22 @@ def test_a_question_about_the_last_answer_without_one_says_so(client):
 def test_a_general_question_offline_never_reaches_the_agent(client):
     ev = events_of(client, {"question": "What is NDC?"})
     assert [e["event"] for e in ev] == ["status", "error", "done"] and ev[1]["data"]["code"] == "no_model"
+
+
+TRACES = "https://example.cloud.databricks.com/ml/experiments/1?compareRunsMode=TRACES"
+
+
+@pytest.mark.parametrize("mode, link", [(None, None), ("", None), ("local", TRACES), ("databricks", TRACES)])
+def test_an_answer_links_to_a_trace_only_when_this_process_traces(monkeypatch, mode, link):
+    """The App is handed MLFLOW_TRACES_URL (app_deploy's LINKS) but runs with FAIRSHARE_TRACES empty (app.yaml), so it keeps no trace of an answer.
+    Oct 20, 2026: every live answer still said "Open the trace", which opened a list without that answer. Only a process that traces gets the link."""
+    from harness.agent import Answer
+    from harness.verifier import FactPool, verify
+    from server import stream
+    monkeypatch.setenv("MLFLOW_TRACES_URL", TRACES)
+    if mode is None:
+        monkeypatch.delenv("FAIRSHARE_TRACES", raising=False)
+    else:
+        monkeypatch.setenv("FAIRSHARE_TRACES", mode)
+    a = Answer(question="q", text="Nothing to check here.", verification=verify("Nothing to check here.", FactPool(), "q"))
+    assert stream.answer_json(a)["trace_url"] == link

@@ -2,11 +2,13 @@
 -- Syntax checked against the metric view YAML 1.1 reference on Oct 11, 2026 (window measures with offset, MEASURE() composability).
 -- Join aliases (ag, mkt, cap) must differ from dimension names: a dimension called `agency` makes `agency.agency_name` a field lookup on a STRING.
 -- If the workspace rejects a `format` key, delete that line; nothing else depends on it.
+-- The nightly job cuts this file at every semicolon outside single quotes and comments, even inside the dollar-quoted YAML.
+-- So the YAML holds none, and none follows it: the warehouse rejects a piece made only of comments, which the smoke test at the bottom would become.
 
 CREATE OR REPLACE VIEW aa_demo.gold.sales_metrics
 WITH METRICS
 LANGUAGE YAML
-COMMENT 'Agency sales KPIs: AA revenue, AA share of agency sales, fair share (AA seat share from BTS T-100), share gap, year over year. Defined once here; the Power BI measures are kept equal by ops.kpi_parity.'
+COMMENT 'Agency sales KPIs: AA revenue, AA share of agency sales, fair share (AA seat share; the seat shares are made up, one per route), share gap, year over year. Defined once here; a SQL copy of each Power BI measure is compared with it every night in ops.kpi_parity (six of the seven).'
 AS $$
 version: 1.1
 comment: Agency indirect sales. One row of the source is one agency, one market, one month. Share is revenue based.
@@ -63,7 +65,7 @@ dimensions:
   - name: capacity_is_projected
     expr: cap.is_projected
     display_name: Capacity projected
-    comment: true where BTS has not published the month yet and the prior year's month stands in
+    comment: true where the month's seat file is not in yet and the prior year's month stands in. Never true with the made-up seat shares.
 measures:
   - name: aa_revenue
     expr: SUM(source.aa_revenue)
@@ -76,7 +78,7 @@ measures:
     expr: SUM(source.market_revenue)
     display_name: Agency market revenue
     synonyms: [total agency sales, all-carrier revenue, agency total]
-    comment: what the agency sold on the market across all carriers; the denominator of share
+    comment: what the agency sold on the market across all carriers. It is the denominator of share.
     format:
       type: currency
       currency_code: USD
@@ -97,8 +99,8 @@ measures:
   - name: fair_share
     expr: SUM(source.market_revenue * cap.aa_seat_share) / NULLIF(SUM(source.market_revenue), 0)
     display_name: Fair share
-    synonyms: [seat share, capacity share, expected share, QSI]
-    comment: AA's share of scheduled seats on the market (BTS T-100), weighted by the agency's market revenue so it is comparable with aa_share at any grain
+    synonyms: [seat share, capacity share, expected share]
+    comment: AA's share of scheduled seats on the market (made-up seat shares, one per route), weighted by the agency's market revenue so it is comparable with aa_share at any grain
     format:
       type: percentage
   - name: share_gap_pts
@@ -127,10 +129,10 @@ measures:
     expr: (MEASURE(aa_revenue) - MEASURE(aa_revenue_prior_year)) / NULLIF(MEASURE(aa_revenue_prior_year), 0)
     display_name: Year over year revenue change
     synonyms: [YoY, year over year, growth, versus last year, vs LY]
-    comment: month grain. Group by sales_month for a correct answer; for quarters use the trusted SQL asset in the Genie agent.
+    comment: month grain. Group by sales_month for a correct answer. For quarters use the trusted SQL asset in the Genie agent.
     format:
       type: percentage
-$$;
+$$
 
 -- Smoke test (expected on first run: 12 agencies, revenue, share near 0.3 to 0.5, fair share near 0.2 to 0.55)
 -- SELECT agency, MEASURE(aa_revenue) AS aa_revenue, MEASURE(aa_share) AS aa_share, MEASURE(fair_share) AS fair_share,

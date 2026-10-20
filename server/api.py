@@ -134,7 +134,8 @@ def _parity() -> dict:
     cur["month"] = cur["sales_month"].astype(str).str[:7]
     grid = {k: {m: ("ok" if g["ok"].all() else "drift") for m, g in kg.groupby("month")} for k, kg in cur.groupby("kpi")}
     return {"parity": {"run_id": str(latest["run_id"]), "run_at": str(latest["run_at"]), "kpis": int(latest["kpis"]), "rows": int(latest["rows"]),
-                       "drift": int(latest["drift"]), "grid": grid, "drifting": records(cur[~cur["ok"]].drop(columns=["ok", "month"]), 20), "source": source},
+                       "drift": int(latest["drift"]), "grid": grid, "drifting": records(cur[~cur["ok"]].drop(columns=["ok", "month"]), 20), "source": source,
+                       "by_kpi": {k: {"rows": int(len(g)), "drift": int((~g["ok"]).sum())} for k, g in cur.groupby("kpi")}},
             "runs": records(runs, 50)}
 
 

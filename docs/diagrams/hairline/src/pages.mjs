@@ -15,14 +15,14 @@ const BRAND = execFileSync("python3", ["-c", "import aa; print(aa.brand(0, 0, 22
 const CUSTOM = {
   stack: ["stack.html", "Five layers under every answer. Point at one to lift it clear."],
   "flight-symbol": ["title-a-flight-symbol.html", "The Flight Symbol in line. Point at it and it turns and banks."],
-  airliner: ["title-b-airliner.html", "A narrow-body in flight. Point at it and it banks and pitches."],
+  airliner: ["title-b-airliner.html", "Fairshare: sales answers you can check"],
   seats: ["title-c-seats.html", "Fair share is AA's share of the seats on a route."],
 };
 const OPENERS = {
   sieve: "Every number passes through the checks.",
   riffle: "Pages wait for a person to decide.",
   query: "It starts with a question.",
-  elevator: "Four floors: as delivered, cleaned, ready to use, and the app's own records.",
+  elevator: "Four floors: as delivered, cleaned, ready to use, and defined once.",
 };
 
 const page = (title, caption, scripts) => `<!doctype html>
@@ -32,7 +32,7 @@ const page = (title, caption, scripts) => `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
 <link rel="icon" href="data:,">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root { color-scheme: light; --hairline-plate: #ffffff; --hairline-hi: #006cbf; --hairline-edge: #36495a; --hairline-mid: #5a7181; --hairline-lo: #d0dae0; }
   * { box-sizing: border-box; }

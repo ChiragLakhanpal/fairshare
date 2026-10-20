@@ -2,8 +2,8 @@
 
 "How did Summit do on DFW to Chicago last quarter versus last year, are they ahead of fair share, and what does their
 contract say if they drop under 45%?" Today that question is a Power BI hunt or a ticket to the sales BI team and a few
-days. This is a small version of the agent that should answer it in ten seconds, with the SQL attached, built on public
-airline data in a couple of weekends.
+days. This is a small version of the agent that should answer it in ten seconds, with the SQL attached, built on made-up
+airline sales data in a couple of weekends.
 
 It is one system, told as an account manager's Monday. It opens on the sales director's dashboard (an AI/BI dashboard on
 the same metric view, standing in for Power BI: pace, share against fair share, what moved), which can say *what* and
@@ -15,16 +15,18 @@ it, built for people who do not write SQL.
    healthy while share fell, a share streak, the largest capacity move, last week's corporate bookings. Each line is template
    prose from a fixed query (`harness/signals.py`), checked by the verifier like every other sentence, with one action (ask,
    open the Delegate page, open the definition); the suggested questions under the chat bar follow these lines, and an answer
-   about an agency carries the line about that agency. No model runs on this page. Every KPI word opens its
-   definition and the Power BI check. "Write my Monday brief" turns it into prose: every number is checked against its query,
-   a sentence the model wrote that no query supports is removed and shown, and a person approves and sends.
+   about an agency carries the line about that agency. No model runs on this page. Every KPI word opens its definition,
+   and six of the seven open their check against a SQL copy of the Power BI measure. "Write my Monday brief" turns it
+   into prose: every number is checked against its query, a sentence the model wrote that no query supports is removed
+   and shown, and a person approves and sends.
 2. **Why**: ask why an agency is down. The change is decomposed into volume, mix and share, with a fair-share diagnostic
    (how much AA's own capacity explains). The parts sum to the total by construction; the model only writes.
 3. **Ask**: share versus last year versus fair share, with the query one click away; what the agreement says (quoted, with
    file and page); and a question it refuses to guess at ("which agencies will churn": no churn model in the data, here is a
    labeled proxy instead). Follow-up questions continue the same Genie conversation.
-4. **Definitions and parity**: each KPI written once in English, implemented in a Databricks metric view and as a Power BI
-   twin, with a nightly check that shows where they disagree. In the app they are a hover and a click away, never a page.
+4. **Definitions and parity**: each KPI written once in English, implemented in a Databricks metric view and, for six of
+   the seven, as a SQL copy of the Power BI measure that a nightly check compares with the metric view to show where
+   they disagree. In the app they are a hover and a click away, never a page.
 5. **How this app gets an answer**: one window with the path a question takes, the benchmark scores, and the links to the
    Genie space, the dashboard, the traces and the code.
 6. **Delegate**: the second mode. Four agents on one runtime, each a set of fixed queries, a tool-less writer (the frontier
@@ -41,10 +43,9 @@ it, built for people who do not write SQL.
 
 ## Data
 
-Real: BTS T-100 Domestic Segment seats by carrier, route and month, filtered to twelve markets, giving AA's seat share
-(the "fair share" denominator). AA network = AA plus the wholly owned Eagle carriers (Envoy, PSA, Piedmont); Republic
-and SkyWest fly for several brands and are left out, so fair share is slightly understated. Months BTS has not published
-yet carry the prior year's month and are flagged `is_projected`.
+Made up: the seat shares. Each route has one AA seat share that moves by about a point a month, with 150,000 seats in
+every market and month (`data/make_data.py`). The T-100 loader (`data/t100.py`) turns real BTS files into seat shares, but
+it has never run, so every row of `gold.fact_market_capacity` says `source = synthetic`.
 
 Made up: twelve travel agencies, ten corporate accounts, their monthly sales, goals, ticket-level bookings and four
 agreements. Deterministic (`data/make_data.py`, seed 88201) with data-quality traps planted on purpose: dirty channel
@@ -53,13 +54,13 @@ labels, duplicate tickets, a gap, a collapse, a zero month. Nothing here is conf
 ## Shape
 
 ```
-BTS T-100 + synthetic agency layer + 4 agreements
+Made-up seat shares + synthetic agency layer + 4 agreements
   -> Unity Catalog volume -> bronze -> silver -> gold            (Databricks Free Edition, catalog aa_demo)
   -> metric view gold.sales_metrics (one definition per KPI)      ops.kpi_definitions, ops.kpi_parity, ops.decomposition
   -> Genie Agent over the metric view
   -> harness (Microsoft Agent Framework): ask_metrics | run_sql | explain_change | search_contracts
      three rules (numbers only from tools; cite the SQL; "Could not verify" for the rest), a deterministic verifier
-     on every answer, OpenTelemetry traces to MLflow, 20 benchmark questions in a pre-commit hook
+     on every answer, MLflow traces on laptop runs (FAIRSHARE_TRACES; the App runs without them), 20 benchmark questions in a pre-commit hook
   -> the agreements read once by the thinking model into gold.contract_clauses (page citations), checked monthly by SQL
      into ops.agreement_checks; a CRM stand-in (contacts, opportunities, activities) in gold; the app's own writes in ops
   -> Delegate (harness/agents.py): precall | watch | prospect | mismatch, each facts (SQL) -> prose (a writer with no tools,

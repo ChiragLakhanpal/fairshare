@@ -141,7 +141,7 @@ def plan(scope: dict) -> list[dict]:
     managers = db.query("SELECT DISTINCT account_manager FROM aa_demo.gold.dim_agency")["account_manager"].tolist()
     if manager not in managers:
         raise ValueError(f"No account manager named {manager!r}; the choices are {', '.join(sorted(managers))}.")
-    rows = db.query(f"SELECT agency_id, agency_name, account_manager FROM aa_demo.gold.dim_agency WHERE account_manager = '{manager.replace(chr(39), chr(39) * 2)}' ORDER BY agency_id")
+    rows = db.query(f"SELECT agency_id, agency_name, account_manager FROM aa_demo.gold.dim_agency WHERE account_manager = {db.literal(manager)} ORDER BY agency_id")
     return [{"agency_id": int(r.agency_id), "agency_name": r.agency_name, "manager": r.account_manager, "month": month} for r in rows.itertuples()]
 
 
@@ -340,7 +340,7 @@ agents.register(AgentDef(
     title=lambda seed, fs: seed["agency_name"], subtitle=lambda seed, fs: f"{month_label(seed['month'])}, {seed['manager']}",
     empty_text="This manager owns no agencies.",
     one_liner="Writes one page for each of your agencies before Monday's calls, with an email ready to send.",
-    cadence="Runs every Monday at 6:00. You can also run it now.",
+    cadence="Runs every night. You can also run it now.",
     steps=[("Numbers", "Revenue, share, pace"), ("Why", "Volume, mix, share since last year"), ("Agreement", "Clauses near their line"), ("CRM", "Last touch, open deals"),
            ("Draft", "The page and the email"), ("Check", "Every number against its query"), ("Approve", "Waits for you")],
     section_titles=["Where they stand", "What moved", "The agreement", "The CRM stand-in", "The schedule", "For the call"],

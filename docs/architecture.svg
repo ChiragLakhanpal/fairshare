@@ -25,8 +25,8 @@
 
   <!-- sources -->
   <rect x="24" y="96" width="200" height="72" class="box"/>
-  <text x="36" y="118" class="title">BTS T-100 (real)</text>
-  <text x="36" y="136" class="sub">seats by carrier, route, month</text>
+  <text x="36" y="118" class="title">Seat shares (made up)</text>
+  <text x="36" y="136" class="sub">one per route, by month</text>
   <text x="36" y="152" class="sub">AA seat share = fair share</text>
 
   <rect x="244" y="96" width="220" height="72" class="box"/>
@@ -55,7 +55,7 @@
   <rect x="364" y="216" width="190" height="110" class="box"/>
   <text x="376" y="238" class="title">gold</text>
   <text x="376" y="256" class="sub">fact_agency_sales_monthly</text>
-  <text x="376" y="272" class="sub">fact_market_capacity (T-100)</text>
+  <text x="376" y="272" class="sub">fact_market_capacity (made up)</text>
   <text x="376" y="288" class="sub">dims, goals, pace, weekly bookings</text>
 
   <rect x="580" y="216" width="270" height="110" class="box" stroke="#2b4acb" stroke-width="2"/>
@@ -103,7 +103,7 @@
   <rect x="470" y="526" width="686" height="90" class="aa"/>
   <text x="482" y="548" class="title">At AA: Teams through Copilot Studio  |  Power BI on the mirrored catalog  |  the agency portal (each agency sees itself)</text>
   <text x="482" y="566" class="sub">Monday summary posts to Teams or mail after a human approves; the SVP gets the same page every week</text>
-  <text x="482" y="582" class="sub">the metric view and the Power BI model are kept equal by the parity job; a definition change is a pull request with a test</text>
+  <text x="482" y="582" class="sub">the metric view and a SQL copy of each Power BI measure are compared nightly; a definition change is a pull request with a test</text>
 
   <!-- arrows -->
   <path d="M124,168 L124,216" class="arrow"/>

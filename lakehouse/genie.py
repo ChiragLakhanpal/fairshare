@@ -24,14 +24,14 @@ sys.path.insert(0, str(ROOT))
 from fairshare.dbx import workspace_client  # noqa: E402
 
 TITLE = "fairshare sales metrics"
-DESCRIPTION = "Agency sales performance: AA revenue, AA share, fair share (BTS T-100 seat share), share gap, year over year, pace against goal. Synthetic agencies on real seat data."
+DESCRIPTION = "Agency sales performance: AA revenue, AA share, fair share (AA seat share, made up per route), share gap, year over year, pace against goal. Synthetic agencies, sales and seat shares."
 
 INSTRUCTIONS = [
     "AA share is revenue based: AA revenue divided by the agency's all-carrier revenue on the same markets and months. Never average pre-computed shares; use the metric view measures.",
-    "Fair share is AA's share of scheduled seats on the market (BTS T-100), weighted by the agency's market revenue. Share gap = AA share minus fair share; positive is above fair share.",
+    "Fair share is AA's share of scheduled seats on the market (made-up seat shares, one per route), weighted by the agency's market revenue. Share gap = AA share minus fair share; positive is above fair share.",
     "Use MEASURE() on aa_demo.gold.sales_metrics for every KPI. yoy_revenue_pct and aa_revenue_prior_year are ONLY correct when the query groups by sales_month; never select them when grouping by quarter, year or without a month. For a quarter or a year versus the prior one, select aa_revenue for both periods (see the Q3 example) and let the reader compare.",
     "Data covers January 2025 to September 2026. 'Year to date' and '2026' mean sales_month >= '2026-01-01'. The latest month is September 2026.",
-    "Pace against goal lives in aa_demo.gold.agency_pace (pace_pct: 100 means on pace to the annual revenue goal, goal spread evenly over twelve months). pace_pct and attainment_pct are already percentages (68.0 means 68 percent): never multiply them by 100.",
+    "Pace against goal lives in aa_demo.gold.agency_pace (pace_pct: 100 means on pace to the annual revenue goal, where the year-to-date goal is one twelfth of the annual goal for each month the agency reported, so a missing month never counts as zero). pace_pct and attainment_pct are already percentages (68.0 means 68 percent): never multiply them by 100.",
     "sales_month is already the first day of its month: select it as is, keep the name sales_month, and never wrap it in date_trunc.",
     "For a change over time (month over month, year over year) return both the absolute change in dollars and the percent change.",
     "Return percentages as percentages with one decimal and money rounded to whole dollars. When the question is ambiguous about the period, ask rather than guess.",
@@ -135,7 +135,7 @@ def serialized() -> str:
             "tables": sorted([  # the API requires tables sorted by identifier
                 _q(("aa_demo.gold.dim_agency", "Twelve travel agencies (synthetic): agency_id, agency_name, agency_type (TMC, OTA, Leisure, Consolidator), region (Central, East, West), account_manager.")),
                 _q(("aa_demo.gold.dim_market", "Twelve origin-destination markets: market_id, origin, dest, region, aa_hub_origin.")),
-                _q(("aa_demo.gold.agency_pace", "Pace against the annual revenue goal by agency and month: ytd_revenue, ytd_goal, pace_pct (100 = on pace to the full-year goal), attainment_pct (ytd_revenue as a percent of the full-year goal). Both _pct columns are already percentages, 68.0 means 68 percent.")),
+                _q(("aa_demo.gold.agency_pace", "Pace against the annual revenue goal by agency and month: ytd_revenue, months_reported, ytd_goal (one twelfth of the goal per month reported), pace_pct (100 = on pace to the full-year goal), attainment_pct (ytd_revenue as a percent of the full-year goal). Both _pct columns are already percentages, 68.0 means 68 percent.")),
             ], key=lambda t: t["identifier"]),
         },
         "instructions": {

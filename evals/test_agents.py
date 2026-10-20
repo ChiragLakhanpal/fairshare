@@ -273,14 +273,29 @@ def test_ready_made_phrases_travel_with_the_facts(state):
     assert ph["distance"] == "2.2 points below the line" and ph["dollars"].startswith("$188K") and not summit.flagged
 
 
-def test_sql_literals_keep_backslashes_on_databricks(monkeypatch):
-    """Spark SQL string literals process backslash escapes, so a JSON payload must have its backslashes doubled there; DuckDB's
-    literals do not, so locally the text goes in as is (Oct 15, 2026: every run saved in the workspace came back unreadable)."""
+def test_sql_literals_keep_quotes_and_backslashes_on_databricks(monkeypatch):
+    """What the Delegate and the summaries write goes through db.literal. Spark SQL string literals process backslash escapes, so a
+    JSON payload has its backslashes doubled there (Oct 15, 2026: every run saved in the workspace came back unreadable), and they
+    join adjacent literals, so a quote is escaped with a backslash, not doubled (Oct 19, 2026: 'agency''s' was stored as "agencys").
+    DuckDB's literals do neither, so locally the text goes in as is. The statements are captured, not run."""
     from harness import summary
-    monkeypatch.setenv("FAIRSHARE_BACKEND", "databricks")
-    assert agents._q('a "q" and\\nline') == "'a \"q\" and\\\\nline'" and summary._q("it's") == "'it''s'"
-    monkeypatch.setenv("FAIRSHARE_BACKEND", "duckdb")
-    assert agents._q('a\\nline') == "'a\\nline'"
+    run = agents.Run(run_id="0123456789ab", agent="precall", scope={}, requested_by="x", model="template", created_at="2026-10-19T09:00:00.000+00:00",
+                     progress={"done": 0, "total": 0, "text": "On the agency's top markets, a\\b"})   # one backslash, which JSON writes as two
+    result = {"run_id": "0123456789ab", "region": "All", "month": "2026-09", "created_at": "2026-10-19T09:00:00", "model": "template",
+              "draft": "The agency's draft", "verified_text": "The agency's draft", "flagged": [], "badges": []}
+    sent = []
+    monkeypatch.setattr(db, "state_execute", sent.extend)
+    for backend, quote, slashes in (("databricks", "\\'", "\\\\\\\\"), ("duckdb", "''", "\\\\")):
+        monkeypatch.setenv("FAIRSHARE_BACKEND", backend)
+        sent.clear()
+        agents.save(run)
+        summary.save(result)
+        agents.crm_write(5, "Note", "The agency's note", "It's a note", "tester", "0123456789ab", "abcdef012345")
+        sql = "\n".join(sent)
+        for text in (f"agency{quote}s top markets, a{slashes}b", f"The agency{quote}s draft", f"The agency{quote}s note", f"It{quote}s a note"):
+            assert text in sql, (backend, text)
+        if backend == "databricks":
+            assert "''" not in sql   # nothing doubles a quote for Spark
 
 
 def test_an_unreadable_saved_run_shows_as_failed_not_a_crash():

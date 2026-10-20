@@ -5,7 +5,7 @@ import { SPRING } from "../lib/motion";
 import { sidebarLine } from "../lib/runs";
 import { groupByRecency, type Mode } from "../lib/store";
 import type { AgentDef, Conversation } from "../lib/types";
-import { Agents, Chart, ChatIcon, ChevronsLeft, ChevronsRight, Clock, File, Inbox as InboxIcon, Pen, Phone, Plus, Trash } from "./Icons";
+import { Agents, Chart, ChatIcon, ChevronLeft, ChevronsLeft, ChevronsRight, Clock, File, Inbox as InboxIcon, Pen, Phone, Plus, Presentation, Trash } from "./Icons";
 
 export type QuickAction = "summary" | "brief" | "call" | "agreement";
 
@@ -13,6 +13,7 @@ type Props = {
   collapsed: boolean; onToggle: () => void; conversations: Conversation[]; activeId: string | null; onSelect: (id: string) => void;
   onRemove: (id: string) => void; onNew: () => void; onAction: (a: QuickAction) => void; email: string | null; inSummary: boolean;
   mode: Mode; onMode: (m: Mode) => void; agents: AgentDef[]; view: string | null; onOverview: () => void; onAgent: (key: string) => void;
+  deck: string | null; onDeck: () => void; // the slide to go back to in the deck (null: no way back), and a click on that link
 };
 
 const ACTIONS: { key: QuickAction; label: string; Icon: typeof Chart }[] = [
@@ -47,18 +48,21 @@ function Pill({ id, reduced }: { id: string; reduced: boolean | null }) {
   return <motion.span layoutId={id} aria-hidden="true" className="absolute inset-0 -z-10 rounded-md bg-white shadow-sm" transition={reduced ? { duration: 0 } : SPRING} />;
 }
 
-/** The part of the sidebar that belongs to one mode crossfades when the mode changes. */
-function Pane({ k, children }: { k: string; children: React.ReactNode }) {
+/** The part of the sidebar that belongs to one mode crossfades when the mode changes. It scrolls inside its own box, so in a short
+ * window its rows never run over the rows under it (the way back, Present, who is signed in). The narrow rail hides the bar,
+ * because a bar would take a third of its width. */
+function Pane({ k, children, rail }: { k: string; children: React.ReactNode; rail?: boolean }) {
   return (
     <AnimatePresence mode="wait" initial={false}>
-      <motion.div key={k} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.14 }} className="flex min-h-0 flex-1 flex-col gap-1">
+      <motion.div key={k} data-pane initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.14 }}
+        className={`flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto ${rail ? "[scrollbar-width:none]" : ""}`}>
         {children}
       </motion.div>
     </AnimatePresence>
   );
 }
 
-export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, view, onOverview, onAgent }: Props) {
+export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, view, onOverview, onAgent, deck, onDeck }: Props) {
   const reduced = useReducedMotion();
   const initials = (email ?? "You").split("@")[0].split(/[._-]/).map((s) => s[0]?.toUpperCase() ?? "").join("").slice(0, 2) || "Y";
   const anyRunning = agents.some((a) => a.running);
@@ -79,7 +83,7 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
               </Tip>
             ))}
           </div>
-          <Pane k={mode}>
+          <Pane k={mode} rail>
             {mode === "ask" ? (
               <div className="flex flex-col items-center gap-1.5">
                 <Tip label={copy.newChat}><button type="button" onClick={onNew} aria-label={copy.newChat} className="press flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white text-ink transition-colors hover:border-blue hover:text-blue"><Plus /></button></Tip>
@@ -110,6 +114,8 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
               </div>
             )}
           </Pane>
+          {deck && <Tip label={copy.backToDeck}><a href={`/present#${deck}`} onClick={onDeck} aria-label={copy.backToDeck} className="press flex h-10 w-10 items-center justify-center rounded-lg bg-tint !text-navy transition-colors hover:bg-tint-line hover:!no-underline"><ChevronLeft width={18} height={18} /></a></Tip>}
+          <Tip label={copy.present}><a href="/present" aria-label={copy.present} className="press flex h-10 w-10 items-center justify-center rounded-lg !text-ink-2 transition-colors hover:bg-line-2 hover:!text-ink hover:!no-underline"><Presentation width={18} height={18} /></a></Tip>
           <Tip label={copy.signedIn(email)}><span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-tint text-xs font-bold text-navy" aria-label={copy.signedIn(email)}>{initials}</span></Tip>
         </nav>
       </Tooltip.Provider>
@@ -184,6 +190,8 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
           </>
         )}
       </Pane>
+      {deck && <a href={`/present#${deck}`} onClick={onDeck} className="press flex w-full items-center gap-2.5 rounded-md bg-tint px-2.5 py-[7px] text-sm font-semibold !text-navy transition-colors hover:bg-tint-line hover:!no-underline"><ChevronLeft className="text-blue" />{copy.backToDeck}</a>}
+      <a href="/present" className="press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-sm !text-ink transition-colors hover:bg-line-2 hover:!no-underline"><Presentation className="text-ink-2" />{copy.present}</a>
       <div className="mt-2 flex items-center gap-2.5 border-t border-line px-2 pt-3.5">
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-tint text-xs font-bold text-navy">{initials}</span>
         <span className="text-[12.5px] leading-snug text-ink-2">{copy.signedIn(email)}</span>

@@ -9,7 +9,7 @@ import time
 from pydantic import BaseModel, Field
 
 from fairshare import dbx
-from harness import agent as harness_agent, facts
+from harness import agent as harness_agent, facts, tracing
 from harness.agent import Answer
 from harness.tools import PHASE_TEXT
 from server import cached
@@ -81,7 +81,7 @@ def answer_json(a: Answer) -> dict:
             "removed": v.flagged, "could_not_verify": [m.strip() for m in COULD_NOT.findall(a.text)], "verified_text": v.verified_text,
             "calls": calls_json(a.calls), "sources": a.sources, "follow_ups": cached.FOLLOW_UPS[kind],
             "genie_conversation_id": a.genie_conversation_id, "timing": {"total_ms": a.elapsed_ms, "tools_ms": sum(c.ms for c in a.calls)},
-            "cached": None, "trace_url": os.environ.get("MLFLOW_TRACES_URL") or None}
+            "cached": None, "trace_url": tracing.answer_link()}
 
 
 async def ask_events(viewer: Viewer, body: AskIn):

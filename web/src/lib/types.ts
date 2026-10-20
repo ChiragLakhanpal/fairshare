@@ -49,7 +49,7 @@ export type Explain = {
 export type Agency = { agency_id: number; agency_name: string; agency_type: string; region: string; account_manager: string };
 export type Definitions = {
   kpis: { kpi: string; display_name: string; definition_en: string; metric_view_expr: string; dax_twin: string; twin_sql: string; twin_sql_retired?: string | null; retired_note?: string | null }[];
-  parity: { run_id: string; run_at: string; kpis: number; rows: number; drift: number; grid: Record<string, Record<string, string>>; drifting: Record<string, unknown>[]; source: string } | null;
+  parity: { run_id: string; run_at: string; kpis: number; rows: number; drift: number; grid: Record<string, Record<string, string>>; by_kpi: Record<string, { rows: number; drift: number }>; drifting: Record<string, unknown>[]; source: string } | null;
   runs: { run_id: string; run_at: string; kpis: number; rows: number; drift: number }[];
 };
 

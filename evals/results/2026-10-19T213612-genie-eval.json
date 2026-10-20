@@ -1,0 +1,149 @@
+{
+  "run_at": "2026-10-19T21:36:12",
+  "eval_run_id": "01f1cc3f2c02140a870423eca2b920b4",
+  "n": 20,
+  "correct": 20,
+  "needs_review": 0,
+  "results": [
+    {
+      "id": "q01",
+      "question": "What is total AA revenue by agency type for 2026 year to date, largest first?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT `agency_type`, ROUND(MEASURE(`aa_revenue`)) AS `total_aa_revenue`\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `sales_month` >= DATE '2026-01-01'\nGROUP BY ALL\nORDER BY `total_aa_revenue` DESC"
+    },
+    {
+      "id": "q02",
+      "question": "Who are the top 5 agencies by 2026 AA revenue, with their region and account manager?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH agency_totals AS (SELECT `agency`, `region`, `account_manager`, MEASURE(`aa_revenue`) AS `aa_revenue` FROM aa_demo.gold.sales_metrics WHERE `sales_month` >= DATE '2026-01-01' AND `sales_month` < DATE '2027-01-01' GROUP BY ALL) SELECT `agency`, `region`, `account_manager`, ROUND(`aa_revenue`) AS `aa_revenue` FROM (SELECT *, RANK() OVER (ORDER BY `aa_revenue` DESC) AS `rank` FROM agency_totals) ranked WHERE `rank` <= 5 ORDER BY `aa_revenue` DESC"
+    },
+    {
+      "id": "q03",
+      "question": "Show monthly AA revenue for Harbor Business Travel in 2026.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT `sales_month`, ROUND(MEASURE(`aa_revenue`)) AS `aa_revenue`\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `agency` ILIKE '%Harbor Business Travel%' AND `year` = 2026 AND `sales_month` IS NOT NULL\nGROUP BY ALL\nORDER BY `sales_month` ASC"
+    },
+    {
+      "id": "q04",
+      "question": "What was Summit Travel Partners' AA share on DFW to ORD in Q3 2026 versus Q3 2025?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH q AS (\n  SELECT quarter, MEASURE(aa_share) AS aa_share\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')\n  GROUP BY ALL)\nSELECT quarter, ROUND(aa_share * 100, 1) AS aa_share_pct\nFROM q ORDER BY quarter"
+    },
+    {
+      "id": "q05",
+      "question": "In Q3 2026, how far above or below fair share was Summit Travel Partners on DFW to ORD, in points?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts\nFROM aa_demo.gold.sales_metrics\nWHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter = 'Q3 2026'\nGROUP BY ALL"
+    },
+    {
+      "id": "q06",
+      "question": "For August 2026, what was each agency's AA share against its fair share, and the gap in points?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT agency, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts\nFROM aa_demo.gold.sales_metrics\nWHERE sales_month = DATE '2026-08-01'\nGROUP BY ALL ORDER BY share_gap_pts DESC"
+    },
+    {
+      "id": "q07",
+      "question": "What is the share gap in dollars by agency for 2026 year to date? Show each agency's name and its share gap in whole dollars. Negative means below fair share.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH share_gap AS (SELECT `agency`, ROUND(MEASURE(`share_gap_usd`)) AS `share_gap_usd` FROM `aa_demo`.`gold`.`sales_metrics` WHERE `sales_month` >= DATE '2026-01-01' GROUP BY ALL) SELECT a.`agency_name`, s.`share_gap_usd` FROM share_gap s JOIN `aa_demo`.`gold`.`dim_agency` a ON s.`agency` = a.`agency_name` WHERE a.`agency_name` IS NOT NULL ORDER BY s.`share_gap_usd` DESC"
+    },
+    {
+      "id": "q08",
+      "question": "Year over year AA revenue by agency for August 2026 versus August 2025, with the percent change.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT agency, ROUND(MEASURE(aa_revenue)) AS aug_2026, ROUND(MEASURE(aa_revenue_prior_year)) AS aug_2025, ROUND(MEASURE(yoy_revenue_pct) * 100, 1) AS yoy_pct\nFROM aa_demo.gold.sales_metrics\nWHERE sales_month = DATE '2026-08-01'\nGROUP BY ALL ORDER BY yoy_pct DESC"
+    },
+    {
+      "id": "q09",
+      "question": "Through September 2026, what is each agency's year-to-date revenue, its full-year 2026 revenue goal, its attainment of that goal, and its pace (year to date against one twelfth of the goal for each month the agency reported)?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT a.agency_name, p.ytd_revenue, p.revenue_goal_usd, p.attainment_pct, p.pace_pct\nFROM aa_demo.gold.agency_pace p\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE p.sales_month = DATE '2026-09-01'\nORDER BY a.agency_name"
+    },
+    {
+      "id": "q10",
+      "question": "What share of total 2026 AA revenue does each region contribute? Show each region's AA revenue in whole dollars and its percent of the total with one decimal.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT `region`, ROUND(MEASURE(`aa_revenue`)) AS `aa_revenue_usd`, ROUND(try_divide(MEASURE(`aa_revenue`),SUM(MEASURE(`aa_revenue`)) OVER ()) * 100, 1) AS `pct_of_total`\nFROM `aa_demo`.`gold`.`sales_metrics`\nWHERE `year` = 2026 AND `region` IS NOT NULL\nGROUP BY ALL\nORDER BY `pct_of_total` DESC"
+    },
+    {
+      "id": "q11",
+      "question": "Show cumulative AA revenue by month for Summit Travel Partners in 2026. Show each month's revenue and the cumulative total next to it, both in whole dollars.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT `sales_month`, ROUND(MEASURE(`aa_revenue`)) AS `monthly_revenue`, ROUND(SUM(MEASURE(`aa_revenue`)) OVER (ORDER BY `sales_month` ASC)) AS `cumulative_revenue`\nFROM aa_demo.gold.sales_metrics\nWHERE `agency` = 'Summit Travel Partners' AND `sales_month` >= DATE '2026-01-01' AND `sales_month` IS NOT NULL\nGROUP BY ALL\nORDER BY `sales_month` ASC"
+    },
+    {
+      "id": "q12",
+      "question": "What is the three-month rolling average of AA revenue for Sunbelt Vacations in 2026? Note that March and April 2026 have no data.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH m AS (\n  SELECT EXTRACT(MONTH FROM sales_month) AS month_no, MEASURE(aa_revenue) AS aa_revenue\n  FROM aa_demo.gold.sales_metrics WHERE agency = 'Sunbelt Vacations' AND year = 2026 GROUP BY ALL)\nSELECT month_no, ROUND(aa_revenue) AS aa_revenue,\n       ROUND(AVG(aa_revenue) OVER (ORDER BY month_no RANGE BETWEEN 2 PRECEDING AND CURRENT ROW)) AS rolling_3m_avg\nFROM m ORDER BY month_no"
+    },
+    {
+      "id": "q13",
+      "question": "Rank the agencies within each region by 2026 AA revenue.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT `region`, `agency`, ROUND(MEASURE(`aa_revenue`)) AS `aa_revenue`, RANK() OVER (PARTITION BY `region` ORDER BY MEASURE(`aa_revenue`) DESC) AS `rank_in_region`\nFROM aa_demo.gold.sales_metrics\nWHERE `year` = 2026 AND `region` IS NOT NULL AND `agency` IS NOT NULL\nGROUP BY ALL\nORDER BY `region`, `rank_in_region` ASC"
+    },
+    {
+      "id": "q14",
+      "question": "What is the single best market by 2026 AA revenue for each agency?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH ranked AS (\n  SELECT \n    `agency`, \n    `market`, \n    MEASURE(`aa_revenue`) AS `aa_revenue`,\n    RANK() OVER (PARTITION BY `agency` ORDER BY MEASURE(`aa_revenue`) DESC) AS `rank`\n  FROM `aa_demo`.`gold`.`sales_metrics`\n  WHERE `agency` IS NOT NULL AND `market` IS NOT NULL AND `year` = 2026\n  GROUP BY ALL\n)\nSELECT `agency`, `market`, ROUND(`aa_revenue`) AS `aa_revenue`\nFROM ranked\nWHERE `rank` = 1\nORDER BY `agency`"
+    },
+    {
+      "id": "q15",
+      "question": "Month over month change in AA revenue for Lone Star Travel Group in 2026.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH m AS (\n  SELECT `sales_month`, MEASURE(`aa_revenue`) AS aa_revenue\n  FROM `aa_demo`.`gold`.`sales_metrics`\n  WHERE `agency` = 'Lone Star Travel Group' AND `sales_month` >= DATE '2026-01-01' AND `sales_month` < DATE '2026-10-01'\n  GROUP BY ALL\n)\nSELECT `sales_month`, ROUND(aa_revenue) AS aa_revenue,\n       ROUND(aa_revenue - LAG(aa_revenue) OVER (ORDER BY sales_month), 0) AS mom_change_usd,\n       ROUND(try_divide((aa_revenue - LAG(aa_revenue) OVER (ORDER BY sales_month)),LAG(aa_revenue) OVER (ORDER BY sales_month)) * 100, 1) AS mom_change_pct\nFROM m\nORDER BY sales_month ASC"
+    },
+    {
+      "id": "q16",
+      "question": "Which agencies have been below fair share for three or more consecutive months, ending September 2026?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH m AS (\n  SELECT `agency`, `sales_month`, EXTRACT(YEAR FROM `sales_month`) * 12 + EXTRACT(MONTH FROM `sales_month`) AS month_no,\n         MEASURE(`aa_share`) AS share, MEASURE(`fair_share`) AS fair\n  FROM `aa_demo`.`gold`.`sales_metrics` WHERE `sales_month` <= DATE '2026-09-01' GROUP BY ALL),\nbelow AS (SELECT `agency`, month_no FROM m WHERE share < fair),\nisl AS (SELECT `agency`, month_no, month_no - ROW_NUMBER() OVER (PARTITION BY `agency` ORDER BY month_no) AS grp FROM below),\nruns AS (SELECT `agency`, MAX(month_no) AS last_no, COUNT(*) AS months_below FROM isl GROUP BY `agency`, grp)\nSELECT `agency`, months_below FROM runs WHERE last_no = 2026 * 12 + 9 AND months_below >= 3 ORDER BY months_below DESC"
+    },
+    {
+      "id": "q17",
+      "question": "Which markets have an AA share across all agencies under 40% in 2026, and what is the dollar gap to 40%? Show each market's AA share as a percent with one decimal and the gap in whole dollars.",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT `market`, ROUND(MEASURE(`aa_share`) * 100, 1) AS `aa_share_pct`, ROUND((0.4 - MEASURE(`aa_share`)) * MEASURE(`market_revenue`)) AS `gap_to_40pct_usd`\nFROM aa_demo.gold.sales_metrics\nWHERE `sales_month` >= DATE '2026-01-01' AND `market` IS NOT NULL\nGROUP BY ALL\nHAVING MEASURE(`aa_share`) < 0.4\nORDER BY `aa_share_pct` ASC"
+    },
+    {
+      "id": "q18",
+      "question": "Which agencies are behind pace against their 2026 goal as of September 2026, and at what percent of pace?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "SELECT a.agency_name, p.ytd_revenue, p.revenue_goal_usd, p.pace_pct\nFROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE p.sales_month = DATE '2026-09-01' AND p.pace_pct < 100\nORDER BY p.pace_pct"
+    },
+    {
+      "id": "q19",
+      "question": "Which account manager's book of agencies has the largest share gap in dollars for 2026 year to date, positive or negative, and how large is it?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH gap AS (\n  SELECT `account_manager`, MEASURE(`share_gap_usd`) AS total_gap_usd\n  FROM aa_demo.gold.sales_metrics\n  WHERE `sales_month` >= DATE '2026-01-01'\n  GROUP BY ALL\n)\nSELECT `account_manager`, ROUND(total_gap_usd) AS share_gap_usd\nFROM gap\nWHERE ABS(total_gap_usd) = (\n  SELECT MAX(ABS(total_gap_usd)) FROM gap\n)"
+    },
+    {
+      "id": "q20",
+      "question": "How many agencies were above fair share in September 2026, and how many below?",
+      "assessment": "GOOD",
+      "reasons": [],
+      "genie_sql": "WITH m AS (\n  SELECT agency, MEASURE(aa_share) AS share, MEASURE(fair_share) AS fair\n  FROM aa_demo.gold.sales_metrics WHERE sales_month = DATE '2026-09-01' GROUP BY ALL)\nSELECT SUM(CASE WHEN share >= fair THEN 1 ELSE 0 END) AS above_fair_share, SUM(CASE WHEN share < fair THEN 1 ELSE 0 END) AS below_fair_share\nFROM m"
+    }
+  ]
+}
