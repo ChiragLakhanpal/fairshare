@@ -8,7 +8,6 @@ import { DefinitionWindow } from "./components/DefinitionWindow";
 import { Delegate } from "./components/Delegate";
 import { FloatingBar } from "./components/FloatingBar";
 import { HowItWorks } from "./components/HowItWorks";
-import { ChevronLeft } from "./components/Icons";
 import { Present } from "./components/Present";
 import { Sidebar, type QuickAction } from "./components/Sidebar";
 import { Summary } from "./components/Summary";
@@ -260,7 +259,7 @@ function Main() {
         <motion.div className="sticky top-0 h-screen shrink-0 overflow-hidden" animate={{ width: collapsed ? 56 : 256 }} transition={reduced ? { duration: 0 } : SPRING} initial={false}>
           <Sidebar collapsed={collapsed} onToggle={() => store.setSidebarCollapsed(!collapsed)} conversations={conversations} activeId={activeId}
             onSelect={(id) => store.setActive(id)} onRemove={(id) => store.remove(id)} onNew={() => store.newChat()} onAction={onAction} email={me?.email ?? null} inSummary={!activeId || summaryExpanded}
-            mode={mode} onMode={(m) => store.setMode(m)} agents={catalog?.agents ?? []} view={delegateView.agent}
+            mode={mode} onMode={(m) => store.setMode(m)} agents={catalog?.agents ?? []} view={delegateView.agent} deck={fromDeck} onDeck={clearDeckReturn}
             onOverview={() => { store.setDelegate({ agent: null, runId: null, itemId: null }); store.setMode("delegate"); }}
             onAgent={(k) => { store.setDelegate({ agent: k, runId: null, itemId: null }); store.setMode("delegate"); }} />
         </motion.div>
@@ -303,11 +302,6 @@ function Main() {
       <DefinitionWindow kpi={kpi} onClose={() => setKpi(null)} />
       <KpiBridge onOpen={setKpi} />
       <Toast />
-      {fromDeck && (
-        <a href={`/present#${fromDeck}`} onClick={clearDeckReturn} className="floating no-print press fixed bottom-5 right-5 z-20 inline-flex items-center gap-1.5 rounded-full py-2 pl-3 pr-4 text-[13.5px] font-medium !text-ink hover:!text-blue hover:!no-underline">
-          <ChevronLeft width={15} height={15} />{copy.backToDeck}
-        </a>
-      )}
     </Tooltip.Provider>
   );
 }

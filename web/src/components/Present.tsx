@@ -8,7 +8,7 @@
 // applies. The path (localStorage) and the start of the talk, set on the first move and dated back to the plan
 // (sessionStorage), outlive a reload and a demo jump. A demo button on a slide, or in the notes window, jumps into the app
 // in this tab (jump): the slide to come back to waits in sessionStorage for the app's link, and the deck clears it when it
-// opens again.
+// opens again, or when the browser restores it from its cache.
 import { useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -143,9 +143,15 @@ function Deck() {
   useEffect(blurAfterClick, []);
 
   // The way back is for one trip: once the deck is open again, by the app's link or by the browser's Back button (which
-  // skips the link), it is cleared.
+  // skips the link), it is cleared. A page the browser restores from its back/forward cache mounts nothing again, so that
+  // restore clears it too.
   useEffect(() => {
     write(session, KEYS.ret, null);
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) write(session, KEYS.ret, null);
+    };
+    addEventListener("pageshow", onShow);
+    return () => removeEventListener("pageshow", onShow);
   }, []);
 
   // The channel opens once, so no message can fall between two renders. Each message renders at once (flushSync): the

@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 
 test.beforeEach(async ({ context }) => {
   await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort()); // the font stylesheet holds the controller back
@@ -209,5 +209,66 @@ test("the sidebar's Present link shows in Ask and in Delegate, expanded and coll
       await expect(link, `sidebar ${sidebar}, mode ${mode}`).toBeVisible();
       await expect(link).toHaveAttribute("href", "/present");
     }
+  }
+});
+
+// The way back must not sit on the question bar or the top bar, at the sizes a projector runs (1024 by 768, 1280 by 720)
+// and up to a big screen, with the sidebar open or collapsed. The question box and the bar are checked as well as the input
+// itself, because the input is only a part of the box a corner can cover.
+type Box = { x: number; y: number; width: number; height: number };
+const touches = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+for (const size of [{ width: 1024, height: 768 }, { width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
+  for (const collapsed of [false, true]) {
+    test(`the way back stays clear of the question bar and the top bar at ${size.width} by ${size.height}, sidebar ${collapsed ? "collapsed" : "open"}`, async ({ page, context }) => {
+      await mockApp(context);
+      await context.route("**/api/me", (r) => r.fulfill({ json: { ...me, links: { dashboard: "https://example.com/dashboard" } } })); // the top bar as the app has it
+      await page.setViewportSize(size);
+      await page.addInitScript((c) => localStorage.setItem("fairshare.sidebar", String(c)), collapsed);
+      await page.goto("/present#ask");
+      await expect(page.locator("[data-deck-ready]")).toBeAttached();
+      await page.getByRole("button", { name: "Ask it live" }).click();
+      await expect(page.locator("#ask")).toBeFocused();
+      await expect(back(page)).toBeVisible();
+      const link = (await back(page).boundingBox())!;
+      expect(link.x >= 0 && link.y >= 0 && link.x + link.width <= size.width && link.y + link.height <= size.height, `the link is on the screen: ${JSON.stringify(link)}`).toBe(true);
+      const ask = page.locator("#ask");
+      const keepClear: Record<string, Locator> = {
+        "the question input": ask,
+        "the question box": page.locator("form:has(#ask)"),
+        "the question bar": ask.locator("xpath=ancestor::form/.."),
+        "the top bar": page.getByText("The data runs through September 2026.").locator("xpath=ancestor::div[contains(@class,'h-14')][1]"),
+      };
+      for (const [name, where] of Object.entries(keepClear)) {
+        const box = (await where.boundingBox())!;
+        expect(touches(link, box), `the link ${JSON.stringify(link)} touches ${name} ${JSON.stringify(box)}`).toBe(false);
+      }
+    });
+  }
+}
+
+// The browser may restore the deck from its back/forward cache, and then nothing mounts again. Playwright launches Chromium
+// with that cache off, and its headless shell cannot restore a page at all, so this test starts full Chromium with it on
+// (it needs the full build: bunx playwright install chromium).
+test("a deck the browser restores from its cache spends the way back too", async ({ baseURL }) => {
+  type Kept = { kept?: string };
+  const browser = await chromium.launch({ channel: "chromium", ignoreDefaultArgs: ["--disable-back-forward-cache"], args: ["--enable-features=BackForwardCache"] });
+  try {
+    const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 } });
+    await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+    await mockApp(context);
+    const page = await context.newPage();
+    await page.goto("/present#ask");
+    await expect(page.locator("[data-deck-ready]")).toBeAttached();
+    await page.evaluate(() => { (window as unknown as Kept).kept = "the same page"; }); // a page that loads again loses it
+    await page.getByRole("button", { name: "Ask it live" }).click();
+    await expect(back(page)).toBeVisible();
+    await page.goBack({ waitUntil: "commit" }); // a restore from the cache fires no load event
+    await expect.poll(() => page.evaluate(() => (window as unknown as Kept).kept ?? null).catch(() => null), { message: "the browser restored the deck from its cache" }).toBe("the same page");
+    await expect.poll(() => page.evaluate(() => sessionStorage.getItem("fairshare.deck.return"))).toBeNull();
+    await page.goto("/");
+    await expect(page.locator("#ask")).toBeVisible();
+    await expect(back(page)).toHaveCount(0);
+  } finally {
+    await browser.close();
   }
 });

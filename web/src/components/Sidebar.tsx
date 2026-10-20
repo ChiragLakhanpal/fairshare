@@ -5,7 +5,7 @@ import { SPRING } from "../lib/motion";
 import { sidebarLine } from "../lib/runs";
 import { groupByRecency, type Mode } from "../lib/store";
 import type { AgentDef, Conversation } from "../lib/types";
-import { Agents, Chart, ChatIcon, ChevronsLeft, ChevronsRight, Clock, File, Inbox as InboxIcon, Pen, Phone, Plus, Presentation, Trash } from "./Icons";
+import { Agents, Chart, ChatIcon, ChevronLeft, ChevronsLeft, ChevronsRight, Clock, File, Inbox as InboxIcon, Pen, Phone, Plus, Presentation, Trash } from "./Icons";
 
 export type QuickAction = "summary" | "brief" | "call" | "agreement";
 
@@ -13,6 +13,7 @@ type Props = {
   collapsed: boolean; onToggle: () => void; conversations: Conversation[]; activeId: string | null; onSelect: (id: string) => void;
   onRemove: (id: string) => void; onNew: () => void; onAction: (a: QuickAction) => void; email: string | null; inSummary: boolean;
   mode: Mode; onMode: (m: Mode) => void; agents: AgentDef[]; view: string | null; onOverview: () => void; onAgent: (key: string) => void;
+  deck: string | null; onDeck: () => void; // the slide to go back to in the deck (null: no way back), and a click on that link
 };
 
 const ACTIONS: { key: QuickAction; label: string; Icon: typeof Chart }[] = [
@@ -58,7 +59,7 @@ function Pane({ k, children }: { k: string; children: React.ReactNode }) {
   );
 }
 
-export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, view, onOverview, onAgent }: Props) {
+export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect, onRemove, onNew, onAction, email, inSummary, mode, onMode, agents, view, onOverview, onAgent, deck, onDeck }: Props) {
   const reduced = useReducedMotion();
   const initials = (email ?? "You").split("@")[0].split(/[._-]/).map((s) => s[0]?.toUpperCase() ?? "").join("").slice(0, 2) || "Y";
   const anyRunning = agents.some((a) => a.running);
@@ -110,6 +111,7 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
               </div>
             )}
           </Pane>
+          {deck && <Tip label={copy.backToDeck}><a href={`/present#${deck}`} onClick={onDeck} aria-label={copy.backToDeck} className="press flex h-10 w-10 items-center justify-center rounded-lg bg-tint !text-navy transition-colors hover:bg-tint-line hover:!no-underline"><ChevronLeft width={18} height={18} /></a></Tip>}
           <Tip label={copy.present}><a href="/present" aria-label={copy.present} className="press flex h-10 w-10 items-center justify-center rounded-lg !text-ink-2 transition-colors hover:bg-line-2 hover:!text-ink hover:!no-underline"><Presentation width={18} height={18} /></a></Tip>
           <Tip label={copy.signedIn(email)}><span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-tint text-xs font-bold text-navy" aria-label={copy.signedIn(email)}>{initials}</span></Tip>
         </nav>
@@ -185,6 +187,7 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
           </>
         )}
       </Pane>
+      {deck && <a href={`/present#${deck}`} onClick={onDeck} className="press flex w-full items-center gap-2.5 rounded-md bg-tint px-2.5 py-[7px] text-sm font-semibold !text-navy transition-colors hover:bg-tint-line hover:!no-underline"><ChevronLeft className="text-blue" />{copy.backToDeck}</a>}
       <a href="/present" className="press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-sm !text-ink transition-colors hover:bg-line-2 hover:!no-underline"><Presentation className="text-ink-2" />{copy.present}</a>
       <div className="mt-2 flex items-center gap-2.5 border-t border-line px-2 pt-3.5">
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-tint text-xs font-bold text-navy">{initials}</span>
