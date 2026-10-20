@@ -41,7 +41,7 @@ FOCAL = ("backstage", "check")
 LINES = [("interaction", 212, "rgba(54,73,90,0.18)", 1), ("visibility", 300, "rgba(54,73,90,0.65)", 2),
          ("internal-interaction", 388, "rgba(54,73,90,0.18)", 1)]
 HIDDEN_FILL, HIDDEN_STROKE = "rgba(54,73,90,0.06)", aa.MUTED
-CAPTION = ("FOCAL CELL", "A sentence whose number no query returned never reaches the screen.")
+CAPTION = ("FOCAL CELL", "A sentence whose number no query returned is cut from the answer, and the app shows what it cut.")
 # the motion steps, one per layer from the top row down; the verifier's caption comes in with the backstage row it explains
 STEPS = ["The account manager asks, watches, waits, then clicks a number",
          "The app shows its steps and holds the answer back, then shows it with its query",
