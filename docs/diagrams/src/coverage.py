@@ -15,7 +15,7 @@ build what the text says about the data.
 from __future__ import annotations
 
 import aa
-from deck_facts import FACTS, FORMATS, MONTHS, fact, query
+from deck_facts import FORMATS, MONTHS, display, fact, query
 
 VW, VH = 1280, 720
 GX, GY = 232, 200            # the grid's top-left corner
@@ -26,13 +26,6 @@ LOW, HIGH = 0.05, 0.20       # ink opacity of a cell with no routes, and of a ce
 INK_A = lambda a: f"rgba(54,73,90,{a})"  # noqa: E731
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
                 "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty")
-
-_FORMAT = {key: fmt for key, _sql, fmt, _grain in FACTS}
-
-
-def shown(key: str) -> str:
-    """A fact the way the deck prints it (the `display` string in facts.json), from a live query."""
-    return FORMATS[_FORMAT[key]][1](fact(key))
 
 
 def text(x, y, s, *, size=12, weight=400, fill=aa.INK, mono=False, anchor="start", italic=False, spacing=None, extra=""):
@@ -91,7 +84,7 @@ def check_claims(agencies, months, routes, zero) -> None:
     assert len({a for a, _m in holes}) == 1, "the holes should be one agency's months"
     assert holes[0][0] == agencies[-1], "the label under the holes sits under the last row, so that agency must sort last"
     assert len(zero) == 1 and (zero[0]["agency_name"], zero[0]["sales_month"]) in routes, "one reported month should hold the zero"
-    assert zero[0]["route"] == fact("northstar_zero_route") and key(zero[0]["sales_month"]) == shown("northstar_zero_month"), \
+    assert zero[0]["route"] == fact("northstar_zero_route") and key(zero[0]["sales_month"]) == display("northstar_zero_month"), \
         "the zero should be on the route and in the month the facts name"
 
 
@@ -107,7 +100,7 @@ def build(agencies, months, routes, zero) -> str:
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     # what the chart is about, inside the image because a slide takes the SVG alone
     out.append(text(40, 100, "Every agency, every month", size=16, weight=600))
-    out.append(text(40, 120, f"{shown('agency_months_present')} of {shown('agency_months_total')} agency-months have rows, "
+    out.append(text(40, 120, f"{display('agency_months_present')} of {display('agency_months_total')} agency-months have rows, "
                              f"each with all {NUMBER_WORDS[total]} routes", mono=True, fill=aa.MUTED))
     # the columns: a rule and the year over each year's months, then every month
     for year in sorted({m.year for m in months}):
@@ -160,8 +153,8 @@ TITLE = "Every agency, every month"
 def desc(agencies, months, routes, zero) -> str:
     z = zero[0]
     holes = holes_of(agencies, months, routes)
-    return (f"Grid of {shown('agencies')} agencies by {shown('months')} months, {key(months[0])} to {key(months[-1])}, where "
-            f"{shown('agency_months_present')} of {shown('agency_months_total')} agency-months have rows with all {NUMBER_WORDS[fact('routes')]} routes: "
+    return (f"Grid of {display('agencies')} agencies by {display('months')} months, {key(months[0])} to {key(months[-1])}, where "
+            f"{display('agency_months_present')} of {display('agency_months_total')} agency-months have rows with all {NUMBER_WORDS[fact('routes')]} routes: "
             f"{holes[0][0]} has none for {span([m for _a, m in holes])}, and {z['agency_name']}'s {key(z['sales_month'])} is reported "
             f"with AA at {FORMATS['usd'][1](int(z['aa_revenue']))} on {z['route']}.")
 

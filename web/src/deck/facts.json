@@ -1161,6 +1161,18 @@
    "sql": "SELECT CONCAT(m.origin, '-', m.dest) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nWHERE a.agency_name = 'Northstar Leisure' AND s.aa_revenue = 0",
    "value": "SEA-DEN"
   },
+  "others_apr26_chg_usd": {
+   "display": "+$196,597",
+   "grain": "Every agency except Sunbelt Vacations and Harbor Business Travel, added up, Apr 2026: the change in AA revenue against Apr 2025.",
+   "sql": "SELECT ROUND(SUM(CASE WHEN s.sales_month = DATE '2026-04-01' THEN s.aa_revenue END)\n           - SUM(CASE WHEN s.sales_month = DATE '2025-04-01' THEN s.aa_revenue END)) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name NOT IN ('Sunbelt Vacations', 'Harbor Business Travel')\n  AND s.sales_month IN (DATE '2025-04-01', DATE '2026-04-01')",
+   "value": 196597
+  },
+  "others_mar26_chg_usd": {
+   "display": "+$324,369",
+   "grain": "Every agency except Sunbelt Vacations and Harbor Business Travel, added up, Mar 2026: the change in AA revenue against Mar 2025.",
+   "sql": "SELECT ROUND(SUM(CASE WHEN s.sales_month = DATE '2026-03-01' THEN s.aa_revenue END)\n           - SUM(CASE WHEN s.sales_month = DATE '2025-03-01' THEN s.aa_revenue END)) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name NOT IN ('Sunbelt Vacations', 'Harbor Business Travel')\n  AND s.sales_month IN (DATE '2025-03-01', DATE '2026-03-01')",
+   "value": 324369
+  },
   "pax_rev_max_gap_pts": {
    "display": "1.7",
    "grain": "Q3 2026, all routes, per agency: the largest gap between passenger share and revenue share, in points.",

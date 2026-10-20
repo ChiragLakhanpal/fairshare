@@ -8,7 +8,8 @@ DATED     numbers a local query cannot reproduce (a Databricks run, a results fi
 COLUMNS   the tables a slide shows: an example row, and what each column means in one plain sentence.
 CHECKS    sentences the data must keep true: (sentence, SQL that returns one value, the value it must return).
 
-Slides and notes write a number as a {key}; the deck fills it from facts.json. The figure builders call fact(key).
+Slides and notes write a number as a {key}; the deck fills it from facts.json. The figure builders call fact(key) for a value and
+display(key) for the string a slide shows.
 The data is deterministic (data/make_data.py, seed 88201), so a Databricks build returns the same values.
 """
 from __future__ import annotations
@@ -158,6 +159,18 @@ def _sunbelt_2025(month: str) -> str:
         FROM aa_demo.gold.fact_agency_sales_monthly s
         JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
         WHERE a.agency_name = 'Sunbelt Vacations' AND s.sales_month = DATE '2025-{month}-01'"""
+
+
+def _others_move(month: str) -> str:
+    """The change in AA revenue in `month` of 2026 against the same month of 2025, added up over every agency except Sunbelt
+    Vacations (no rows in Mar and Apr 2026) and Harbor Business Travel (its own facts), so that the three parts can be added."""
+    return f"""
+        SELECT ROUND(SUM(CASE WHEN s.sales_month = DATE '2026-{month}-01' THEN s.aa_revenue END)
+                   - SUM(CASE WHEN s.sales_month = DATE '2025-{month}-01' THEN s.aa_revenue END)) AS value
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE a.agency_name NOT IN ('Sunbelt Vacations', 'Harbor Business Travel')
+          AND s.sales_month IN (DATE '2025-{month}-01', DATE '2026-{month}-01')"""
 
 
 def _pace(agency: str, month: str, old_rule: bool = False) -> str:
@@ -311,7 +324,7 @@ FACTS: list[tuple[str, str, str, str]] = [
     ("harbor_share_jun26", _harbor_share("2026-06-01"), "pct", "Harbor Business Travel, Jun 2026: AA share, all routes together."),
     ("harbor_share_jul26", _harbor_share("2026-07-01"), "pct", "Harbor Business Travel, Jul 2026: AA share, all routes together."),
 
-    # --- the two months Sunbelt is missing from, and what Harbor did in them
+    # --- the two months Sunbelt is missing from, what Harbor did in them, and what the other agencies did
     ("yoy_mar26", _yoy("03"), "pct", "Mar 2026, all agencies: AA revenue against Mar 2025."),
     ("yoy_apr26", _yoy("04"), "pct", "Apr 2026, all agencies: AA revenue against Apr 2025."),
     ("sunbelt_mar25_usd", _sunbelt_2025("03"), "usd", "Sunbelt Vacations, Mar 2025: AA revenue, in the month it is missing from in 2026."),
@@ -320,6 +333,10 @@ FACTS: list[tuple[str, str, str, str]] = [
      "Harbor Business Travel, Mar 2026: the change in AA revenue against Mar 2025."),
     ("harbor_apr26_chg_usd", _harbor_move("delta_revenue", "2026-04-01"), "usd_signed",
      "Harbor Business Travel, Apr 2026: the change in AA revenue against Apr 2025."),
+    ("others_mar26_chg_usd", _others_move("03"), "usd_signed",
+     "Every agency except Sunbelt Vacations and Harbor Business Travel, added up, Mar 2026: the change in AA revenue against Mar 2025."),
+    ("others_apr26_chg_usd", _others_move("04"), "usd_signed",
+     "Every agency except Sunbelt Vacations and Harbor Business Travel, added up, Apr 2026: the change in AA revenue against Apr 2025."),
 
     # --- pace in Sep 2026, and Sunbelt's before and after counting only the months it reported
     ("harbor_pace_sep26", _pace("Harbor Business Travel", "2026-09-01"), "pts",
@@ -706,6 +723,11 @@ _BY_KEY = {f[0]: f for f in FACTS}
 def fact(key: str):
     """One fact's value, for the figure builders. Runs only that fact's query, once per process."""
     return _run_fact(*_BY_KEY[key])["value"]
+
+
+def display(key: str) -> str:
+    """One fact the way a slide shows it: the `display` string facts.json stores for the key, from the same formatter."""
+    return FORMATS[_BY_KEY[key][2]][1](fact(key))
 
 
 def _print_all() -> None:

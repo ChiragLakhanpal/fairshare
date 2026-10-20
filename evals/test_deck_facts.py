@@ -42,6 +42,11 @@ def test_dated_facts_in_the_file_are_the_ones_written_in_deck_facts():
     assert STORED.get("dated") == json.loads(json.dumps(deck_facts.DATED)), "rerun: FAIRSHARE_BACKEND=duckdb .venv/bin/python docs/diagrams/src/deck_facts.py"
 
 
+def test_display_is_the_string_the_file_stores():
+    """The figures print display(key) and a slide prints the stored display, so for every fact they must be the same string."""
+    assert {k: deck_facts.display(k) for k, *_ in deck_facts.FACTS} == {k: f["display"] for k, f in STORED["facts"].items()}
+
+
 def test_the_numbers_said_out_loud():
     v = {k: f["value"] for k, f in deck_facts.collect()["facts"].items()}
     assert (v["summit_q3_aa_share"], v["summit_q3_fair_share"], v["summit_q3_gap_usd"], v["summit_q3_pax_share"]) == (53.5, 37.6, 88391, 52.4)

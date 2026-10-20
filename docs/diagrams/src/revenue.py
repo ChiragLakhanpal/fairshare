@@ -14,22 +14,16 @@ from __future__ import annotations
 import math
 
 import aa
-from deck_facts import FACTS, FORMATS, MONTHS, fact, query
+from deck_facts import MONTHS, display, fact, query
 
 VW, VH = 1280, 720
 L, R = 128, 1176             # the plot's left and right edges, as in figure 08
-TOP, BASE = 148, 508         # the plot's top, and its floor
+TOP, BASE = 140, 500         # the plot's top, and its floor
 STEP = 500_000               # one gridline, in dollars
 INK_A = lambda a: f"rgba(54,73,90,{a})"
 FOCAL_TINT = "rgba(0,108,191,0.08)"
 CALLOUT_X = 280              # where the callout's sentences start, clear of its label
-
-_FORMAT = {key: fmt for key, _sql, fmt, _grain in FACTS}
-
-
-def shown(key: str) -> str:
-    """A fact the way the deck prints it (the `display` string in facts.json), from a live query."""
-    return FORMATS[_FORMAT[key]][1](fact(key))
+NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve")
 
 
 def text(x, y, s, *, size=12, weight=400, fill=aa.INK, mono=False, anchor="start", italic=False, spacing=None):
@@ -88,6 +82,12 @@ def check_claims(by_year, holes, shares) -> None:
     assert fact("sunbelt_mar25_usd") > 0 and fact("sunbelt_apr25_usd") > 0, "Sunbelt sold something in those months of 2025"
     assert all(a < b for a, b in shares.values()) and len(shares) == 2, "Harbor's share should be lower than a year earlier in both months"
     assert fact("harbor_mar26_chg_usd") < 0 and fact("harbor_apr26_chg_usd") < 0, "Harbor's AA revenue should be down in both months"
+    assert fact("others_mar26_chg_usd") > 0 and fact("others_apr26_chg_usd") > 0, "the other agencies should have grown in total in both months"
+    # Sunbelt's change is what it sold a year earlier, taken away; each part is rounded to the dollar, so the sum may be a dollar or two off
+    for month, sunbelt, harbor, others in ((3, "sunbelt_mar25_usd", "harbor_mar26_chg_usd", "others_mar26_chg_usd"),
+                                           (4, "sunbelt_apr25_usd", "harbor_apr26_chg_usd", "others_apr26_chg_usd")):
+        parts, net = -fact(sunbelt) + fact(harbor) + fact(others), now[month] - prior[month]
+        assert abs(parts - net) <= 2, f"Sunbelt, Harbor and the other agencies should add up to month {month}'s change: {parts} against {net:.0f}"
 
 
 # ---------------------------------------------------------------- the figure
@@ -129,16 +129,19 @@ def build(by_year, holes, shares) -> str:
         m = max(series)
         out.append(text(f"{x(m) + 12:.1f}", f"{y(series[m]) + 4:.1f}", str(year), size=12, weight=600, fill=color, mono=True))
     # the two months, against last year
-    out.append(text(f"{band_x + band_w / 2:.1f}", BASE - 44, f"{focal_year} vs {prior_year}", mono=True, fill=aa.ACCENT, anchor="middle"))
+    out.append(text(f"{band_x + band_w / 2:.1f}", BASE - 44, f"Net, {focal_year} vs {prior_year}", mono=True, fill=aa.ACCENT, anchor="middle"))
     for h, key in zip(gap_months, ("yoy_mar26", "yoy_apr26")):
-        out.append(text(f"{x(h.month):.1f}", BASE - 14, shown(key), size=14, weight=600, fill=aa.ACCENT, mono=True, anchor="middle"))
+        out.append(text(f"{x(h.month):.1f}", BASE - 14, display(key), size=14, weight=600, fill=aa.ACCENT, mono=True, anchor="middle"))
     # the one callout, and where the lines come from
-    cy = 584
+    cy = 562
+    others = fact("agencies") - 2  # the other agencies are all but Sunbelt and Harbor
     out.append(text(40, cy, span(gap_months), mono=True, fill=aa.ACCENT))
-    out.append(text(CALLOUT_X, cy, f"Sunbelt sent nothing: it sold {shown('sunbelt_mar25_usd')} and {shown('sunbelt_apr25_usd')} in those months of {prior_year}.",
+    out.append(text(CALLOUT_X, cy, f"Sunbelt sent nothing: it sold {display('sunbelt_mar25_usd')} and {display('sunbelt_apr25_usd')} in those months of {prior_year}.",
                     size=16, italic=True))
-    out.append(text(CALLOUT_X, cy + 28, f"Harbor's share kept falling: {shown('harbor_mar26_chg_usd')} and {shown('harbor_apr26_chg_usd')} "
-                                        f"against those months of {prior_year}.", size=16, italic=True))
+    out.append(text(CALLOUT_X, cy + 24, f"Harbor's share kept falling: {display('harbor_mar26_chg_usd')} and {display('harbor_apr26_chg_usd')} against {prior_year}.",
+                    size=16, italic=True))
+    out.append(text(CALLOUT_X, cy + 48, f"The other {NUMBER_WORDS[others]} agencies grew in total: {display('others_mar26_chg_usd')} and {display('others_apr26_chg_usd')} against {prior_year}.",
+                    size=16, italic=True))
     out.append(aa.icon("databricks", CALLOUT_X, 630, 16))
     out.append(text(CALLOUT_X + 24, 643, "AA revenue summed over all agencies and routes · gold.fact_agency_sales_monthly", mono=True, fill=aa.MUTED))
     # legend strip
@@ -163,7 +166,7 @@ TITLE = "AA revenue by month"
 def desc(by_year, holes) -> str:
     years = sorted(by_year)
     return (f"Two lines of AA revenue by calendar month, {years[-2]} against {years[-1]}: {years[-1]} runs above {years[-2]} except in "
-            f"{span([h['sales_month'] for h in holes])}, when Sunbelt sent nothing and Harbor's share kept falling.")
+            f"{span([h['sales_month'] for h in holes])}, when Sunbelt sent nothing and Harbor's share kept falling, though the other agencies grew in total.")
 
 
 if __name__ == "__main__":
