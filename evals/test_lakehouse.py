@@ -2,6 +2,7 @@
 
   .venv/bin/pytest evals -q
 """
+import ast
 import sys
 from pathlib import Path
 
@@ -234,6 +235,86 @@ def test_literal_keeps_apostrophes_and_backslashes(monkeypatch):
     monkeypatch.setattr(db, "is_databricks", lambda: True)
     assert db.literal("agency's") == "'agency\\'s'"
     assert db.literal("a\\b") == "'a\\\\b'"
+
+
+# Oct 19, 2026: text built into a statement by hand doubled its quotes, and Databricks stored "AAs" for 'AA''s' on 37 of 44 saved runs. The fix is that
+# fairshare.db.literal is the only place that escapes a quote or a backslash. This reads the Python under the four folders that write SQL and fails on
+# any other: a replace that works on a single quote or a backslash, a replace that writes two quotes or a backslash and a quote, or chr(39).
+def hand_escapes(source):
+    """The lines of Python source that build a SQL string literal by hand. Read as syntax, so a comment or a string that only mentions
+    an escape is left alone."""
+    quote, slash = "'", "\\"
+
+    def text(node):
+        return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+    lines = set()
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name) and node.func.id == "chr" and [getattr(a, "value", None) for a in node.args] == [39]:
+            lines.add(node.lineno)  # chr(39) is a single quote, written to dodge the quote in the source
+        elif isinstance(node.func, ast.Attribute) and node.func.attr == "replace" and len(node.args) >= 2:
+            old, new = text(node.args[0]), text(node.args[1])
+            if old in (quote, slash) or new in (quote * 2, slash + quote):
+                lines.add(node.lineno)
+    return sorted(lines)
+
+
+def hand_built_literals(root):
+    """Every such line under harness/, server/, lakehouse/ and fairshare/ of `root`, except inside db.literal, where the escape belongs."""
+    found = []
+    for folder in ("harness", "server", "lakehouse", "fairshare"):
+        for path in sorted((root / folder).rglob("*.py")):
+            source = path.read_text(encoding="utf-8")
+            allowed = range(0)
+            if path == root / "fairshare" / "db.py":
+                literal = next(n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.FunctionDef) and n.name == "literal")
+                allowed = range(literal.lineno, literal.end_lineno + 1)
+            found += [f"{path.relative_to(root).as_posix()}:{n}" for n in hand_escapes(source) if n not in allowed]
+    return found
+
+
+BY_HAND = r"""
+x = s.replace("'", "''")
+x = s.replace('\'', "\\'")
+x = s.replace(chr(39), chr(39) * 2)
+q = chr(39)
+x = s.replace("\\", "\\\\")
+x = s.replace(quote, "''")
+x = s.replace(quote, "\\'")
+"""
+NOT_BY_HAND = r"""
+x = db.literal(s)
+x = s.replace("_", " ")
+x = s.replace("-", " ")
+x = f"{a} 'quoted' {b}"
+x = "it's"
+# s.replace("'", "''")
+"""
+
+
+def test_the_scan_sees_every_way_to_escape_a_quote_by_hand():
+    for line in BY_HAND.strip().splitlines():
+        assert hand_escapes(line + "\n") == [1], f"the scan should flag: {line}"
+    for line in NOT_BY_HAND.strip().splitlines():
+        assert hand_escapes(line + "\n") == [], f"the scan should leave alone: {line}"
+
+
+def test_the_scan_walks_the_four_folders_and_spares_only_db_literal(tmp_path):
+    escape = 'def f(s):\n    return s.replace("\'", "\'\'")\n'
+    for folder in ("harness", "server", "lakehouse", "fairshare", "data"):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "m.py").write_text(escape, encoding="utf-8")
+    assert hand_built_literals(tmp_path) == [f"{folder}/m.py:2" for folder in ("harness", "server", "lakehouse", "fairshare")]  # data/ is not one of the four
+    (tmp_path / "fairshare" / "db.py").write_text(escape.replace("def f", "def literal") + "\n\n" + escape.replace("def f", "def other"), encoding="utf-8")
+    found = hand_built_literals(tmp_path)
+    assert "fairshare/db.py:2" not in found and "fairshare/db.py:6" in found, found  # the escape inside literal() is the one allowed
+
+
+def test_nothing_builds_a_sql_literal_by_hand_outside_db_literal():
+    found = hand_built_literals(ROOT)
+    assert not found, "build the literal with fairshare.db.literal, which escapes for the backend: " + ", ".join(found)
 
 
 def test_the_jobs_foundry_env_comes_from_the_secret_scope(monkeypatch):
