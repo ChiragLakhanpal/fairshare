@@ -34,3 +34,13 @@ def test_nothing_says_power_bi_itself_was_checked():
 
 def test_fair_share_has_no_qsi_synonym():
     assert "QSI" not in (ROOT / "lakehouse/03_metric_view.sql").read_text(encoding="utf-8")
+
+
+# the figures that print data values (05 prints none); every one says so in its logo band
+DATA_FIGURES = ["04-journey-sales-director", "06-data-pipeline", "07-fair-share", "08-why-it-moved", "09-definitions"]
+
+
+def test_every_data_figure_says_synthetic_data_in_its_logo_band():
+    for slug in DATA_FIGURES:
+        html = (ROOT / "docs" / "diagrams" / f"{slug}.html").read_text(encoding="utf-8")
+        assert "FAIRSHARE · SYNTHETIC DATA" in html, f"{slug} prints data values, so its logo band must say synthetic data"

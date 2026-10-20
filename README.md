@@ -15,17 +15,18 @@ it, built for people who do not write SQL.
    healthy while share fell, a share streak, the largest capacity move, last week's corporate bookings. Each line is template
    prose from a fixed query (`harness/signals.py`), checked by the verifier like every other sentence, with one action (ask,
    open the Delegate page, open the definition); the suggested questions under the chat bar follow these lines, and an answer
-   about an agency carries the line about that agency. No model runs on this page. Every KPI word opens its
-   definition and its check against a SQL copy of the Power BI measure. "Write my Monday brief" turns it into prose:
-   every number is checked against its query, a sentence the model wrote that no query supports is removed and shown,
-   and a person approves and sends.
+   about an agency carries the line about that agency. No model runs on this page. Every KPI word opens its definition,
+   and six of the seven open their check against a SQL copy of the Power BI measure. "Write my Monday brief" turns it
+   into prose: every number is checked against its query, a sentence the model wrote that no query supports is removed
+   and shown, and a person approves and sends.
 2. **Why**: ask why an agency is down. The change is decomposed into volume, mix and share, with a fair-share diagnostic
    (how much AA's own capacity explains). The parts sum to the total by construction; the model only writes.
 3. **Ask**: share versus last year versus fair share, with the query one click away; what the agreement says (quoted, with
    file and page); and a question it refuses to guess at ("which agencies will churn": no churn model in the data, here is a
    labeled proxy instead). Follow-up questions continue the same Genie conversation.
-4. **Definitions and parity**: each KPI written once in English, implemented in a Databricks metric view and as a Power BI
-   twin, with a nightly check that shows where they disagree. In the app they are a hover and a click away, never a page.
+4. **Definitions and parity**: each KPI written once in English, implemented in a Databricks metric view and, for six of
+   the seven, as a SQL copy of the Power BI measure that a nightly check compares with the metric view to show where
+   they disagree. In the app they are a hover and a click away, never a page.
 5. **How this app gets an answer**: one window with the path a question takes, the benchmark scores, and the links to the
    Genie space, the dashboard, the traces and the code.
 6. **Delegate**: the second mode. Four agents on one runtime, each a set of fixed queries, a tool-less writer (the frontier

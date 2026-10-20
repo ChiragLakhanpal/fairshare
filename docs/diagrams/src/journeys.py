@@ -44,6 +44,7 @@ DIAGRAMS = [
     dict(
         file="04-journey-sales-director.html", slug="04-journey-sales-director",
         title="Sales director: a question in the Monday meeting",
+        tag="fairshare · synthetic data",  # it prints Harbor's numbers, so its logo band says the data is made up
         desc=("Sequence of one question from a sales director: the fairshare app asks Genie as the viewer, explains the change "
               "from ops.decomposition, has the model write from the rows only, and the verifier checks every number before "
               "the answer comes back with its query attached."),
@@ -190,7 +191,7 @@ def build(d) -> str:
     life_bottom = y + 16
     assert life_bottom <= 644, f"{d['file']}: sequence runs to {life_bottom}"
 
-    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand()]
+    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag=d["tag"]) if "tag" in d else aa.brand()]
     out.append('<defs>'
                f'<marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="{aa.MUTED}"/></marker>'
                f'<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="{aa.ACCENT}"/></marker>'
