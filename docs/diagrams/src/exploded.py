@@ -8,7 +8,6 @@ reprojects each part from the data-* attributes written here.
 from __future__ import annotations
 
 import math
-import re
 
 import aa
 
@@ -238,29 +237,10 @@ DESC = ("Exploded view of fairshare in five layers: data at the base, then one d
 EYEBROW = "fairshare · the system"
 
 
-def animated(body, steps):
-    """diagram-design's motion template, re-skinned for AA and widened to the 1280 slide."""
-    src = ax.MOTION_TEMPLATE.read_text(encoding="utf-8")
-    src = src.replace("<title>Motion diagram template</title>", f"<title>{TITLE}</title>", 1)
-    src = src.replace("--motion-step: 480ms;", "--motion-step: 600ms;", 1).replace("--motion-hold: 720ms;", "--motion-hold: 900ms;", 1)
-    src = src.replace("--motion-total: 3600ms;", f"--motion-total: {steps * 900}ms;", 1)
-    src = src.replace("min-width: 960px;", "min-width: 1000px;", 1)
-    src = src.replace("  </style>", ex.MOTION_CSS + "  </style>", 1)
-    start, end = src.index("  <!-- Replace template-motion"), src.index("    <div data-motion-controls")
-    main = (f'  <main data-motion-root data-motion-mode="reveal" data-step-count="{steps}" data-step-current="{steps}" data-frame="static" data-static-frame="complete">\n'
-            f'    <p class="eyebrow">{EYEBROW}</p>\n    <h1>{TITLE}</h1>\n\n    <div class="diagram-container">\n'
-            f'      <svg viewBox="0 0 {VW} {VH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="01-system-exploded-animated-title 01-system-exploded-animated-desc">\n'
-            f'        <title id="01-system-exploded-animated-title">{TITLE}</title>\n        <desc id="01-system-exploded-animated-desc">{DESC}</desc>\n'
-            f'        {body}\n      </svg>\n    </div>\n\n')
-    src = src[:start] + main + src[end:]
-    src = re.sub(r'Step <span data-motion-step-label>\d+</span> of \d+', f'Step <span data-motion-step-label>{steps}</span> of {steps}', src, count=1)
-    src = src.replace("The complete final diagram is shown above.", "The complete exploded diagram is shown above.", 1)
-    return aa.aa_motion(src)
-
-
 if __name__ == "__main__":
     body, _ = build(False)
     (aa.OUT / "01-system-exploded.html").write_text(aa.page(slug="01-system-exploded", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=body), encoding="utf-8")
     body, steps = build(True)
-    (aa.OUT / "01-system-exploded-animated.html").write_text(animated(body, steps), encoding="utf-8")
+    page = aa.animated(slug="01-system-exploded-animated", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=body, steps=steps, css=ex.MOTION_CSS)
+    (aa.OUT / "01-system-exploded-animated.html").write_text(page, encoding="utf-8")
     print("wrote 01-system-exploded.html and 01-system-exploded-animated.html")

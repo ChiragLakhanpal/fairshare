@@ -200,6 +200,12 @@
     html[data-motion="step"] .part-label { transition: none !important; }
     @media (prefers-reduced-motion: reduce) { .part-label { opacity: 1 !important; } }
     @media print { .part-label { opacity: 1 !important; } }
+    /* html[data-embed]: set by the /present deck once the controller is ready; only the figure shows, fitted to the frame */
+    html[data-embed] body { margin: 0; padding: 0; min-height: 0; display: block; overflow: hidden; background: var(--color-paper); }
+    html[data-embed] .eyebrow, html[data-embed] h1, html[data-embed] [data-motion-controls] { display: none !important; }
+    html[data-embed] [data-motion-root] { width: 100vw; max-width: none; margin: 0; }
+    html[data-embed] .diagram-container { overflow: hidden; }
+    html[data-embed] [data-motion-root] svg { width: 100vw; min-width: 0; height: auto; display: block; }
   </style>
 </head>
 <body>
@@ -237,7 +243,7 @@
       <span data-motion-status-visible aria-hidden="true">Step <span data-motion-step-label>5</span> of 5</span>
     </div>
     <p class="sr-only" data-motion-status role="status" aria-live="polite" aria-atomic="true"></p>
-    <noscript><p>Animation controls require JavaScript. The complete exploded diagram is shown above.</p></noscript>
+    <noscript><p>Animation controls require JavaScript. The complete final diagram is shown above.</p></noscript>
   </main>
 
   <script data-diagram-controls>

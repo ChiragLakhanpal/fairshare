@@ -27,6 +27,7 @@ def plugin_scripts() -> Path:
 
 SCRIPTS = plugin_scripts()
 sys.path.insert(0, str(SCRIPTS))
+MOTION_TEMPLATE = SCRIPTS.parent / "skills/diagram-design/assets/template-motion.html"
 
 
 def load(name: str, file: str):
@@ -110,8 +111,23 @@ def page(*, slug, title, desc, eyebrow, body, vw=1280, vh=720) -> str:
                        eyebrow=eyebrow, vw=vw, vh=vh, slug=slug, desc=desc, body=body)
 
 
+# Embed mode for the /present deck. No script: verify-motion.py allows one per motion page (the controller) and lint-skin.py
+# rejects on* attributes, so the deck sets data-embed itself once the controller is ready, then sends Home or End.
+EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the controller is ready; only the figure shows, fitted to the frame */
+    html[data-embed] body { margin: 0; padding: 0; min-height: 0; display: block; overflow: hidden; background: var(--color-paper); }
+    html[data-embed] .eyebrow, html[data-embed] h1, html[data-embed] [data-motion-controls] { display: none !important; }
+    html[data-embed] [data-motion-root] { width: 100vw; max-width: none; margin: 0; }
+    html[data-embed] .diagram-container { overflow: hidden; }
+    html[data-embed] [data-motion-root] svg { width: 100vw; min-width: 0; height: auto; display: block; }
+"""
+
+# Extra CSS for animated(): items fade in where they stand instead of rising 8px into place.
+FADE_ONLY = ".motion-ready [data-motion-item] { transform: none; }"
+
+
 def aa_motion(src: str) -> str:
-    """Re-skin a page built from diagram-design's motion template: AA fonts and colors, a wider root for 1280 slides."""
+    """Re-skin a page built from diagram-design's motion template: AA fonts and colors, a wider root for 1280 slides, and
+    the embed CSS the /present deck switches on."""
     import re
     src = re.sub(r'<link href="https://fonts\.googleapis\.com/css2\?[^"]+" rel="stylesheet">', f'<link href="{FONT_LINK}" rel="stylesheet">', src, count=1)
     for old, new in (("--color-paper: #f5f5f5;", f"--color-paper: {PAPER};"), ("--color-ink: #2d3142;", f"--color-ink: {INK};"),
@@ -123,7 +139,31 @@ def aa_motion(src: str) -> str:
                      ("min-width: 1000px;", "min-width: 1280px;")):
         assert old in src, old
         src = src.replace(old, new, 1)
-    return src
+    assert "  </style>" in src, "  </style>"
+    return src.replace("  </style>", EMBED_CSS + "  </style>", 1)
+
+
+def animated(*, slug: str, title: str, desc: str, eyebrow: str, body: str, steps: int, css: str = "", vw: int = 1280, vh: int = 720) -> str:
+    """diagram-design's motion template around one figure, re-skinned for AA and widened to the 1280 slide: the plugin's
+    controller byte for byte, reveal mode (it plays once on open), and `css` added after the template's own rules."""
+    import re
+    src = MOTION_TEMPLATE.read_text(encoding="utf-8")
+    src = src.replace("<title>Motion diagram template</title>", f"<title>{title}</title>", 1)
+    src = src.replace("--motion-step: 480ms;", "--motion-step: 600ms;", 1).replace("--motion-hold: 720ms;", "--motion-hold: 900ms;", 1)
+    src = src.replace("--motion-total: 3600ms;", f"--motion-total: {steps * 900}ms;", 1)
+    src = src.replace("min-width: 960px;", "min-width: 1000px;", 1)
+    if css and not css.endswith("\n"):
+        css = f"    {css}\n"  # a one-line rule such as FADE_ONLY gets its own line
+    src = src.replace("  </style>", css + "  </style>", 1)
+    start, end = src.index("  <!-- Replace template-motion"), src.index("    <div data-motion-controls")
+    main = (f'  <main data-motion-root data-motion-mode="reveal" data-step-count="{steps}" data-step-current="{steps}" data-frame="static" data-static-frame="complete">\n'
+            f'    <p class="eyebrow">{eyebrow}</p>\n    <h1>{title}</h1>\n\n    <div class="diagram-container">\n'
+            f'      <svg viewBox="0 0 {vw} {vh}" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="{slug}-title {slug}-desc">\n'
+            f'        <title id="{slug}-title">{title}</title>\n        <desc id="{slug}-desc">{desc}</desc>\n'
+            f'        {body}\n      </svg>\n    </div>\n\n')
+    src = src[:start] + main + src[end:]
+    src = re.sub(r'Step <span data-motion-step-label>\d+</span> of \d+', f'Step <span data-motion-step-label>{steps}</span> of {steps}', src, count=1)
+    return aa_motion(src)
 
 
 def esc(s: str) -> str:

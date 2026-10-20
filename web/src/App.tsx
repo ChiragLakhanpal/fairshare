@@ -8,6 +8,7 @@ import { DefinitionWindow } from "./components/DefinitionWindow";
 import { Delegate } from "./components/Delegate";
 import { FloatingBar } from "./components/FloatingBar";
 import { HowItWorks } from "./components/HowItWorks";
+import { Present } from "./components/Present";
 import { Sidebar, type QuickAction } from "./components/Sidebar";
 import { Summary } from "./components/Summary";
 import { SummaryStrip } from "./components/SummaryStrip";
@@ -27,6 +28,7 @@ function scopeFromUrl(): Scope {
 
 export function App() {
   const path = location.pathname;
+  if (path === "/present") return <Present />;
   if (path.startsWith("/brief/")) return <BriefPage runId={path.slice("/brief/".length)} />;
   return <Main />;
 }

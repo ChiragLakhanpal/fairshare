@@ -14,3 +14,11 @@ def test_pace_counts_only_reported_months():
                     ORDER BY p.sales_month""")
     assert list(p["months_reported"]) == [3, 7], "Sunbelt has no rows for March and April 2026"
     assert list(p["pace_pct"]) == [123.6, 136.3]
+
+
+def test_one_font_url_everywhere():
+    """The deck loads the fonts first, so a diagram frame's blocking font stylesheet comes from the cache."""
+    sys.path.insert(0, str(ROOT / "docs/diagrams/src"))
+    import aa
+    assert aa.FONT_LINK in (ROOT / "web/index.html").read_text(encoding="utf-8")
+    assert aa.FONT_LINK in (ROOT / "docs/diagrams/hairline/src/pages.mjs").read_text(encoding="utf-8")
