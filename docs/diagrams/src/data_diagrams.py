@@ -65,8 +65,8 @@ PIPELINE_STEPS = [  # the motion steps of 06, left to right; each arrow comes in
     "Every source lands in bronze, as delivered",
     "Cleaning gives silver, with each ticket loaded once and one spelling per channel",
     "Shaping gives gold, one row per agency, route and month",
-    "Defining writes each number once, in the metric view gold.sales_metrics",
-    "The app, the dashboard, Genie and the agents all read those numbers",
+    "Defining writes each of the seven numbers once: six in the metric view gold.sales_metrics, and pace in gold.agency_pace",
+    "The app, the dashboard, Genie and the Ask agent read the metric view; the Delegate agents run their own SQL on gold",
     "Every query runs as the person asking, under Unity Catalog",
 ]
 
@@ -78,7 +78,7 @@ def pipeline(motion=False) -> str:
          [f"−{fact('duplicate_tickets')} tickets loaded twice",
           f"{fact('channel_spellings_delivered')} channel spellings → {fact('channel_spellings_cleaned')}"]),
         ("Ready to use", "gold", fmt(fact("sales_rows")), "rows", ["per agency, route, month"]),
-        ("Defined once", "gold.sales_metrics", str(fact("kpis")), "numbers", [f"{DATED['twins_checked']['value']} checked each night"]),
+        ("Defined once", "gold.sales_metrics", str(fact("kpis")), "numbers", [f"{DATED['twins_checked']['value']} checked each night", "pace in gold.agency_pace"]),
     ]
     arcs = [("CLEAN", False), ("SHAPE", False), ("DEFINE", True)]
     # Every mark is kept with its motion step (1 to 7), in paint order. Static flattens them as they are; motion groups them by step,
@@ -242,7 +242,7 @@ def check_claims() -> None:
 if __name__ == "__main__":
     check_claims()
     pages = [("06-data-pipeline", "Where the numbers come from", "fairshare · the data",
-              "Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once in the metric view that the app, the dashboard, Genie and the agents all read.",
+              "Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once, six in the metric view that Genie, the dashboard, the app and the Ask agent read and pace in gold.agency_pace.",
               pipeline()),
              ("07-fair-share", "What fair share means", "fairshare · the data",
               f"Two grids of one hundred: the made-up seat share for AA on DFW to Chicago in Q3 2026, {fact('summit_q3_fair_share')}%, and the {fact('summit_q3_aa_share')}% of Summit Travel Partners' sales on that route that went to AA, a premium of {fact('summit_q3_gap_pts')} points.",

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="06-data-pipeline-title 06-data-pipeline-desc" id="d-06-data-pipeline-root">
         <title id="06-data-pipeline-title">Where the numbers come from</title>
-        <desc id="06-data-pipeline-desc">Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once in the metric view that the app, the dashboard, Genie and the agents all read.</desc>
+        <desc id="06-data-pipeline-desc">Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once, six in the metric view that Genie, the dashboard, the app and the Ask agent read and pace in gold.agency_pace.</desc>
         <rect width="100%" height="100%" fill="#ffffff"/>
         <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
@@ -90,6 +90,8 @@
         <text x="968.0" y="382" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">numbers</text>
         <rect x="892" y="432" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <text x="968.0" y="448" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">6 checked each night</text>
+        <rect x="892" y="468" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <text x="968.0" y="484" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">pace in gold.agency_pace</text>
         </g>
         <rect x="296" y="568" width="756" height="40" rx="6" fill="#f2f5f8"/>
         <svg x="312" y="576" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#36495a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6" /> <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /> <path d="M8 11v-4a4 4 0 1 1 8 0v4" /></svg>
