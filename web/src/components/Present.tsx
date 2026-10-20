@@ -4,6 +4,7 @@
 // back, and only then moves the deck. Under reduced motion the diagram shows whole and counts as zero steps.
 import { useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import facts from "../deck/facts.json";
 import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
 import { frameState, fromHash, move, pressTarget, sendKey } from "../lib/deck";
@@ -53,7 +54,7 @@ export function Present() {
   return (
     <div className="fixed inset-0 grid place-items-center overflow-hidden bg-white">
       <div className="relative h-[720px] w-[1280px] overflow-hidden bg-white" style={{ zoom }}>
-        <SlideView key={slide.id} slide={slide} backward={backward} frameRef={frameRef} />
+        <SlideView key={slide.id} slide={slide} backward={backward} frameRef={frameRef} facts={facts} />
       </div>
     </div>
   );

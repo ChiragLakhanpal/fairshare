@@ -53,3 +53,53 @@ describe("the animated handoff", () => {
     expect(arrivalKey(false, 100, true)).toBe("End");
   });
 });
+
+import facts from "../deck/facts.json";
+import { images, pages } from "../deck/assets";
+import { BUILT, slides } from "../deck/slides";
+import { bareNumbers, fill, onPath, placeholders, texts, words } from "./deck";
+
+describe("text helpers", () => {
+  const f = { facts: { a: { display: "$1,234" } }, dated: { b: { display: "20 of 20" } } };
+  it("fills placeholders from facts and dated facts", () => expect(fill("{a} and {b}", f)).toBe("$1,234 and 20 of 20"));
+  it("throws on an unknown placeholder", () => expect(() => fill("{nope}", f)).toThrow());
+  it("finds digits outside placeholders and the allowlist", () => {
+    expect(bareNumbers("In Q3 2026 Summit sent {summit_q3_aa_share} to AA; figure 09; gpt-5-mini; Dynamics 365; the 6 am job")).toEqual([]);
+    expect(bareNumbers("Summit sent 53.5% to AA")).toEqual(["53.5"]);
+  });
+  it("counts words", () => expect(words("one two  three")).toBe(3));
+});
+
+// the names come from .env and never from a list in the repo; a clone without .env skips the check
+const env = Object.values(import.meta.glob("../../../.env", { query: "?raw", import: "default", eager: true }))[0] as string | undefined;
+const blocked = (env?.match(/^FAIRSHARE_DECK_BLOCKLIST=(.*)$/m)?.[1] ?? "").split(",").map((n) => n.trim().toLowerCase()).filter(Boolean);
+const known = new Set([...Object.keys(facts.facts), ...Object.keys(facts.dated)]);
+
+describe("slides.ts", () => {
+  it("gives every slide a note under 40 words", () => slides.forEach((s) => expect(words(s.note), s.id).toBeLessThan(40)));
+  it("finds every asset and every thumb in the build", () => slides.forEach((s) => {
+    if (s.kind === "image") expect(images[s.asset!], s.id).toBeTruthy();
+    if (s.kind === "live" || s.kind === "animated") {
+      expect(pages[s.asset!], s.id).toBeTruthy();
+      expect(images[s.thumb!], `${s.id} thumb`).toBeTruthy();
+    }
+  }));
+  it("has no em or en dashes", () => slides.forEach((s) => texts(s).forEach((t) => expect(t, s.id).not.toMatch(/[\u2013\u2014]/))));
+  it("names no interviewer", () => slides.forEach((s) => texts(s).forEach((t) => blocked.forEach((n) => expect(t.toLowerCase().includes(n), s.id).toBe(false)))));
+  it("tags every Azure possibility and nothing built", () => {
+    const tiles = slides.flatMap((s) => (s.native?.layout === "tiles" ? s.native.tiles.map((t) => ({ id: s.id, ...t })) : []));
+    tiles.filter((t) => t.id === "azure").forEach((t) => expect(t.tag, t.head).toBe("Possibility"));
+    tiles.filter((t) => t.tag === "Possibility").forEach((t) => {
+      expect(t.id, t.head).toBe("azure");
+      BUILT.forEach((b) => expect(`${t.head} ${t.body}`.includes(b), `${t.head} names ${b}`).toBe(false));
+    });
+  });
+  it("has a fact for every placeholder", () => slides.forEach((s) => texts(s).flatMap(placeholders).forEach((k) => expect(known.has(k), `${s.id}: {${k}}`).toBe(true))));
+  it("types no data number by hand", () => slides.forEach((s) => texts(s).forEach((t) => expect(bareNumbers(t), s.id).toEqual([]))));
+  it("runs the main path in 35 to 40 minutes and the short one in about 11", () => {
+    const full = onPath(slides, "full").reduce((m, s) => m + s.min, 0);
+    const short = onPath(slides, "short").reduce((m, s) => m + (s.short ?? 0), 0);
+    expect(full >= 35 && full <= 40, `main path ${full}`).toBe(true);
+    expect(short >= 10 && short <= 12, `short path ${short}`).toBe(true);
+  });
+});

@@ -237,4 +237,13 @@ export const copy = {
   yearAfter: "The year after",
   monthHint: "Months with no data yet are greyed out.",
   severity: { ok: "Fine", watch: "Watch", risk: "At risk" } as Record<string, string>,
+  // the /present deck: the demo buttons (Task 13 wires the clicks), the logo band's tag, and the table headings
+  askLive: "Ask it live",
+  openPrecall: "Open the pre-call pack",
+  deckTag: "fairshare · sales ai & innovation",
+  deckTagData: "fairshare · synthetic data",
+  deckHead: { column: "Column", meaning: "What it means", example: "Example", check: "Check", expected: "Should be", actual: "Is" },
+  deckPass: "Passes",
+  deckFail: "Fails",
+  deckReport: "Read the report",
 };

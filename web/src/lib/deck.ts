@@ -1,13 +1,27 @@
 // The /present deck's rules: which slide a press reaches on the full or the short path, which slide a URL hash names, and
 // the handoff on an animated slide, where a press steps the framed diagram until its last step and then moves the deck.
 // frameState and sendKey are the only two that touch a frame, and both read it inside try and catch, because an aborted
-// or blocked frame cannot be read. The pure parts are tested in deck.test.ts.
+// or blocked frame cannot be read. The text helpers fill a slide's {placeholders} from facts.json and read its words for
+// the content rules. The pure parts are tested in deck.test.ts.
 
 export type Part = "first" | "data" | "built" | "proof" | "backup";
 export type Kind = "image" | "live" | "animated" | "native";
 export type PathName = "full" | "short";
 export type Slide = { id: string; part: Part; kind: Kind; title: string; min: number; short?: number; asset?: string; thumb?: string; native?: Native; note: string };
-export type Native = { layout: "statement"; lines: string[] }; // Task 11 adds the other layouts
+export type Demo = { kind: "ask"; question: string } | { kind: "precall" } | { kind: "dashboard" };
+export type Tile = { head: string; body: string; tag?: "Possibility" };
+export type Native =
+  | { layout: "statement"; lines: string[] }
+  | { layout: "tiles"; tiles: Tile[] }
+  | { layout: "table"; tables: string[] } // keys of facts.columns, or "checks"
+  | { layout: "demo"; demo: Demo; lines: string[] };
+/** What fill() reads from facts.json: the display string of every fact and every dated fact. */
+export type Facts = { facts: Record<string, { display: string }>; dated: Record<string, { display: string }> };
+/** All of facts.json that a slide shows: the facts, plus the columns of each table and the basic checks. */
+export type DeckFacts = Facts & {
+  columns: Record<string, { name: string; meaning: string; example: string }[]>;
+  checks: { name: string; expected: unknown; actual: unknown; ok: boolean }[];
+};
 
 export const PARTS: Record<Part, string> = {
   first: "The first answer",
@@ -88,4 +102,53 @@ export function sendKey(f: HTMLIFrameElement, key: "Home" | "End" | "ArrowRight"
   } catch {
     // a frame that went away between the read and the key: the figure under it stays, and the next press moves the deck
   }
+}
+
+/** A {placeholder}: anything between braces, so a typo cannot pass for plain text. */
+const PLACEHOLDER = /\{([^{}]*)\}/g;
+
+/** Every string a slide shows, plus its note: what the content rules read. A table's cells come from facts.json, not from
+ * the slide, so only its table keys are here. */
+export function texts(s: Slide): string[] {
+  const n = s.native;
+  const shown = !n
+    ? []
+    : n.layout === "statement"
+      ? n.lines
+      : n.layout === "tiles"
+        ? n.tiles.flatMap((t) => [t.head, t.body, ...(t.tag ? [t.tag] : [])])
+        : n.layout === "table"
+          ? n.tables
+          : [...(n.demo.kind === "ask" ? [n.demo.question] : []), ...n.lines];
+  return [s.title, ...shown, s.note];
+}
+
+/** The text with each {key} replaced by that fact's display string, from the facts or the dated facts. An unknown key
+ * throws, so a slide never shows a raw placeholder. */
+export function fill(text: string, facts: Facts): string {
+  return text.replace(PLACEHOLDER, (_, key: string) => {
+    const f = Object.hasOwn(facts.facts, key) ? facts.facts[key] : Object.hasOwn(facts.dated, key) ? facts.dated[key] : undefined;
+    if (!f) throw new Error(`no fact for {${key}}`);
+    return f.display;
+  });
+}
+
+/** The keys of the placeholders in a text, in order. */
+export function placeholders(text: string): string[] {
+  return [...text.matchAll(PLACEHOLDER)].map((m) => m[1]);
+}
+
+/** The digits a text may show outside a placeholder (Global Constraints): the years 2025 and 2026, the quarters, "figure
+ * NN", and the names gpt-5-mini, Qwen3-Next, T-100, Dynamics 365, Microsoft 365 and "6 am". */
+const ALLOWED = [/\b202[56]\b/g, /\bQ[1-4]\b/g, /\bfigure \d\d\b/gi, /\bgpt-5-mini\b/g, /\bQwen3-Next\b/g, /\bT-100\b/g, /\b(?:Dynamics|Microsoft) 365\b/g, /\b6 am\b/g];
+
+/** The numbers typed by hand: digits left after removing the placeholders and the allowlist. */
+export function bareNumbers(text: string): string[] {
+  const rest = ALLOWED.reduce((t, re) => t.replace(re, " "), text.replace(PLACEHOLDER, " "));
+  return rest.match(/\d+(?:[.,]\d+)*/g) ?? [];
+}
+
+/** How many words a text has, split on runs of white space. */
+export function words(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
 }
