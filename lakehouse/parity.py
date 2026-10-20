@@ -50,7 +50,7 @@ def run(retired: bool = False) -> pd.DataFrame:
         run_id STRING, run_at STRING, kpi STRING, twin_version STRING, agency STRING, sales_month DATE,
         mv_value DOUBLE, twin_value DOUBLE, abs_diff DOUBLE, status STRING)""")
     values = ", ".join(
-        "(" + ", ".join([f"'{r.run_id}'", f"'{r.run_at}'", f"'{r.kpi}'", f"'{r.twin_version}'", "'" + str(r.agency).replace("'", "''") + "'",
+        "(" + ", ".join([f"'{r.run_id}'", f"'{r.run_at}'", f"'{r.kpi}'", f"'{r.twin_version}'", db.literal(r.agency),
                          f"DATE '{r.sales_month}'", "NULL" if pd.isna(r.mv_value) else repr(float(r.mv_value)),
                          "NULL" if pd.isna(r.twin_value) else repr(float(r.twin_value)),
                          "NULL" if pd.isna(r.abs_diff) else repr(float(r.abs_diff)), f"'{r.status}'"]) + ")"

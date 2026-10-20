@@ -326,21 +326,14 @@ def run(region: str, month: str, writer=None) -> dict:
     return aio.run(run_async(region, month, writer))
 
 
-def _q(s: str) -> str:
-    s = str(s).replace("'", "''")
-    if db.is_databricks():  # Spark SQL literals process backslash escapes, DuckDB's do not (harness/agents.py says why)
-        s = s.replace("\\", "\\\\")
-    return "'" + s + "'"
-
-
 def save(result: dict, status: str = "draft") -> None:
     t = db.SUMMARIES
     db.state_execute([
         f"""CREATE TABLE IF NOT EXISTS {t} (
             run_id STRING, region STRING, month STRING, created_at STRING, status STRING, model STRING,
             draft STRING, verified_text STRING, flagged_json STRING, badges_json STRING)""",
-        f"DELETE FROM {t} WHERE run_id = {_q(result['run_id'])}",
-        f"INSERT INTO {t} VALUES (" + ", ".join(_q(x) for x in [
+        f"DELETE FROM {t} WHERE run_id = {db.literal(result['run_id'])}",
+        f"INSERT INTO {t} VALUES (" + ", ".join(db.literal(x) for x in [
             result["run_id"], result["region"], result["month"], result["created_at"], status, result["model"],
             result["draft"], result["verified_text"], json.dumps(result["flagged"]), json.dumps(result["badges"], default=str)]) + ")"])
 

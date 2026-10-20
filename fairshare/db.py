@@ -136,6 +136,18 @@ def statements(path: Path):
     return out
 
 
+def literal(s) -> str:
+    """A SQL string literal for the current backend: every place that builds one by hand uses this, never its own replace(). DuckDB
+    reads '' as one quote and leaves backslashes alone. Spark SQL literals process backslash escapes (a JSON "\\n" would land as a
+    newline and "\\"" as a quote, which broke every saved run on Oct 15, 2026) and join adjacent literals ('AA''s' is stored as
+    "AAs", which dropped the apostrophe from 37 of 44 stored Delegate runs by Oct 19, 2026), so there a backslash is doubled first
+    and a quote is written \\'. The order matters: the other way round, the backslash added for a quote would be doubled."""
+    s = str(s)
+    if is_databricks():
+        return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+    return "'" + s.replace("'", "''") + "'"
+
+
 # ---- small mutable state: what the app writes (summary runs, agent runs, the CRM stand-in's activities) ----
 SUMMARIES = "aa_demo.ops.summaries"
 AGENT_RUNS = "aa_demo.ops.agent_runs"

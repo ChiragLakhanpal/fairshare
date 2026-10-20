@@ -264,15 +264,6 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
 
-def _q(s) -> str:
-    """A SQL string literal. Spark SQL literals process backslash escapes (a JSON "\\n" would land as a newline and "\\"" as a
-    quote, which broke every saved run on Oct 15, 2026); DuckDB's do not, so the doubling is Databricks-only."""
-    s = str(s).replace("'", "''")
-    if db.is_databricks():
-        s = s.replace("\\", "\\\\")
-    return "'" + s + "'"
-
-
 # ---------------------------------------------------------------- words the templates share
 MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
@@ -540,7 +531,7 @@ def supersede(run: Run) -> int:
     n = 0
     if not titles:
         return 0
-    for h in _rows(f"SELECT run_id FROM {db.AGENT_RUNS} WHERE agent = {_q(run.agent)} AND status = 'needs_approval' AND run_id <> {_q(run.run_id)}"):
+    for h in _rows(f"SELECT run_id FROM {db.AGENT_RUNS} WHERE agent = {db.literal(run.agent)} AND status = 'needs_approval' AND run_id <> {db.literal(run.run_id)}"):
         old = load(h["run_id"])
         hits = [i for i in old.items if i.status == "draft" and i.title in titles] if old else []
         for i in hits:
@@ -578,8 +569,9 @@ def crm_write(agency_id: int, activity_type: str, subject: str, notes: str, by: 
     db.state_execute([
         f"""CREATE TABLE IF NOT EXISTS {t} (activity_id STRING, agency_id INT, activity_type STRING, subject STRING, happened_at STRING,
             owner STRING, notes STRING, run_id STRING, item_id STRING)""",
-        f"DELETE FROM {t} WHERE run_id = {_q(run_id)} AND item_id = {_q(item_id)}",
-        f"INSERT INTO {t} VALUES ({_q(activity_id)}, {int(agency_id)}, {_q(activity_type)}, {_q(subject)}, {_q(happened)}, {_q(by)}, {_q(notes)}, {_q(run_id)}, {_q(item_id)})"])
+        f"DELETE FROM {t} WHERE run_id = {db.literal(run_id)} AND item_id = {db.literal(item_id)}",
+        f"INSERT INTO {t} VALUES ({db.literal(activity_id)}, {int(agency_id)}, {db.literal(activity_type)}, {db.literal(subject)}, {db.literal(happened)}, "
+        f"{db.literal(by)}, {db.literal(notes)}, {db.literal(run_id)}, {db.literal(item_id)})"])
     return activity_id
 
 
@@ -590,10 +582,11 @@ def save(run: Run) -> None:
     db.state_execute([
         f"""CREATE TABLE IF NOT EXISTS {t} (run_id STRING, agent STRING, scope_json STRING, status STRING, requested_by STRING, model STRING,
             created_at STRING, finished_at STRING, error STRING, payload_json STRING)""",
-        f"DELETE FROM {t} WHERE run_id = {_q(run.run_id)}",
-        f"INSERT INTO {t} VALUES (" + ", ".join([_q(run.run_id), _q(run.agent), _q(json.dumps(run.scope)), _q(run.status), _q(run.requested_by), _q(run.model),
-                                                _q(run.created_at), "NULL" if run.finished_at is None else _q(run.finished_at),
-                                                "NULL" if run.error is None else _q(run.error), _q(payload)]) + ")"])
+        f"DELETE FROM {t} WHERE run_id = {db.literal(run.run_id)}",
+        f"INSERT INTO {t} VALUES (" + ", ".join([db.literal(run.run_id), db.literal(run.agent), db.literal(json.dumps(run.scope)), db.literal(run.status),
+                                                db.literal(run.requested_by), db.literal(run.model), db.literal(run.created_at),
+                                                "NULL" if run.finished_at is None else db.literal(run.finished_at),
+                                                "NULL" if run.error is None else db.literal(run.error), db.literal(payload)]) + ")"])
 
 
 def _from_row(row: dict) -> Run:

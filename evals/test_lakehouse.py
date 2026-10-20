@@ -224,6 +224,18 @@ def test_decimal_columns_from_the_warehouse_become_numbers():
     assert verify("DCA-BOS up 2%, CLT-LGA up 1.7%.", pool).ok
 
 
+def test_literal_keeps_apostrophes_and_backslashes(monkeypatch):
+    """Databricks SQL joins adjacent string literals, so 'AA''s' is stored as "AAs" (Oct 19, 2026: "On the agencys top markets" on the
+    stored pre-call pages). Text built into a statement by hand goes through db.literal, which escapes for the backend it will run on."""
+    tricky = 'On the agency\'s "top" markets, a\\b'
+    # DuckDB: the literal round-trips through a real query
+    assert db.query(f"SELECT {db.literal(tricky)} AS v")["v"].iloc[0] == tricky
+    # Databricks: Spark joins adjacent literals ('AA''s' becomes "AAs"), so a quote is escaped with a backslash
+    monkeypatch.setattr(db, "is_databricks", lambda: True)
+    assert db.literal("agency's") == "'agency\\'s'"
+    assert db.literal("a\\b") == "'a\\\\b'"
+
+
 def test_the_jobs_foundry_env_comes_from_the_secret_scope(monkeypatch):
     import importlib.util
     spec = importlib.util.spec_from_file_location("job_tasks", ROOT / "lakehouse" / "job_tasks.py")

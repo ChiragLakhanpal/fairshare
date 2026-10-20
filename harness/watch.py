@@ -49,11 +49,11 @@ def plan(scope: dict) -> list[dict]:
 
 
 def facts(scope: dict, seed: dict) -> list[Fact]:
-    aid, mo, cid = seed["agency_id"], f"{seed['month']}-01", seed["clause_id"].replace("'", "''")
+    aid, mo, cid = seed["agency_id"], f"{seed['month']}-01", db.literal(seed["clause_id"])
     csql = f"""SELECT clause_id, agency_name, section, TRY_CAST(section AS DOUBLE) AS section_number, clause_type, status, value, threshold, distance, unit,
                       quarters_below, window_quarters, dollars, dollars_label, consequence, file, page
-               FROM aa_demo.ops.agreement_checks WHERE clause_id = '{cid}' AND as_of = DATE '{mo}'"""
-    xsql = f"SELECT section, clause_type, metric, operator, threshold, threshold_2, window_quarters, consequence, quote, file, page FROM aa_demo.gold.contract_clauses WHERE clause_id = '{cid}'"
+               FROM aa_demo.ops.agreement_checks WHERE clause_id = {cid} AND as_of = DATE '{mo}'"""
+    xsql = f"SELECT section, clause_type, metric, operator, threshold, threshold_2, window_quarters, consequence, quote, file, page FROM aa_demo.gold.contract_clauses WHERE clause_id = {cid}"
     tsql = f"""SELECT s.sales_month, ROUND(SUM(s.aa_revenue), 0) AS aa_revenue, ROUND(SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0) * 100, 1) AS aa_share_pct,
                       ROUND(SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0) * 100, 1) AS fair_share_pct
                FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
