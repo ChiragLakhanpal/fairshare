@@ -184,3 +184,19 @@ describe("the Ask demo's question", () => {
     expect(askQuestion(S)).toBeNull();
   });
 });
+
+import { showEyebrow } from "./deck";
+
+describe("the part label", () => {
+  const byId = (id: string) => slides.find((s) => s.id === id)!;
+  it("is drawn on an ordinary slide and left off a still, which has the app's own top bar under that corner", () => {
+    expect(showEyebrow(byId("coverage"))).toBe(true); // an ordinary image slide
+    expect(showEyebrow(byId("title"))).toBe(true);
+    expect(showEyebrow(byId("ask-still"))).toBe(false);
+    expect(showEyebrow(byId("precall-still"))).toBe(false);
+  });
+  it("is left off exactly the two stills, and a still is an image slide", () => {
+    expect(slides.filter((s) => !showEyebrow(s)).map((s) => s.id)).toEqual(["ask-still", "precall-still"]);
+    slides.filter((s) => s.still).forEach((s) => expect(s.kind, s.id).toBe("image"));
+  });
+});

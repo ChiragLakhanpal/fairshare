@@ -272,3 +272,18 @@ test("a deck the browser restores from its cache spends the way back too", async
     await browser.close();
   }
 });
+
+// A still is a screenshot of the app, and the app's own top bar sits where the part label would be drawn.
+test("the part label sits on an ordinary slide and stays off the two stills", async ({ page }) => {
+  const label = (id: string, text: string) => page.locator(`[data-slide="${id}"]`).getByText(text, { exact: true });
+  await page.goto("/present#coverage");
+  await expect(label("coverage", "The data")).toBeVisible();
+  await page.goto("about:blank"); // a change of hash alone would leave the deck where it is
+  await page.goto("/present#ask-still");
+  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  await expect(page.locator('[data-slide="ask-still"]')).toBeVisible();
+  await expect(label("ask-still", "Backup")).toHaveCount(0);
+  await page.keyboard.press("ArrowRight"); // the next backup slide
+  await expect(page.locator('[data-slide="precall-still"]')).toBeVisible();
+  await expect(label("precall-still", "Backup")).toHaveCount(0);
+});

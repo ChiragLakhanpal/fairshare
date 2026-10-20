@@ -8,7 +8,8 @@
 export type Part = "first" | "data" | "built" | "proof" | "backup";
 export type Kind = "image" | "live" | "animated" | "native";
 export type PathName = "full" | "short";
-export type Slide = { id: string; part: Part; kind: Kind; title: string; min: number; short?: number; asset?: string; thumb?: string; native?: Native; note: string };
+/** still: a screenshot of the app itself, drawn edge to edge. The app has its own top bar, so a still gets no part label over it. */
+export type Slide = { id: string; part: Part; kind: Kind; title: string; min: number; short?: number; asset?: string; thumb?: string; still?: boolean; native?: Native; note: string };
 export type Demo = { kind: "ask"; question: string } | { kind: "precall" } | { kind: "dashboard" };
 /** The demos the deck jumps into the app for. The dashboard only opens in a new tab, so it needs no jump. */
 export type Jump = Exclude<Demo["kind"], "dashboard">;
@@ -33,6 +34,12 @@ export const PARTS: Record<Part, string> = {
   proof: "Proof and next",
   backup: "Backup",
 };
+
+/** Whether SlideView draws the part's name at the top right of a slide. A still is a screenshot of the app, whose own top bar sits under
+ * that corner, so it gets none. */
+export function showEyebrow(s: Slide): boolean {
+  return !s.still;
+}
 
 /** The slides a talk walks through, in order: every slide but the backup ones, and on the short path only those with a
  * short-path time. */

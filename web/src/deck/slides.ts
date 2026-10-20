@@ -2,7 +2,8 @@
 // notes window's outline reaches. min is a slide's minutes on the main path, short its minutes on the short path (only
 // the slides on it have one). Assets and thumbs are keys of images and pages in assets.ts; the thumb is the PNG under a
 // live or animated frame. Every number is a {placeholder} that SlideView fills from facts.json, and deck.test.ts holds
-// every string here to the content rules. Notes stay one plain line each until the speaker notes are written.
+// every string here to the content rules. A still is a screenshot of the app, so it shows no part label. Notes stay one
+// plain line each until the speaker notes are written.
 import type { Slide } from "../lib/deck";
 
 /** Names of things that exist today. A tile tagged "Possibility" names none of them. */
@@ -252,12 +253,12 @@ export const slides: Slide[] = [
 
   // Backup, reached from the notes window's outline
   {
-    id: "ask-still", part: "backup", kind: "image", title: "A good run of the Harbor question", min: 0,
+    id: "ask-still", part: "backup", kind: "image", still: true, title: "A good run of the Harbor question", min: 0,
     asset: "export/ask-still.png",
     note: "A screenshot of an earlier run on the App, for when the live answer stalls. Tell the room it is a still. Then pick the next slide from the outline.",
   },
   {
-    id: "precall-still", part: "backup", kind: "image", title: "A good run of the pre-call pack", min: 0,
+    id: "precall-still", part: "backup", kind: "image", still: true, title: "A good run of the pre-call pack", min: 0,
     asset: "export/precall-still.png",
     note: "A screenshot of an earlier pre-call page from the App, for when the pack will not open. Tell the room it is a still, and point to the checked numbers. Then pick the next slide.",
   },

@@ -4,10 +4,11 @@
 // hidden until the page's controller is ready; then the frame switches to embed mode (only the figure, fitted to the
 // frame), gets Home or End (arrivalKey), and shows. A frame that never gets ready, slow or blocked, leaves the thumb, and
 // the deck counts it as zero steps. A frame never takes the pointer or the focus, so the deck keeps every key press, and
-// it exists only while its slide shows. Native slides are drawn in layouts.tsx. Every string goes through fill().
+// it exists only while its slide shows. Native slides are drawn in layouts.tsx. Every string goes through fill(). A still,
+// a screenshot of the app, has no eyebrow, because the app's own top bar sits under that corner (showEyebrow).
 import { useReducedMotion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
-import { arrivalKey, fill, PARTS, sendKey, type DeckFacts, type Jump, type Slide } from "../lib/deck";
+import { arrivalKey, fill, PARTS, sendKey, showEyebrow, type DeckFacts, type Jump, type Slide } from "../lib/deck";
 import { images, pages } from "./assets";
 import { MONO, MUTED, NativeSlide } from "./layouts";
 
@@ -106,12 +107,14 @@ export function SlideView({ slide, backward, frameRef, facts, onDemo }: {
         />
       )}
       {slide.kind === "native" && slide.native && <NativeSlide slide={slide} facts={facts} onDemo={onDemo} />}
-      <span
-        className="pointer-events-none absolute right-[40px] top-[24px] flex h-[22px] items-center text-[8px] font-medium uppercase tracking-[0.18em]"
-        style={{ fontFamily: MONO, color: MUTED }}
-      >
-        {PARTS[slide.part]}
-      </span>
+      {showEyebrow(slide) && (
+        <span
+          className="pointer-events-none absolute right-[40px] top-[24px] flex h-[22px] items-center text-[8px] font-medium uppercase tracking-[0.18em]"
+          style={{ fontFamily: MONO, color: MUTED }}
+        >
+          {PARTS[slide.part]}
+        </span>
+      )}
     </div>
   );
 }
