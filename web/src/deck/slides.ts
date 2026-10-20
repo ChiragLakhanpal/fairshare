@@ -252,6 +252,16 @@ export const slides: Slide[] = [
 
   // Backup, reached from the notes window's outline
   {
+    id: "ask-still", part: "backup", kind: "image", title: "A good run of the Harbor question", min: 0,
+    asset: "export/ask-still.png",
+    note: "A screenshot of an earlier run on the App, for when the live answer stalls. Tell the room it is a still. Then pick the next slide from the outline.",
+  },
+  {
+    id: "precall-still", part: "backup", kind: "image", title: "A good run of the pre-call pack", min: 0,
+    asset: "export/precall-still.png",
+    note: "A screenshot of an earlier pre-call page from the App, for when the pack will not open. Tell the room it is a still, and point to the checked numbers. Then pick the next slide.",
+  },
+  {
     id: "manager", part: "backup", kind: "animated", title: "Account manager: Monday before agency calls", min: 0,
     asset: "05-journey-account-manager-animated.html", thumb: "export/05-journey-account-manager.png",
     note: "The account manager's Monday, step by step, for when the room asks how they would use it.",
