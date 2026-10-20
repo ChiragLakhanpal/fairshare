@@ -62,7 +62,7 @@ questions:
       WHERE s.sales_month = DATE '2026-08-01' GROUP BY a.agency_name ORDER BY share_gap_pts DESC
 
   - id: q07
-    question: What is the share gap in dollars by agency for 2026 year to date? Negative means below fair share.
+    question: What is the share gap in dollars by agency for 2026 year to date? Show each agency's name and its share gap in whole dollars. Negative means below fair share.
     tags: [fair_share, gap_usd]
     sql: |
       SELECT a.agency_name, ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share), 0) AS share_gap_usd
@@ -84,7 +84,7 @@ questions:
       WHERE c.sales_month = DATE '2026-08-01' ORDER BY yoy_pct DESC
 
   - id: q09
-    question: Through September 2026, what is each agency's attainment of its full-year 2026 revenue goal, and its pace (year to date against one twelfth of the goal for each month the agency reported)?
+    question: Through September 2026, what is each agency's year-to-date revenue, its full-year 2026 revenue goal, its attainment of that goal, and its pace (year to date against one twelfth of the goal for each month the agency reported)?
     tags: [goal, pace]
     sql: |
       SELECT a.agency_name, p.ytd_revenue, p.revenue_goal_usd, p.attainment_pct, p.pace_pct
@@ -92,7 +92,7 @@ questions:
       WHERE p.sales_month = DATE '2026-09-01' ORDER BY p.pace_pct DESC
 
   - id: q10
-    question: What share of total 2026 AA revenue does each region contribute?
+    question: What share of total 2026 AA revenue does each region contribute? Show each region's AA revenue in whole dollars and its percent of the total with one decimal.
     tags: [revenue, share_of_total]
     sql: |
       WITH r AS (
@@ -101,7 +101,7 @@ questions:
       SELECT region, ROUND(rev, 0) AS aa_revenue, ROUND(rev / SUM(rev) OVER () * 100, 1) AS pct_of_total FROM r ORDER BY aa_revenue DESC
 
   - id: q11
-    question: Show cumulative AA revenue by month for Summit Travel Partners in 2026.
+    question: Show cumulative AA revenue by month for Summit Travel Partners in 2026. Show each month's revenue and the cumulative total next to it, both in whole dollars.
     tags: [revenue, cumulative]
     sql: |
       WITH m AS (
@@ -169,7 +169,7 @@ questions:
       SELECT agency_name, months_below FROM runs WHERE last_no = 2026 * 12 + 9 AND months_below >= 3 ORDER BY months_below DESC
 
   - id: q17
-    question: Which markets have an AA share across all agencies under 40% in 2026, and what is the dollar gap to 40%?
+    question: Which markets have an AA share across all agencies under 40% in 2026, and what is the dollar gap to 40%? Show each market's AA share as a percent with one decimal and the gap in whole dollars.
     tags: [share, having]
     sql: |
       SELECT CONCAT(m.origin, '-', m.dest) AS market, ROUND(SUM(s.aa_revenue) / SUM(s.market_revenue) * 100, 1) AS aa_share_pct,
