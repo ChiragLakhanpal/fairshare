@@ -769,7 +769,7 @@
    },
    {
     "example": "SUM(source.aa_revenue) / NULLIF(SUM(source.market_revenue),…",
-    "meaning": "The definition as written in the metric view, the one place every tool reads it from, for six of the seven numbers; pace lives in gold.agency_pace.",
+    "meaning": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers; pace lives in gold.agency_pace.",
     "name": "metric_view_expr",
     "type": "STRING"
    },

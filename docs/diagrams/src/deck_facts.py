@@ -681,7 +681,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "definition_en": "The definition in plain English.",
             "owner": "The team that owns the definition.",
             "source_columns": "The table columns the number is built from.",
-            "metric_view_expr": "The definition as written in the metric view, the one place every tool reads it from, for six of the seven numbers; pace lives in gold.agency_pace.",
+            "metric_view_expr": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers; pace lives in gold.agency_pace.",
             "dax_twin": "The same definition written the way a Power BI measure would be, in DAX.",
             "twin_sql": "A SQL copy of the Power BI measure, compared with the metric view every night, for six of the seven numbers; pace lives in gold.agency_pace.",
             "twin_version": "Which version of the SQL copy is live. It moves up when a definition changes.",
