@@ -58,7 +58,7 @@ export const slides: Slide[] = [
         "The app matches every number to a query before you see it.",
       ],
     },
-    note: "Click Ask it live, click the box, Enter, talk through the steps. Click the share effect, {harbor_share_usd}. Fair share's made up. If it removed a sentence, the model rounded a dollar figure. Past a minute, the still. Back: sidebar.",
+    note: "Click Ask it live, click the box, Enter, talk through the steps. Click the share effect, {harbor_share_usd}. Fair share is made up. A removed sentence likely had a rounded dollar figure. Past a minute, the still. Back: sidebar.",
   },
   {
     id: "director", part: "first", kind: "animated", title: "Sales director: a question in the Monday meeting", min: 1.25,
@@ -127,7 +127,7 @@ export const slides: Slide[] = [
   {
     id: "system", part: "built", kind: "animated", title: "The system", min: 2.25, short: 1.5,
     asset: "01-system-exploded-animated.html", thumb: "export/01-system-exploded.png",
-    note: "Five layers, one press each. The data's made up, Ask runs on Genie and Qwen3-Next, Delegate on Foundry writers. Blue is the checks: every number matched to a query, a person approves what goes out, traces on benchmark runs.",
+    note: "Five layers, one press each. The data's made up, Ask runs on Genie and Qwen3-Next, Delegate on Foundry writers. Blue is the checks: every number matched to a query, a person approves what goes out, traces on laptop runs.",
   },
   {
     id: "sieve-opener", part: "built", kind: "live", title: "Every number passes through the checks", min: 0.25,
@@ -241,12 +241,12 @@ export const slides: Slide[] = [
       layout: "statement",
       lines: [
         "Time today's work first: how long a pre-call pack takes, and how many share questions become tickets.",
-        "Put AA's own seat shares into the one capacity table. Every number that uses fair share reads it, so that is one change.",
+        "Swap the made-up seat shares for AA's own in the one capacity table. Every number that uses fair share reads it, so that is one change.",
         "Connect AA's own agency sales, and match each number to the reports people use now.",
         "Give account managers a way to mark an answer as wrong, and read every one.",
       ],
     },
-    note: "First I'd time today's work, so there's a before. Then I'd put AA's own seat shares in the one table fair share reads, connect AA's agency sales, and add a way to flag a wrong answer. Leave this up.",
+    note: "First I'd time today's work, so there's a before. Then I'd swap my made-up seat shares for AA's own in one table, connect AA's agency sales, and add a way to flag a wrong answer. Leave this up.",
   },
 
   // Backup, reached from the notes window's outline
