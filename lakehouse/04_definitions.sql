@@ -19,7 +19,7 @@ INSERT INTO aa_demo.ops.kpi_definitions VALUES
  'v1', NULL, NULL),
 
 ('aa_share', 'AA share',
- 'AA revenue divided by everything the agency sold on the same markets and months, across all carriers. Revenue based, not passenger based. A ratio: computed at the grain of the question, never averaged from pre-computed shares.',
+ 'AA share is AA revenue divided by everything the agency sold on the same markets and months, across all carriers. It is based on revenue, not on passengers. It is a ratio worked out over the rows the question covers, never an average of other shares.',
  'Sales BI', 'gold.fact_agency_sales_monthly.aa_revenue, market_revenue',
  'SUM(source.aa_revenue) / NULLIF(SUM(source.market_revenue), 0)',
  'AA Share = DIVIDE ( SUM ( fact_agency_sales_monthly[aa_revenue] ), SUM ( fact_agency_sales_monthly[market_revenue] ) )',

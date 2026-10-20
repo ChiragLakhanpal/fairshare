@@ -750,7 +750,7 @@
     "type": "STRING"
    },
    {
-    "example": "AA revenue divided by everything the agency sold on the sam…",
+    "example": "AA share is AA revenue divided by everything the agency sol…",
     "meaning": "The definition in plain English.",
     "name": "definition_en",
     "type": "STRING"

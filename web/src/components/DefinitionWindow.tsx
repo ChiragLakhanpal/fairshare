@@ -8,7 +8,7 @@ import { Lines } from "./Skeleton";
 
 const PLAIN: Record<string, string> = {
   aa_revenue: "AA revenue is the ticketed revenue sold on AA by the agency, in US dollars, for the markets and months you picked.",
-  aa_share: "AA share is AA revenue divided by everything the agency sold on the same markets and months, across all carriers. It is a ratio computed at the grain of the question, never an average of other shares.",
+  aa_share: "AA share is AA revenue divided by everything the agency sold on the same markets and months, across all carriers. It is a ratio worked out over the rows the question covers, never an average of other shares.",
   fair_share: "Fair share is AA's share of the scheduled seats on a market, weighted by what the agency sold there. It is the share an agency would sell if it had no carrier preference.",
   share_gap_pts: "Share gap in points is AA share minus fair share. Above zero, the agency sells more AA than the schedule alone would predict.",
   share_gap_usd: "Share gap in dollars is AA revenue minus the revenue AA would have if the agency sold exactly fair share.",
