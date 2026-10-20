@@ -1,19 +1,18 @@
 """06 and 07, the data section: where the numbers come from, and what fair share means.
 
-    python3 docs/diagrams/src/data_diagrams.py   # writes docs/diagrams/06-data-pipeline.html and 07-fair-share.html
+    .venv/bin/python docs/diagrams/src/data_diagrams.py   # writes docs/diagrams/06-data-pipeline.html and 07-fair-share.html
 
-Every number comes from data_numbers.py, which runs one query per number on the local lakehouse. Generic icons are
-diagram-design's Tabler set, read from references/primitive-icons.md so they stay in step with the plugin.
+Every number comes from deck_facts.py, which runs one query per number on the local lakehouse (the deck reads the same file).
+Generic icons are diagram-design's Tabler set, read from references/primitive-icons.md so they stay in step with the plugin.
 """
 from __future__ import annotations
 
 import re
 
 import aa
-from data_numbers import numbers
+from deck_facts import DATED, fact, query
 
 VW, VH = 1280, 720
-N = numbers()
 ICON_DOC = aa.SCRIPTS.parent / "skills" / "diagram-design" / "references" / "primitive-icons.md"
 
 
@@ -63,12 +62,12 @@ def tier_x(i):
 
 def pipeline() -> str:
     tiers = [  # name, schema, big number, unit, chips; the last tier is the focal one
-        ("As delivered", "bronze", fmt(N["bookings_delivered"]), "booking rows", [f"{N['bronze_tables']} tables, as sent"]),
-        ("Cleaned", "silver", fmt(N["bookings_cleaned"]), "booking rows",
-         [f"−{N['bookings_delivered'] - N['bookings_cleaned']} tickets loaded twice",
-          f"{N['channel_spellings_delivered']} channel spellings → {N['channel_spellings_cleaned']}"]),
-        ("Ready to use", "gold", fmt(N["gold_rows"]), "rows", ["per agency, route, month"]),
-        ("Defined once", "gold.sales_metrics", str(N["kpis"]), "numbers", ["6 checked each night"]),
+        ("As delivered", "bronze", fmt(fact("bookings_delivered")), "booking rows", [f"{fact('bronze_tables')} tables, as sent"]),
+        ("Cleaned", "silver", fmt(fact("bookings_cleaned")), "booking rows",
+         [f"−{fact('duplicate_tickets')} tickets loaded twice",
+          f"{fact('channel_spellings_delivered')} channel spellings → {fact('channel_spellings_cleaned')}"]),
+        ("Ready to use", "gold", fmt(fact("sales_rows")), "rows", ["per agency, route, month"]),
+        ("Defined once", "gold.sales_metrics", str(fact("kpis")), "numbers", [f"{DATED['twins_checked']['value']} checked each night"]),
     ]
     arcs = [("CLEAN", False), ("SHAPE", False), ("DEFINE", True)]
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', markers()]
@@ -88,7 +87,7 @@ def pipeline() -> str:
 
     # sources into the first tier, and the readers out of the last, on straight runs at the shared ports
     sources = [("csv", None, "Seat shares", "made up, one per route"), ("users", None, "Agency sales", "synthetic"),
-               ("file", None, f"{N['agreements']} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
+               ("file", None, f"{fact('agreements')} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
     readers = [("desktop", "The app"), ("monitoring", "Dashboard"), ("search", "Genie"), ("robot", "Agents")]
     out.append(eyebrow(40, ATTACH[0] - 44, "Sources"))
     out.append(eyebrow(tier_x(3) + TIER_W + 52, ATTACH[0] - 44, "Read by"))
@@ -161,7 +160,7 @@ def grid(x0, y0, aa_cells, premium, glyph):
 
 
 def fair_share() -> str:
-    fair, share, gap, usd = N["fair_share_pct"], N["aa_share_pct"], N["gap_pts"], N["gap_usd"]
+    fair, share, gap, usd = fact("summit_q3_fair_share"), fact("summit_q3_aa_share"), fact("summit_q3_gap_pts"), fact("summit_q3_gap_usd")
     fair_cells, share_cells = round(fair), round(share)  # ponytail: a 100-cell grid rounds to whole cells; the labels carry the decimals
     gy, ax, bx = 168, 96, 456
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
@@ -205,12 +204,26 @@ def fair_share() -> str:
     return "\n        ".join(out)
 
 
+def check_claims() -> None:
+    """What these two figures say about the data, checked on every build so a rebuilt lakehouse cannot quietly change the story."""
+    one = lambda sql: query(sql)[0]["value"]  # noqa: E731
+    assert one("SELECT COUNT(DISTINCT ticket_number) AS value FROM aa_demo.silver.fact_corporate_bookings") == fact("bookings_cleaned"), \
+        "silver should hold exactly one row per ticket"
+    assert one("""SELECT COUNT(*) AS value FROM (SELECT DISTINCT agency_id, market_id, sales_month
+                                               FROM aa_demo.gold.fact_agency_sales_monthly) AS t""") == fact("sales_rows"), \
+        "gold should hold one row per agency, route and month"
+    assert one("""SELECT COUNT(*) AS value FROM aa_demo.gold.fact_market_capacity
+                  WHERE is_projected AND sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'""") == 0, \
+        "Q3 2026 capacity should not be a projection"
+
+
 if __name__ == "__main__":
+    check_claims()
     pages = [("06-data-pipeline", "Where the numbers come from", "fairshare · the data",
               "Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once in the metric view that the app, the dashboard, Genie and the agents all read.",
               pipeline()),
              ("07-fair-share", "What fair share means", "fairshare · the data",
-              f"Two grids of one hundred: AA's {N['fair_share_pct']}% share of the seats on DFW to Chicago in Q3 2026, and the {N['aa_share_pct']}% of Summit Travel Partners' sales on that route that went to AA, a premium of {N['gap_pts']} points.",
+              f"Two grids of one hundred: AA's {fact('summit_q3_fair_share')}% share of the seats on DFW to Chicago in Q3 2026, and the {fact('summit_q3_aa_share')}% of Summit Travel Partners' sales on that route that went to AA, a premium of {fact('summit_q3_gap_pts')} points.",
               fair_share())]
     for slug, title, eyebrow_text, desc, body in pages:
         (aa.OUT / f"{slug}.html").write_text(aa.page(slug=slug, title=title, desc=desc, eyebrow=eyebrow_text, body=body), encoding="utf-8")

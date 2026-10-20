@@ -3,18 +3,17 @@ the name, a small picture of the idea, one plain sentence, and where it lives (t
 every night against a SQL twin of the Power BI measure). A strip underneath tells the one time the nightly parity check
 caught a drift.
 
-    python3 docs/diagrams/src/definitions.py   # writes docs/diagrams/09-definitions.html
+    .venv/bin/python docs/diagrams/src/definitions.py   # writes docs/diagrams/09-definitions.html
 
-No data numbers are printed; the count of seven and the drift story come from data_numbers_2.py (ops.kpi_definitions).
+The only data numbers printed are the counts of the Oct 12 replay (the drift story). They are dated facts in deck_facts.py,
+so a refreshed app/cache/kpi_parity.csv cannot change this figure.
 """
 from __future__ import annotations
 
-import csv
-
 import aa
+from deck_facts import DATED
 
 VW, VH = 1280, 720
-PARITY_CSV = aa.OUT.parents[1] / "app" / "cache" / "kpi_parity.csv"
 NO_TWIN = {"pace_pct"}  # the one number with no SQL twin, so no Power BI mark on its card
 INK_A = lambda a: f"rgba(54,73,90,{a})"
 TINT = "rgba(90,113,129,0.15)"
@@ -54,10 +53,8 @@ def wrap(s, max_px, size=13, em=0.57):
 
 
 def replay() -> tuple[int, int]:
-    """(red, all) agency-months of the retired passenger-based twin's run, counted from the offline parity file."""
-    with open(PARITY_CSV, newline="", encoding="utf-8") as fh:
-        rows = [r for r in csv.DictReader(fh) if r["twin_version"] == "v1 (retired)"]
-    return sum(r["status"] != "ok" for r in rows), len(rows)
+    """(red, all) agency-months of the retired passenger-based twin's run on Oct 12, counted once and kept as dated facts."""
+    return DATED["parity_red"]["value"], DATED["parity_rows"]["value"]
 
 
 def tag(x, y, s):  # a tiny word under a visual

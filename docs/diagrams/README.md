@@ -27,23 +27,30 @@ diagram is a live HTML page, and every slide image is in `export/` (2560 by 1440
 
 - The CRM in the demo is a synthetic stand-in shaped like Dynamics 365 Sales, and every diagram that names it says so.
 - The "today" line under each sequence is how the role was described in round one. Nothing shows hours saved, because none were measured.
-- Every number on the data diagrams comes from a query; `src/data_numbers.py` and `src/data_numbers_2.py` print them again.
+- Every number on the data diagrams comes from a query in `src/deck_facts.py`. The same file writes `web/src/deck/facts.json`
+  (each number with its SQL and its grain), which the deck at `/present` uses to fill its slides. A few numbers live only on
+  Databricks or in a results file; they sit in that file as dated facts, each with its source and date.
+- `deck_facts.py --print` lists every number next to its query, and a test fails when `facts.json` is stale.
 - The Flight Symbol in title figure A is American Airlines' own mark.
 
 ## Rebuilding
 
 The builders in `src/` write every file here, using the diagram-design plugin's own projection code and the
-`american-airlines` profile that `.diagram-design` at the repo root points to.
+`american-airlines` profile that `.diagram-design` at the repo root points to. The builders that print numbers (`journeys.py`,
+`data_diagrams.py`, `waterfall.py` and `definitions.py`) read them from `deck_facts.py`, so they run in the repo's virtual
+environment (`.venv/bin/python`) on the local DuckDB build;
+`deck_facts.py` sets `FAIRSHARE_BACKEND=duckdb` itself, so the laptop's `.env` pointing at Databricks does not matter.
 
 ```
-python3 docs/diagrams/src/exploded.py        # 01, both versions
-python3 docs/diagrams/src/blueprint.py       # 02
-python3 docs/diagrams/src/swimlane.py        # 03
-python3 docs/diagrams/src/journeys.py        # 04, 05
-python3 docs/diagrams/src/data_diagrams.py   # 06, 07
-python3 docs/diagrams/src/waterfall.py       # 08
-python3 docs/diagrams/src/definitions.py     # 09
-node docs/diagrams/hairline/src/pages.mjs    # the hairline pages
+FAIRSHARE_BACKEND=duckdb .venv/bin/python docs/diagrams/src/deck_facts.py   # every number: writes web/src/deck/facts.json
+python3 docs/diagrams/src/exploded.py                 # 01, both versions
+python3 docs/diagrams/src/blueprint.py                # 02
+python3 docs/diagrams/src/swimlane.py                 # 03
+.venv/bin/python docs/diagrams/src/journeys.py        # 04, 05
+.venv/bin/python docs/diagrams/src/data_diagrams.py   # 06, 07
+.venv/bin/python docs/diagrams/src/waterfall.py       # 08
+.venv/bin/python docs/diagrams/src/definitions.py     # 09
+node docs/diagrams/hairline/src/pages.mjs             # the hairline pages
 python3 docs/diagrams/src/lint.py docs/diagrams/0*.html   # the skin lint; only the AA logo's own colors may differ
 ```
 

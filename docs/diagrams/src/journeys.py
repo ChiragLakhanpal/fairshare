@@ -1,18 +1,19 @@
 """04 and 05: two journeys as sequence diagrams, step by step, for the two people the director cares about most.
 
-    python3 docs/diagrams/src/journeys.py   # writes docs/diagrams/04-journey-sales-director.html and 05-journey-account-manager.html
+    .venv/bin/python docs/diagrams/src/journeys.py   # writes docs/diagrams/04-journey-sales-director.html and 05-journey-account-manager.html
 
 diagram-design's sequence grammar (references/type-sequence.md): actors in a row, dashed lifelines, time flows down,
 calls solid with a filled head, replies dashed with a filled head, a one-way notice dashed with an open head, self
 messages as U loops, at most one combined fragment, two accent elements. A label sits in one gap between two lifelines,
 never over a third; builder asserts keep every label mask clear of every lifeline.
 
-The numbers on 04 come from src/data_numbers_2.py (Harbor Business Travel, Sep 2026 vs Sep 2025, ops.decomposition):
-volume 32836.09, mix -139.7, share -97491.33, shown in $ thousands to one decimal.
+The numbers on 04 come from src/deck_facts.py (Harbor Business Travel, Sep 2026 vs Sep 2025, ops.decomposition):
+harbor_volume_usd, harbor_mix_usd and harbor_share_usd, shown in $ thousands to one decimal.
 """
 from __future__ import annotations
 
 import aa
+from deck_facts import fact
 
 VW, VH = 1280, 720
 BOX_TOP, BOX_H = 72, 72
@@ -33,6 +34,11 @@ def runs(s: str):
     """'`ask_metrics`, as the viewer' -> [(mono, 'ask_metrics'), (sans, ', as the viewer')]"""
     parts = s.split("`")
     return [(M if i % 2 else S, p) for i, p in enumerate(parts) if p]
+
+
+def kilo(key: str) -> str:
+    """A Harbor part in $ thousands to one decimal, with its sign: 32836 is +32.8K."""
+    return f"{fact(key) / 1000:+.1f}K"
 
 
 def width(s: str) -> float:
@@ -63,12 +69,12 @@ DIAGRAMS = [
             ("ret", "sql", "genie", "rows", False),
             ("ret", "genie", "app", "rows + the SQL", False),
             ("call", "app", "sql", "`explain_change` on `ops.decomposition`", False),
-            ("ret", "sql", "app", "volume +32.8K, mix -0.1K, share -97.5K", False),
+            ("ret", "sql", "app", f"volume {kilo('harbor_volume_usd')}, mix {kilo('harbor_mix_usd')}, share {kilo('harbor_share_usd')}", False),
             ("call", "app", "model", "write from these rows only", False),
             ("ret", "model", "app", "draft", False),
             ("self", "app", None, "verifier: every number vs. rows|unmatched sentence cut", True),
             ("ret", "app", "dir", "answer with its query attached", True),
-            ("call", "dir", "app", "clicks -97.5K: sees its rows", False),
+            ("call", "dir", "app", f"clicks {kilo('harbor_share_usd')}: sees its rows", False),
         ],
         bars=[("app", 0, 10), ("genie", 1, 4), ("sql", 2, 3), ("sql", 5, 6), ("model", 7, 8)],
         legend=[("call", "Request"), ("ret", "Reply"), ("accent", "Checked, then answered")],

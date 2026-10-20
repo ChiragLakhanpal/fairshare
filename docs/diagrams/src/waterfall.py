@@ -1,21 +1,17 @@
 """08: why Harbor's September revenue moved, as a waterfall: last year's total, the three parts the SQL splits the
 change into (volume, mix, share), this year's total. The share bar is the focal bar.
 
-    python3 docs/diagrams/src/waterfall.py   # writes docs/diagrams/08-why-it-moved.html
+    .venv/bin/python docs/diagrams/src/waterfall.py   # writes docs/diagrams/08-why-it-moved.html
 
-Values come from ops.decomposition through data_numbers_2.py, in $ thousands to one decimal because the waterfall
-verifier reads each printed value as a plain number. scripts/verify-waterfall.py in the plugin checks conservation,
+Values come from ops.decomposition through deck_facts.py (whole dollars), shown in $ thousands to one decimal because the
+waterfall verifier reads each printed value as a plain number. scripts/verify-waterfall.py in the plugin checks conservation,
 geometry, carries, printed values and sign fills.
 """
 from __future__ import annotations
 
-import subprocess
-import sys
-from pathlib import Path
-
 import aa
+from deck_facts import fact
 
-ROOT = Path(__file__).resolve().parents[3]
 VW, VH = 1280, 720
 BASE, TOP = 520, 140                 # baseline (the $0 floor) and the top of the plot band
 X0, BAR, PITCH = 192, 120, 200       # first bar's x, bar width, bar pitch
@@ -26,13 +22,10 @@ FOCAL_TINT = "rgba(0,108,191,0.12)"
 
 
 def numbers():
-    """Harbor's row, re-run read-only through the venv that has duckdb."""
-    py = ROOT / ".venv" / "bin" / "python"
-    code = ("import sys; sys.path.insert(0, %r); import data_numbers_2 as d, duckdb; "
-            "con = duckdb.connect(str(d.DB), read_only=True); h = d.harbor(con); "
-            "print(*(h[k] for k in ('prior', 'volume', 'mix', 'share', 'now', 'fair_share_effect', 'delta')))") % str(Path(__file__).parent)
-    out = subprocess.run([str(py), "-c", code], capture_output=True, text=True, check=True).stdout.split()
-    return [float(v) for v in out]
+    """Harbor's row: last year's revenue, the three parts, this year's revenue, the fair share effect, the whole change."""
+    keys = ("harbor_revenue_sep25_usd", "harbor_volume_usd", "harbor_mix_usd", "harbor_share_usd",
+            "harbor_revenue_sep26_usd", "harbor_fair_share_effect_usd", "harbor_delta_usd")
+    return [float(fact(k)) for k in keys]
 
 
 def k1(v):  # $ thousands, one decimal

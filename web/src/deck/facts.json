@@ -1,0 +1,1273 @@
+{
+ "checks": [
+  {
+   "actual": 3000,
+   "expected": 3000,
+   "name": "Sales rows equal every agency, route and month, minus Sunbelt's two missing months",
+   "ok": true
+  },
+  {
+   "actual": 0,
+   "expected": 0,
+   "name": "One row per agency, route and month, with no repeats",
+   "ok": true
+  },
+  {
+   "actual": 0,
+   "expected": 0,
+   "name": "Every sales row has a seats row",
+   "ok": true
+  },
+  {
+   "actual": 0,
+   "expected": 0,
+   "name": "No empty sales numbers",
+   "ok": true
+  },
+  {
+   "actual": 0,
+   "expected": 0,
+   "name": "AA is never above the market in revenue or passengers",
+   "ok": true
+  },
+  {
+   "actual": "2026-09-01 and 2026-09-01",
+   "expected": "2026-09-01 and 2026-09-01",
+   "name": "Both facts end in September 2026",
+   "ok": true
+  },
+  {
+   "actual": 4920.87,
+   "expected": 4920.87,
+   "name": "Cleaning removed the duplicates' revenue",
+   "ok": true
+  },
+  {
+   "actual": 0,
+   "expected": 0,
+   "name": "Pace never counts more months than the calendar has",
+   "ok": true
+  }
+ ],
+ "columns": {
+  "gold.agency_goals": [
+   {
+    "example": "9",
+    "meaning": "The agency the goal is for.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "2026",
+    "meaning": "The year the goal covers.",
+    "name": "goal_year",
+    "type": "INT"
+   },
+   {
+    "example": "1310400",
+    "meaning": "The AA revenue the agency is asked to reach by the end of the year, in dollars. Made up.",
+    "name": "revenue_goal_usd",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "0.42",
+    "meaning": "The share of its sales the agency is asked to send to AA, as a number between zero and one. Made up.",
+    "name": "share_goal",
+    "type": "DOUBLE"
+   }
+  ],
+  "gold.agency_pace": [
+   {
+    "example": "9",
+    "meaning": "The agency.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "2026",
+    "meaning": "The year of the goal.",
+    "name": "goal_year",
+    "type": "INT"
+   },
+   {
+    "example": "2026-05-01",
+    "meaning": "The month this row is for.",
+    "name": "sales_month",
+    "type": "DATE"
+   },
+   {
+    "example": "148163.35",
+    "meaning": "Dollars of AA revenue the agency sold in this month, all routes together.",
+    "name": "aa_revenue",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "404963.43",
+    "meaning": "AA revenue the agency sold from the start of the year through this month.",
+    "name": "ytd_revenue",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "1310400",
+    "meaning": "The agency's AA revenue goal for the whole year, in dollars.",
+    "name": "revenue_goal_usd",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "327600",
+    "meaning": "The part of the yearly goal that counts so far: one twelfth for every month the agency reported.",
+    "name": "ytd_goal",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "123.6",
+    "meaning": "Revenue so far divided by the goal so far, as a percent. One hundred means on pace.",
+    "name": "pace_pct",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "30.9",
+    "meaning": "Revenue so far divided by the goal for the whole year, as a percent.",
+    "name": "attainment_pct",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "3",
+    "meaning": "How many months this year the agency has sales rows for, up to this month. A missing month is not counted.",
+    "name": "months_reported",
+    "type": "BIGINT"
+   }
+  ],
+  "gold.contract_clauses": [
+   {
+    "example": "summit-4-4",
+    "meaning": "A short name for the clause: the agency, the clause number, and a count when one clause has several rows.",
+    "name": "clause_id",
+    "type": "STRING"
+   },
+   {
+    "example": "1",
+    "meaning": "The agency the agreement is with.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "summit-travel-partners.md",
+    "meaning": "The agreement file the clause comes from.",
+    "name": "file",
+    "type": "STRING"
+   },
+   {
+    "example": "2",
+    "meaning": "The page of the agreement the clause is on.",
+    "name": "page",
+    "type": "INT"
+   },
+   {
+    "example": "4",
+    "meaning": "The clause number as written in the agreement.",
+    "name": "section",
+    "type": "STRING"
+   },
+   {
+    "example": "share_premium_tiers",
+    "meaning": "What kind of clause it is, such as a goal, a share floor or an incentive tier. A promise the data cannot check is marked not_checkable.",
+    "name": "clause_type",
+    "type": "STRING"
+   },
+   {
+    "example": "share_premium_pts",
+    "meaning": "The number the clause is about, such as aa_share or aa_revenue.",
+    "name": "metric",
+    "type": "STRING"
+   },
+   {
+    "example": ">=",
+    "meaning": "How the number is compared with the threshold: at least, below, or none.",
+    "name": "operator",
+    "type": "STRING"
+   },
+   {
+    "example": "15",
+    "meaning": "The number the clause compares against, such as a percent of share or a dollar amount.",
+    "name": "threshold",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "3",
+    "meaning": "A second number the clause uses, such as the percent of revenue paid. Empty when the clause has only one number.",
+    "name": "threshold_2",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "NULL",
+    "meaning": "For how many quarters in a row the clause must hold. Empty when it does not say.",
+    "name": "window_quarters",
+    "type": "INT"
+   },
+   {
+    "example": "Agency earns a back-end incentive on Carrier revenue in the…",
+    "meaning": "What happens under the clause, in the agreement's own words.",
+    "name": "consequence",
+    "type": "STRING"
+   },
+   {
+    "example": "| 4 | 15 points and above | 3.0% of Carrier revenue |",
+    "meaning": "The clause copied word for word from the page.",
+    "name": "quote",
+    "type": "STRING"
+   }
+  ],
+  "gold.crm_activities": [
+   {
+    "example": "30001",
+    "meaning": "The activity's number.",
+    "name": "activity_id",
+    "type": "INT"
+   },
+   {
+    "example": "1",
+    "meaning": "The agency the activity was with.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "9001",
+    "meaning": "The contact the activity was with.",
+    "name": "contact_id",
+    "type": "INT"
+   },
+   {
+    "example": "Email",
+    "meaning": "What was done: an email, a call or a meeting.",
+    "name": "activity_type",
+    "type": "STRING"
+   },
+   {
+    "example": "Performance report sent",
+    "meaning": "A short title for the activity.",
+    "name": "subject",
+    "type": "STRING"
+   },
+   {
+    "example": "2026-01-10",
+    "meaning": "The day it happened.",
+    "name": "happened_at",
+    "type": "DATE"
+   },
+   {
+    "example": "Dana Whitfield",
+    "meaning": "The account manager who did it.",
+    "name": "owner",
+    "type": "STRING"
+   },
+   {
+    "example": "NULL",
+    "meaning": "Free text about the activity, if anyone wrote any.",
+    "name": "notes",
+    "type": "STRING"
+   }
+  ],
+  "gold.crm_contacts": [
+   {
+    "example": "9001",
+    "meaning": "The contact's number.",
+    "name": "contact_id",
+    "type": "INT"
+   },
+   {
+    "example": "1",
+    "meaning": "The agency the contact works for.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "Taylor Mehta",
+    "meaning": "The contact's name. All the names are made up.",
+    "name": "contact_name",
+    "type": "STRING"
+   },
+   {
+    "example": "Air Sourcing Manager",
+    "meaning": "The contact's job title.",
+    "name": "title",
+    "type": "STRING"
+   },
+   {
+    "example": "taylor.mehta@summittravelpartners.example",
+    "meaning": "The contact's email address. Made up, and it ends in .example so it can never be a real address.",
+    "name": "email",
+    "type": "STRING"
+   }
+  ],
+  "gold.crm_opportunities": [
+   {
+    "example": "7001",
+    "meaning": "The deal's number.",
+    "name": "opp_id",
+    "type": "INT"
+   },
+   {
+    "example": "1",
+    "meaning": "The agency the deal is with.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "Summit Travel Partners 2027 renewal",
+    "meaning": "A short name for the deal.",
+    "name": "opp_name",
+    "type": "STRING"
+   },
+   {
+    "example": "Negotiate",
+    "meaning": "How far along the deal is: Qualify, Propose or Negotiate.",
+    "name": "stage",
+    "type": "STRING"
+   },
+   {
+    "example": "7290000",
+    "meaning": "What the deal is worth, in dollars.",
+    "name": "amount_usd",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "2026-12-15",
+    "meaning": "The day the team expects the deal to close.",
+    "name": "close_date",
+    "type": "DATE"
+   },
+   {
+    "example": "On track",
+    "meaning": "How the deal looks: On track, Stalled or At risk.",
+    "name": "health",
+    "type": "STRING"
+   },
+   {
+    "example": "Dana Whitfield",
+    "meaning": "The account manager who owns the deal.",
+    "name": "owner",
+    "type": "STRING"
+   },
+   {
+    "example": "2026-09-01",
+    "meaning": "The last day anyone changed the deal.",
+    "name": "updated_at",
+    "type": "DATE"
+   }
+  ],
+  "gold.dim_agency": [
+   {
+    "example": "1",
+    "meaning": "The agency's number. The other tables use it to point at the agency.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "Summit Travel Partners",
+    "meaning": "The agency's name. All the agencies are made up.",
+    "name": "agency_name",
+    "type": "STRING"
+   },
+   {
+    "example": "TMC",
+    "meaning": "The kind of agency: a business travel agency (TMC), an online agency (OTA), a leisure agency or a consolidator.",
+    "name": "agency_type",
+    "type": "STRING"
+   },
+   {
+    "example": "Central",
+    "meaning": "The part of the country the agency sells in: East, Central or West.",
+    "name": "region",
+    "type": "STRING"
+   },
+   {
+    "example": "Dana Whitfield",
+    "meaning": "The AA account manager who looks after the agency. The names are made up.",
+    "name": "account_manager",
+    "type": "STRING"
+   }
+  ],
+  "gold.dim_corporate": [
+   {
+    "example": "101",
+    "meaning": "The company's number.",
+    "name": "corp_id",
+    "type": "INT"
+   },
+   {
+    "example": "Redwood Consulting",
+    "meaning": "The company's name. All the companies are made up.",
+    "name": "corp_name",
+    "type": "STRING"
+   },
+   {
+    "example": "Professional Services",
+    "meaning": "The company's industry.",
+    "name": "industry",
+    "type": "STRING"
+   },
+   {
+    "example": "Chicago",
+    "meaning": "The city where the company is based.",
+    "name": "hq_city",
+    "type": "STRING"
+   },
+   {
+    "example": "2025-01-01",
+    "meaning": "The day the company's travel contract with AA starts.",
+    "name": "contract_start",
+    "type": "DATE"
+   },
+   {
+    "example": "2026-12-31",
+    "meaning": "The day the contract ends.",
+    "name": "contract_end",
+    "type": "DATE"
+   },
+   {
+    "example": "2400000",
+    "meaning": "The dollars of travel the company has promised to buy each year.",
+    "name": "annual_commitment_usd",
+    "type": "DOUBLE"
+   }
+  ],
+  "gold.dim_market": [
+   {
+    "example": "2",
+    "meaning": "The route's number. The sales and seat tables use it to point at the route.",
+    "name": "market_id",
+    "type": "INT"
+   },
+   {
+    "example": "DFW",
+    "meaning": "The airport code the route starts from.",
+    "name": "origin",
+    "type": "STRING"
+   },
+   {
+    "example": "ORD",
+    "meaning": "The airport code the route ends at.",
+    "name": "dest",
+    "type": "STRING"
+   },
+   {
+    "example": "Central",
+    "meaning": "The part of the country the route is in: East, Central or West.",
+    "name": "region",
+    "type": "STRING"
+   },
+   {
+    "example": "true",
+    "meaning": "True when the route starts at an AA hub.",
+    "name": "aa_hub_origin",
+    "type": "BOOLEAN"
+   }
+  ],
+  "gold.fact_agency_sales_monthly": [
+   {
+    "example": "1",
+    "meaning": "Which agency made these sales. It matches agency_id in dim_agency.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "2",
+    "meaning": "Which route the sales were on. It matches market_id in dim_market.",
+    "name": "market_id",
+    "type": "INT"
+   },
+   {
+    "example": "2026-09-01",
+    "meaning": "The month of the sales, written as the first day of that month.",
+    "name": "sales_month",
+    "type": "DATE"
+   },
+   {
+    "example": "80582.47",
+    "meaning": "Dollars of AA tickets the agency sold on this route in this month.",
+    "name": "aa_revenue",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "275",
+    "meaning": "Passengers on those AA tickets.",
+    "name": "aa_pax",
+    "type": "INT"
+   },
+   {
+    "example": "145829",
+    "meaning": "Dollars of tickets the agency sold on this route in this month on all airlines, AA included.",
+    "name": "market_revenue",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "500",
+    "meaning": "Passengers on all of the agency's tickets on this route in this month, on all airlines.",
+    "name": "market_pax",
+    "type": "INT"
+   }
+  ],
+  "gold.fact_corporate_bookings": [
+   {
+    "example": "500001",
+    "meaning": "The booking's number.",
+    "name": "booking_id",
+    "type": "BIGINT"
+   },
+   {
+    "example": "0010000500001",
+    "meaning": "The ticket's number, kept as text so leading zeros stay. Each ticket appears once here; the delivered file had a few twice.",
+    "name": "ticket_number",
+    "type": "STRING"
+   },
+   {
+    "example": "101",
+    "meaning": "The company that booked the trip. It matches corp_id in dim_corporate.",
+    "name": "corp_id",
+    "type": "INT"
+   },
+   {
+    "example": "2025-01-16",
+    "meaning": "The day the ticket was booked.",
+    "name": "booking_date",
+    "type": "DATE"
+   },
+   {
+    "example": "2025-01-21",
+    "meaning": "The day of the trip.",
+    "name": "travel_date",
+    "type": "DATE"
+   },
+   {
+    "example": "CLT",
+    "meaning": "The airport the trip starts from.",
+    "name": "origin",
+    "type": "STRING"
+   },
+   {
+    "example": "LGA",
+    "meaning": "The airport the trip goes to.",
+    "name": "dest",
+    "type": "STRING"
+   },
+   {
+    "example": "OTA",
+    "meaning": "How the ticket was booked, cleaned to four labels: Direct, GDS, NDC or OTA.",
+    "name": "channel",
+    "type": "STRING"
+   },
+   {
+    "example": "239.25",
+    "meaning": "The price of one ticket, in dollars.",
+    "name": "fare_usd",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "1",
+    "meaning": "How many tickets the booking holds.",
+    "name": "ticket_count",
+    "type": "INT"
+   },
+   {
+    "example": "Economy",
+    "meaning": "The cabin: Economy, Premium Economy or Business.",
+    "name": "cabin",
+    "type": "STRING"
+   },
+   {
+    "example": "12",
+    "meaning": "The agency that sold the ticket. Empty when the company booked without an agency.",
+    "name": "agency_id",
+    "type": "INT"
+   }
+  ],
+  "gold.fact_market_capacity": [
+   {
+    "example": "2",
+    "meaning": "Which route the seats are on. It matches market_id in dim_market.",
+    "name": "market_id",
+    "type": "INT"
+   },
+   {
+    "example": "2026-09-01",
+    "meaning": "The month of the seats, written as the first day of that month.",
+    "name": "sales_month",
+    "type": "DATE"
+   },
+   {
+    "example": "57075",
+    "meaning": "Seats AA flies on this route in this month. Made up.",
+    "name": "aa_seats",
+    "type": "BIGINT"
+   },
+   {
+    "example": "150000",
+    "meaning": "Seats all airlines fly on this route in this month. Made up.",
+    "name": "total_seats",
+    "type": "BIGINT"
+   },
+   {
+    "example": "0.3805",
+    "meaning": "AA's seats divided by all seats on the route, which is the route's fair share. Made up: one base share per route, moved a little each month.",
+    "name": "aa_seat_share",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "false",
+    "meaning": "True when this month's seat numbers are borrowed from last year because the seat file for the month is not in yet. It is never true for the made-up seat shares.",
+    "name": "is_projected",
+    "type": "BOOLEAN"
+   },
+   {
+    "example": "synthetic",
+    "meaning": "Where the seat numbers came from. Here it always says synthetic, which means made up.",
+    "name": "source",
+    "type": "STRING"
+   }
+  ],
+  "ops.decomposition": [
+   {
+    "example": "5",
+    "meaning": "The agency.",
+    "name": "agency_id",
+    "type": "INT"
+   },
+   {
+    "example": "2026-09-01",
+    "meaning": "The month being compared with the same month one year earlier.",
+    "name": "sales_month",
+    "type": "DATE"
+   },
+   {
+    "example": "330114.49",
+    "meaning": "AA revenue the agency sold in this month, in dollars.",
+    "name": "revenue_now",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "394909.42",
+    "meaning": "AA revenue the agency sold in the same month one year earlier.",
+    "name": "revenue_prior",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "-64794.93",
+    "meaning": "The change in AA revenue: this month minus the same month a year earlier, in dollars.",
+    "name": "delta_revenue",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "-16.4",
+    "meaning": "The same change as a percent of the year-earlier revenue.",
+    "name": "delta_pct",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "964800.06",
+    "meaning": "Dollars the agency sold on all airlines in this month.",
+    "name": "market_now",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "890736.71",
+    "meaning": "Dollars the agency sold on all airlines in the same month one year earlier.",
+    "name": "market_prior",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "8.3",
+    "meaning": "The change in the agency's all-airline sales, as a percent.",
+    "name": "market_delta_pct",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "0.3422",
+    "meaning": "AA's share of the agency's sales this month, as a number between zero and one.",
+    "name": "aa_share_now",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "0.4434",
+    "meaning": "AA's share of the agency's sales a year earlier, as a number between zero and one.",
+    "name": "aa_share_prior",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "0.4012",
+    "meaning": "Fair share this month: AA's seat share on the agency's routes, as a number between zero and one.",
+    "name": "fair_share_now",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "0.4013",
+    "meaning": "Fair share a year earlier.",
+    "name": "fair_share_prior",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "32836.09",
+    "meaning": "The part of the change that comes from the agency selling more or less travel overall.",
+    "name": "volume_effect",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "-139.7",
+    "meaning": "The part of the change that comes from the agency moving sales between routes.",
+    "name": "mix_effect",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "-97491.33",
+    "meaning": "The part of the change that comes from AA winning or losing share inside the routes.",
+    "name": "share_effect",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "2419.72",
+    "meaning": "The change that AA's own seat changes would have predicted. A side check, not part of the total.",
+    "name": "fair_share_effect",
+    "type": "DOUBLE"
+   },
+   {
+    "example": "0",
+    "meaning": "What is left when volume, mix and share are added up and compared with the change. Zero means they add up exactly.",
+    "name": "residual",
+    "type": "DOUBLE"
+   }
+  ],
+  "ops.kpi_definitions": [
+   {
+    "example": "aa_share",
+    "meaning": "The number's short code name.",
+    "name": "kpi",
+    "type": "STRING"
+   },
+   {
+    "example": "AA share",
+    "meaning": "The name people see.",
+    "name": "display_name",
+    "type": "STRING"
+   },
+   {
+    "example": "AA revenue divided by everything the agency sold on the sam…",
+    "meaning": "The definition in plain English.",
+    "name": "definition_en",
+    "type": "STRING"
+   },
+   {
+    "example": "Sales BI",
+    "meaning": "The team that owns the definition.",
+    "name": "owner",
+    "type": "STRING"
+   },
+   {
+    "example": "gold.fact_agency_sales_monthly.aa_revenue, market_revenue",
+    "meaning": "The table columns the number is built from.",
+    "name": "source_columns",
+    "type": "STRING"
+   },
+   {
+    "example": "SUM(source.aa_revenue) / NULLIF(SUM(source.market_revenue),…",
+    "meaning": "The definition as written in the metric view, the one place every tool reads it from.",
+    "name": "metric_view_expr",
+    "type": "STRING"
+   },
+   {
+    "example": "AA Share = DIVIDE ( SUM ( fact_agency_sales_monthly[aa_reve…",
+    "meaning": "The same definition written the way a Power BI measure would be, in DAX.",
+    "name": "dax_twin",
+    "type": "STRING"
+   },
+   {
+    "example": "SELECT a.agency_name AS agency, s.sales_month, SUM(s.aa_rev…",
+    "meaning": "A SQL copy of the Power BI measure. It is compared with the metric view every night.",
+    "name": "twin_sql",
+    "type": "STRING"
+   },
+   {
+    "example": "v2",
+    "meaning": "Which version of the SQL copy is live. It moves up when a definition changes.",
+    "name": "twin_version",
+    "type": "STRING"
+   },
+   {
+    "example": "SELECT a.agency_name AS agency, s.sales_month, SUM(s.aa_pax…",
+    "meaning": "The old SQL copy that the nightly comparison caught being wrong. Empty for numbers that never changed.",
+    "name": "twin_sql_retired",
+    "type": "STRING"
+   },
+   {
+    "example": "v1 was passenger based (AA passengers over agency passenger…",
+    "meaning": "Why the old copy was retired. Empty for numbers that never changed.",
+    "name": "retired_note",
+    "type": "STRING"
+   }
+  ]
+ },
+ "dated": {
+  "app_answer_max_s": {
+   "date": "2026-10-13",
+   "display": "37",
+   "note": "Seconds for the slowest question, rounded to a whole second.",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": 37
+  },
+  "app_answer_median_s": {
+   "date": "2026-10-13",
+   "display": "26",
+   "note": "Seconds per question, the median of 20, rounded to a whole second.",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": 26
+  },
+  "app_model_gave_up_passed": {
+   "date": "2026-10-13",
+   "display": "1",
+   "note": "Question q14: an answer that gave up with no numbers to check, so the verifier had nothing to flag.",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": 1
+  },
+  "app_model_partly": {
+   "date": "2026-10-13",
+   "display": "3",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": 3
+  },
+  "app_model_questions": {
+   "date": "2026-10-13",
+   "display": "20",
+   "note": "The questions in that run.",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": 20
+  },
+  "app_model_right": {
+   "date": "2026-10-13",
+   "display": "15",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": 15
+  },
+  "app_model_wrong": {
+   "date": "2026-10-13",
+   "display": "2",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": 2
+  },
+  "foundry_attack_false_flags": {
+   "date": "2026-10-15",
+   "display": "2",
+   "note": "Of those notes, flagged as manipulated content although they were normal.",
+   "source": "docs/limits.md, row dated 2026-10-15, Foundry evaluators",
+   "value": 2
+  },
+  "foundry_attack_notes": {
+   "date": "2026-10-15",
+   "display": "5",
+   "note": "Normal CRM correction notes the indirect_attack evaluator graded.",
+   "source": "docs/limits.md, row dated 2026-10-15, Foundry evaluators",
+   "value": 5
+  },
+  "foundry_clean_page_s": {
+   "date": "2026-10-15",
+   "display": "38",
+   "note": "Seconds for a clean page on the pre-call agent.",
+   "source": "docs/limits.md, row dated 2026-10-15, Foundry guardrails",
+   "value": 38
+  },
+  "foundry_nightly_pages": {
+   "date": "2026-10-15",
+   "display": "20",
+   "note": "Pages the nightly agents task wrote through the four Foundry agents, every sentence verified.",
+   "source": "docs/limits.md, row dated 2026-10-15, Databricks serverless jobs",
+   "value": 20
+  },
+  "foundry_refusal_s": {
+   "date": "2026-10-15",
+   "display": "3",
+   "note": "Seconds until a jailbreak was refused at the prompt.",
+   "source": "docs/limits.md, row dated 2026-10-15, Foundry guardrails",
+   "value": 3
+  },
+  "foundry_shield_pages": {
+   "date": "2026-10-15",
+   "display": "23",
+   "note": "Real pages in the first evaluation runs.",
+   "source": "docs/limits.md, row dated 2026-10-15, Foundry prompt shield",
+   "value": 23
+  },
+  "foundry_shield_refused": {
+   "date": "2026-10-15",
+   "display": "2",
+   "note": "Of those pages, refused by the prompt shield although the message was legitimate.",
+   "source": "docs/limits.md, row dated 2026-10-15, Foundry prompt shield",
+   "value": 2
+  },
+  "genie_benchmark": {
+   "date": "2026-10-19",
+   "display": "20 of 20",
+   "note": "One run on Oct 19, after five benchmark questions named their columns. Two earlier runs that day scored 17 of 20.",
+   "source": "evals/results/2026-10-19T213612-genie-eval.json",
+   "value": 20
+  },
+  "nightly_parity_drift": {
+   "date": "2026-10-19",
+   "display": "0",
+   "note": "Values that disagreed with the metric view, across those runs.",
+   "source": "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19",
+   "value": 0
+  },
+  "nightly_parity_runs": {
+   "date": "2026-10-19",
+   "display": "5",
+   "note": "The scheduled 6 am runs on Oct 15 to 19, all green. The same query counted 9 runs since Oct 14, which adds three one-time runs on Oct 14 and one manual run on Oct 19.",
+   "source": "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19",
+   "value": 5
+  },
+  "parity_red": {
+   "date": "2026-10-12",
+   "display": "250",
+   "note": "Agency-months where the retired passenger-based copy disagreed with the metric view.",
+   "source": "app/cache/kpi_parity.csv, the aa_share replay labeled v1 (retired), run 64fc8eecdd92",
+   "value": 250
+  },
+  "parity_rows": {
+   "date": "2026-10-12",
+   "display": "250",
+   "note": "Agency-months in that replay.",
+   "source": "app/cache/kpi_parity.csv, the aa_share replay labeled v1 (retired), run 64fc8eecdd92",
+   "value": 250
+  },
+  "twins_checked": {
+   "date": "2026-10-19",
+   "display": "6",
+   "note": "The numbers with a SQL copy of the Power BI measure. Pace has none.",
+   "source": "lakehouse/parity.py, the list of numbers it compares in run()",
+   "value": 6
+  }
+ },
+ "facts": {
+  "agencies": {
+   "display": "12",
+   "grain": "Rows in gold.dim_agency, one per agency.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.gold.dim_agency",
+   "value": 12
+  },
+  "agency_months_present": {
+   "display": "250",
+   "grain": "Agency-months that have sales rows, counted once however many routes they hold.",
+   "sql": "SELECT COUNT(*) AS value\nFROM (SELECT DISTINCT agency_id, sales_month FROM aa_demo.gold.fact_agency_sales_monthly) AS t",
+   "value": 250
+  },
+  "agency_months_total": {
+   "display": "252",
+   "grain": "Every agency times every month, whether or not the agency has rows.",
+   "sql": "SELECT (SELECT COUNT(*) FROM aa_demo.gold.dim_agency)\n     * (SELECT COUNT(DISTINCT sales_month) FROM aa_demo.gold.fact_agency_sales_monthly) AS value",
+   "value": 252
+  },
+  "agreements": {
+   "display": "4",
+   "grain": "Agreement files that gold.contract_clauses was read from.",
+   "sql": "SELECT COUNT(DISTINCT file) AS value FROM aa_demo.gold.contract_clauses",
+   "value": 4
+  },
+  "avg_of_shares_q3": {
+   "display": "39.7%",
+   "grain": "Q3 2026, all routes: the plain average of each agency's AA share, one share per agency.",
+   "sql": "SELECT ROUND(100 * AVG(share), 1) AS value\nFROM (SELECT agency_id, SUM(aa_revenue) / NULLIF(SUM(market_revenue), 0) AS share\n      FROM aa_demo.gold.fact_agency_sales_monthly\n      WHERE sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'\n      GROUP BY agency_id) AS t",
+   "value": 39.7
+  },
+  "bookings_cleaned": {
+   "display": "27,961",
+   "grain": "Rows in silver.fact_corporate_bookings, after cleaning.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.silver.fact_corporate_bookings",
+   "value": 27961
+  },
+  "bookings_delivered": {
+   "display": "27,967",
+   "grain": "Rows in bronze.fact_corporate_bookings, as the file was delivered.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.bronze.fact_corporate_bookings",
+   "value": 27967
+  },
+  "bronze_tables": {
+   "display": "11",
+   "grain": "Tables in the bronze schema, as sent.",
+   "sql": "SELECT COUNT(*) AS value FROM information_schema.tables\nWHERE table_catalog = 'aa_demo' AND table_schema = 'bronze'",
+   "value": 11
+  },
+  "capacity_rows": {
+   "display": "252",
+   "grain": "Rows in gold.fact_market_capacity, one per route and month.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.gold.fact_market_capacity",
+   "value": 252
+  },
+  "channel_direct_rows": {
+   "display": "6,613",
+   "grain": "Bronze rows whose channel label is exactly Direct.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.bronze.fact_corporate_bookings WHERE channel = 'Direct'",
+   "value": 6613
+  },
+  "channel_ndc_rows": {
+   "display": "2",
+   "grain": "Bronze rows whose channel label is exactly ndc in small letters with a space on each side.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.bronze.fact_corporate_bookings WHERE channel = ' ndc '",
+   "value": 2
+  },
+  "channel_spellings_cleaned": {
+   "display": "4",
+   "grain": "Distinct channel labels in silver.",
+   "sql": "SELECT COUNT(DISTINCT channel) AS value FROM aa_demo.silver.fact_corporate_bookings",
+   "value": 4
+  },
+  "channel_spellings_delivered": {
+   "display": "16",
+   "grain": "Distinct channel labels in bronze, counting capital letters and spaces.",
+   "sql": "SELECT COUNT(DISTINCT channel) AS value FROM aa_demo.bronze.fact_corporate_bookings",
+   "value": 16
+  },
+  "duplicate_tickets": {
+   "display": "6",
+   "grain": "Booking rows that cleaning dropped because the ticket was already loaded.",
+   "sql": "SELECT (SELECT COUNT(*) FROM aa_demo.bronze.fact_corporate_bookings)\n     - (SELECT COUNT(*) FROM aa_demo.silver.fact_corporate_bookings) AS value",
+   "value": 6
+  },
+  "duplicate_usd": {
+   "display": "$4,920.87",
+   "grain": "Fare times tickets on the rows that cleaning dropped, in dollars and cents.",
+   "sql": "SELECT ROUND(SUM(fare_usd * ticket_count), 2) AS value\nFROM (SELECT fare_usd, ticket_count,\n             ROW_NUMBER() OVER (PARTITION BY ticket_number ORDER BY booking_id) AS n\n      FROM aa_demo.bronze.fact_corporate_bookings) AS t\nWHERE n > 1",
+   "value": 4920.87
+  },
+  "farehub_pace_sep26": {
+   "display": "97.2",
+   "grain": "FareHub Online, Sep 2026: revenue so far over the goal so far, where one hundred is on pace.",
+   "sql": "SELECT p.pace_pct AS value\nFROM aa_demo.gold.agency_pace p\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE a.agency_name = 'FareHub Online' AND p.sales_month = DATE '2026-09-01'",
+   "value": 97.2
+  },
+  "harbor_apr26_chg_usd": {
+   "display": "-$213,063",
+   "grain": "Harbor Business Travel, Apr 2026: the change in AA revenue against Apr 2025.",
+   "sql": "SELECT ROUND(d.delta_revenue) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-04-01'",
+   "value": -213063
+  },
+  "harbor_delta_usd": {
+   "display": "-$64,795",
+   "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the change in AA revenue.",
+   "sql": "SELECT ROUND(d.delta_revenue) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
+   "value": -64795
+  },
+  "harbor_fair_share_effect_usd": {
+   "display": "+$2,420",
+   "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the change AA's own seat changes would have predicted. A side check, not part of the total.",
+   "sql": "SELECT ROUND(d.fair_share_effect) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
+   "value": 2420
+  },
+  "harbor_mar26_chg_usd": {
+   "display": "-$194,698",
+   "grain": "Harbor Business Travel, Mar 2026: the change in AA revenue against Mar 2025.",
+   "sql": "SELECT ROUND(d.delta_revenue) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-03-01'",
+   "value": -194698
+  },
+  "harbor_mix_usd": {
+   "display": "-$140",
+   "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the part of the change from moving between routes.",
+   "sql": "SELECT ROUND(d.mix_effect) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
+   "value": -140
+  },
+  "harbor_pace_sep26": {
+   "display": "96.1",
+   "grain": "Harbor Business Travel, Sep 2026: revenue so far over the goal so far, where one hundred is on pace.",
+   "sql": "SELECT p.pace_pct AS value\nFROM aa_demo.gold.agency_pace p\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND p.sales_month = DATE '2026-09-01'",
+   "value": 96.1
+  },
+  "harbor_revenue_sep25_usd": {
+   "display": "$394,909",
+   "grain": "Harbor Business Travel: AA revenue in Sep 2025, where the waterfall starts.",
+   "sql": "SELECT ROUND(d.revenue_prior) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
+   "value": 394909
+  },
+  "harbor_revenue_sep26_usd": {
+   "display": "$330,114",
+   "grain": "Harbor Business Travel: AA revenue in Sep 2026, where the waterfall ends.",
+   "sql": "SELECT ROUND(d.revenue_now) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
+   "value": 330114
+  },
+  "harbor_share_jul26": {
+   "display": "35.6%",
+   "grain": "Harbor Business Travel, Jul 2026: AA share, all routes together.",
+   "sql": "SELECT ROUND(100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-07-01'",
+   "value": 35.6
+  },
+  "harbor_share_jun26": {
+   "display": "21.7%",
+   "grain": "Harbor Business Travel, Jun 2026: AA share, all routes together.",
+   "sql": "SELECT ROUND(100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-06-01'",
+   "value": 21.7
+  },
+  "harbor_share_sep25": {
+   "display": "44.3%",
+   "grain": "Harbor Business Travel, Sep 2025: AA share, all routes together.",
+   "sql": "SELECT ROUND(100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2025-09-01'",
+   "value": 44.3
+  },
+  "harbor_share_sep26": {
+   "display": "34.2%",
+   "grain": "Harbor Business Travel, Sep 2026: AA share, all routes together.",
+   "sql": "SELECT ROUND(100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-09-01'",
+   "value": 34.2
+  },
+  "harbor_share_usd": {
+   "display": "-$97,491",
+   "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the part of the change from AA winning or losing share inside routes.",
+   "sql": "SELECT ROUND(d.share_effect) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
+   "value": -97491
+  },
+  "harbor_volume_usd": {
+   "display": "+$32,836",
+   "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the part of the change from selling more or less travel overall.",
+   "sql": "SELECT ROUND(d.volume_effect) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
+   "value": 32836
+  },
+  "kpis": {
+   "display": "7",
+   "grain": "Rows in ops.kpi_definitions, one per number.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.ops.kpi_definitions",
+   "value": 7
+  },
+  "months": {
+   "display": "21",
+   "grain": "Distinct months that have sales rows.",
+   "sql": "SELECT COUNT(DISTINCT sales_month) AS value FROM aa_demo.gold.fact_agency_sales_monthly",
+   "value": 21
+  },
+  "network_pace_sep26": {
+   "display": "140.0",
+   "grain": "All agencies together, Sep 2026: revenue so far over the goal so far, where one hundred is on pace. A ratio of sums.",
+   "sql": "SELECT ROUND(100 * SUM(ytd_revenue) / NULLIF(SUM(ytd_goal), 0), 1) AS value\nFROM aa_demo.gold.agency_pace\nWHERE sales_month = DATE '2026-09-01'",
+   "value": 140.0
+  },
+  "northstar_other_usd": {
+   "display": "$13,616",
+   "grain": "What Northstar Leisure sold on other airlines on that route in that month, in dollars.",
+   "sql": "SELECT ROUND(s.market_revenue - s.aa_revenue) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Northstar Leisure' AND s.aa_revenue = 0",
+   "value": 13616
+  },
+  "northstar_zero_month": {
+   "display": "Jan 2026",
+   "grain": "The month of that zero.",
+   "sql": "SELECT s.sales_month AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Northstar Leisure' AND s.aa_revenue = 0",
+   "value": "2026-01-01"
+  },
+  "northstar_zero_route": {
+   "display": "SEA-DEN",
+   "grain": "The one route where Northstar Leisure reported a month with no AA revenue at all.",
+   "sql": "SELECT CONCAT(m.origin, '-', m.dest) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nWHERE a.agency_name = 'Northstar Leisure' AND s.aa_revenue = 0",
+   "value": "SEA-DEN"
+  },
+  "pax_rev_max_gap_pts": {
+   "display": "1.7",
+   "grain": "Q3 2026, all routes, per agency: the largest gap between passenger share and revenue share, in points.",
+   "sql": "SELECT ROUND(MAX(ABS(rev_share - pax_share)), 1) AS value\nFROM (SELECT agency_id,\n             100 * SUM(aa_revenue) / NULLIF(SUM(market_revenue), 0) AS rev_share,\n             100.0 * SUM(aa_pax) / NULLIF(SUM(market_pax), 0) AS pax_share\n      FROM aa_demo.gold.fact_agency_sales_monthly\n      WHERE sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'\n      GROUP BY agency_id) AS t",
+   "value": 1.7
+  },
+  "routes": {
+   "display": "12",
+   "grain": "Rows in gold.dim_market, one per route.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.gold.dim_market",
+   "value": 12
+  },
+  "sales_rows": {
+   "display": "3,000",
+   "grain": "Rows in gold.fact_agency_sales_monthly, one per agency, route and month.",
+   "sql": "SELECT COUNT(*) AS value FROM aa_demo.gold.fact_agency_sales_monthly",
+   "value": 3000
+  },
+  "share_of_total_q3": {
+   "display": "38.4%",
+   "grain": "Q3 2026, all routes: AA's share of the combined sales of all agencies, a ratio of sums.",
+   "sql": "SELECT ROUND(100 * SUM(aa_revenue) / NULLIF(SUM(market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly\nWHERE sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
+   "value": 38.4
+  },
+  "summit_q3_aa_share": {
+   "display": "53.5%",
+   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA revenue over everything Summit sold on the route.",
+   "sql": "SELECT ROUND(100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
+   "value": 53.5
+  },
+  "summit_q3_fair_share": {
+   "display": "37.6%",
+   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA's seat share (made up) weighted by what Summit sold.",
+   "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
+   "value": 37.6
+  },
+  "summit_q3_gap_pts": {
+   "display": "15.9",
+   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA share minus fair share, in points.",
+   "sql": "SELECT ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
+   "value": 15.9
+  },
+  "summit_q3_gap_usd": {
+   "display": "$88,391",
+   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA revenue minus the revenue fair share would bring.",
+   "sql": "SELECT ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
+   "value": 88391
+  },
+  "summit_q3_pax_share": {
+   "display": "52.4%",
+   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA passengers over all passengers Summit booked on the route.",
+   "sql": "SELECT ROUND(100.0 * SUM(s.aa_pax) / NULLIF(SUM(s.market_pax), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
+   "value": 52.4
+  },
+  "sunbelt_apr25_usd": {
+   "display": "$143,657",
+   "grain": "Sunbelt Vacations, Apr 2025: AA revenue, in the month it is missing from in 2026.",
+   "sql": "SELECT ROUND(SUM(s.aa_revenue)) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Sunbelt Vacations' AND s.sales_month = DATE '2025-04-01'",
+   "value": 143657
+  },
+  "sunbelt_mar25_usd": {
+   "display": "$162,155",
+   "grain": "Sunbelt Vacations, Mar 2025: AA revenue, in the month it is missing from in 2026.",
+   "sql": "SELECT ROUND(SUM(s.aa_revenue)) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Sunbelt Vacations' AND s.sales_month = DATE '2025-03-01'",
+   "value": 162155
+  },
+  "sunbelt_missing_rows": {
+   "display": "24",
+   "grain": "Agency, route and month rows that should exist for Sunbelt Vacations and do not.",
+   "sql": "SELECT COUNT(*) AS value\nFROM aa_demo.gold.dim_agency a\nCROSS JOIN aa_demo.gold.dim_market m\nCROSS JOIN (SELECT DISTINCT sales_month FROM aa_demo.gold.fact_agency_sales_monthly) d\nLEFT JOIN aa_demo.gold.fact_agency_sales_monthly s\n       ON s.agency_id = a.agency_id AND s.market_id = m.market_id AND s.sales_month = d.sales_month\nWHERE a.agency_name = 'Sunbelt Vacations' AND s.agency_id IS NULL",
+   "value": 24
+  },
+  "sunbelt_pace_may26": {
+   "display": "123.6",
+   "grain": "Sunbelt Vacations, May 2026: pace now, counting only the months it reported.",
+   "sql": "SELECT p.pace_pct AS value\nFROM aa_demo.gold.agency_pace p\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE a.agency_name = 'Sunbelt Vacations' AND p.sales_month = DATE '2026-05-01'",
+   "value": 123.6
+  },
+  "sunbelt_pace_may26_before": {
+   "display": "74.2",
+   "grain": "Sunbelt Vacations, May 2026: pace under the old rule, where a missing month counted as zero.",
+   "sql": "SELECT ROUND(100 * p.ytd_revenue / NULLIF(p.revenue_goal_usd * EXTRACT(MONTH FROM p.sales_month) / 12.0, 0), 1) AS value\nFROM aa_demo.gold.agency_pace p\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE a.agency_name = 'Sunbelt Vacations' AND p.sales_month = DATE '2026-05-01'",
+   "value": 74.2
+  },
+  "sunbelt_pace_sep26": {
+   "display": "136.3",
+   "grain": "Sunbelt Vacations, Sep 2026: pace now, counting only the months it reported.",
+   "sql": "SELECT p.pace_pct AS value\nFROM aa_demo.gold.agency_pace p\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE a.agency_name = 'Sunbelt Vacations' AND p.sales_month = DATE '2026-09-01'",
+   "value": 136.3
+  },
+  "sunbelt_pace_sep26_before": {
+   "display": "106.0",
+   "grain": "Sunbelt Vacations, Sep 2026: pace under the old rule, where a missing month counted as zero.",
+   "sql": "SELECT ROUND(100 * p.ytd_revenue / NULLIF(p.revenue_goal_usd * EXTRACT(MONTH FROM p.sales_month) / 12.0, 0), 1) AS value\nFROM aa_demo.gold.agency_pace p\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id\nWHERE a.agency_name = 'Sunbelt Vacations' AND p.sales_month = DATE '2026-09-01'",
+   "value": 106.0
+  },
+  "yoy_apr26": {
+   "display": "-3.2%",
+   "grain": "Apr 2026, all agencies: AA revenue against Apr 2025.",
+   "sql": "SELECT ROUND(100 * (SUM(CASE WHEN sales_month = DATE '2026-04-01' THEN aa_revenue END)\n                    - SUM(CASE WHEN sales_month = DATE '2025-04-01' THEN aa_revenue END))\n                 / NULLIF(SUM(CASE WHEN sales_month = DATE '2025-04-01' THEN aa_revenue END), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly\nWHERE sales_month IN (DATE '2025-04-01', DATE '2026-04-01')",
+   "value": -3.2
+  },
+  "yoy_mar26": {
+   "display": "-0.6%",
+   "grain": "Mar 2026, all agencies: AA revenue against Mar 2025.",
+   "sql": "SELECT ROUND(100 * (SUM(CASE WHEN sales_month = DATE '2026-03-01' THEN aa_revenue END)\n                    - SUM(CASE WHEN sales_month = DATE '2025-03-01' THEN aa_revenue END))\n                 / NULLIF(SUM(CASE WHEN sales_month = DATE '2025-03-01' THEN aa_revenue END), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly\nWHERE sales_month IN (DATE '2025-03-01', DATE '2026-03-01')",
+   "value": -0.6
+  }
+ }
+}
