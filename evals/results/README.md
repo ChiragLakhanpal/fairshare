@@ -8,6 +8,8 @@ had 20/20: four were column shape (a `date_trunc` alias typed TIMESTAMP against 
 bare year), one was a real error the half-overlap rule had let through (Genie multiplied `attainment_pct`, already a percent,
 by 100), and one answer gave the percent change without the dollar change. Three instruction lines and one ground-truth label
 later (q04 says `Q3 2025`, not `2025`): 20/20 under both. The `*-genie-eval.json` files hold Genie's SQL and the reason codes.
+On Oct 19 the in-space score went 17/20 (q09, q10 and q17 missed), 17/20 on an unchanged rerun (q07, q10 and q11 missed), then
+20/20: the judge is column-strict and Genie's SQL varies from run to run, so q07, q09, q10, q11 and q17 now say which columns to show.
 
 | run | label | backend | Genie pass | harness supported | harness correct | model |
 |---|---|---|---|---|---|---|

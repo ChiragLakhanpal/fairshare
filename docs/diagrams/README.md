@@ -62,18 +62,21 @@ signed-in line in the sidebar, as the room would see it. Retake one when the app
 better run turns up:
 
 1. Pick a good run on the App, signed in. For Ask, ask "Why is Harbor Business Travel down in September?" until an answer
-   keeps all its sentences (no "I removed a sentence" note) with exact dollar figures, and check its numbers against
-   `web/src/deck/facts.json`. For the pre-call still, open Delegate's pre-call pack and pick a page the nightly job wrote
-   (its "Version of" line says so) whose paragraphs have every comma and period, and whose possessives keep their apostrophes.
+   keeps all its sentences (no "I removed one sentence ..." or "I removed 2 sentences ..." note) with exact dollar figures, and
+   check its numbers against `web/src/deck/facts.json`. For the pre-call still, open Delegate's pre-call pack and pick a page the
+   nightly job wrote, whose paragraphs have every comma and period, and whose possessives keep their apostrophes. The page's
+   "Version of" line gives only its day, time and scope, not who ran it. The run behind it does: `GET /api/agents/runs/<run_id>`
+   (the page's `run_id` is in `GET /api/agents`) answers `requested_by: "fairshare nightly"` for the job, and the person's email
+   for a run started in the app.
 2. Frame it at 1280 by 720 and device scale 2: in Chrome's developer tools, switch on the device toolbar, choose Responsive,
    set 1280 by 720 and a device pixel ratio of 2. Scroll so that no line sits half hidden under the Approve bar or the question
    bar, and the list's last row is not cut. Keep the pointer off the numbers, so no tooltip shows.
 3. Capture the whole viewport ("Capture screenshot" in the developer tools' command menu) and save it over the file in
    `export/`. A tool that caps screenshot size can take four overlapping tiles of the window instead, at native pixels, and
    join them where they match exactly.
-4. Run `cd web && bun run test` (the asset check finds both files), `bun run build`, then compare each built copy with the
-   file (`cmp web/dist/assets/ask-still-*.png docs/diagrams/export/ask-still.png`, and the same for the pre-call one), deploy,
-   and look at both slides on the App.
+4. From the repo root, run `(cd web && bun run test && bun run build)` (the asset check finds both files), then compare each
+   built copy with the file (`cmp web/dist/assets/ask-still-*.png docs/diagrams/export/ask-still.png`, and the same for the
+   pre-call one), deploy with `.venv/bin/python lakehouse/app_deploy.py deploy`, and look at both slides on the App.
 
 ## Presenting
 
