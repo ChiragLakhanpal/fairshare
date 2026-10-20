@@ -84,6 +84,22 @@ def test_definitions_offline(client):
     d = client.get("/api/definitions").json()
     assert len(d["kpis"]) == 7 and {k["kpi"] for k in d["kpis"]} >= {"aa_share", "fair_share", "pace_pct"}
     assert d["parity"]["source"] == "app/cache/kpi_parity.csv" and d["parity"]["rows"] > 0 and d["runs"]
+    # each number's own rows, and nothing for pace, which has no twin
+    assert d["parity"]["by_kpi"]["aa_share"]["rows"] == 250 and "pace_pct" not in d["parity"]["by_kpi"]
+
+
+def test_parity_by_kpi_counts_each_numbers_own_red_rows_in_the_newest_run(monkeypatch, tmp_path):
+    from server import api
+    head = "run_id,run_at,kpi,twin_version,agency,sales_month,mv_value,twin_value,abs_diff,status"
+    older = [f"old,2026-10-11T07:00:00,fair_share,v1,A,2026-0{m}-01,1,2,1,drift" for m in (1, 2)]   # not the newest run: must not count
+    newest = [f"new,2026-10-12T07:00:00,aa_share,v2,A,2026-0{m}-01,1,{t},0,{s}" for m, t, s in ((1, 1, "ok"), (2, 1, "ok"), (3, 2, "drift"))]
+    newest.append("new,2026-10-12T07:00:00,fair_share,v1,A,2026-01-01,1,1,0,ok")
+    (tmp_path / "app" / "cache").mkdir(parents=True)
+    (tmp_path / "app" / "cache" / "kpi_parity.csv").write_text("\n".join([head, *older, *newest]) + "\n")
+    monkeypatch.setattr(api, "ROOT", tmp_path)
+    p = api._parity()["parity"]
+    assert p["run_id"] == "new" and p["drift"] == 1
+    assert p["by_kpi"] == {"aa_share": {"rows": 3, "drift": 1}, "fair_share": {"rows": 1, "drift": 0}}
 
 
 def test_evals_lists_the_golden_set_with_the_newest_result_of_each_kind(client):

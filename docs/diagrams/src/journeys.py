@@ -67,7 +67,7 @@ DIAGRAMS = [
             ("ret", "model", "app", "draft", False),
             ("self", "app", None, "verifier: every number vs. rows|unmatched sentence cut", True),
             ("ret", "app", "dir", "answer with its query attached", True),
-            ("call", "dir", "app", "hovers -97.5K: sees its rows", False),
+            ("call", "dir", "app", "clicks -97.5K: sees its rows", False),
         ],
         bars=[("app", 0, 10), ("genie", 1, 4), ("sql", 2, 3), ("sql", 5, 6), ("model", 7, 8)],
         legend=[("call", "Request"), ("ret", "Reply"), ("accent", "Checked, then answered")],

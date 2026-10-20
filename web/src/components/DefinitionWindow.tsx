@@ -25,6 +25,7 @@ export function DefinitionWindow({ kpi, onClose }: { kpi: string | null; onClose
   }, [kpi, defs, failed]);
   const d = defs?.kpis.find((k) => k.kpi === kpi);
   const parity = defs?.parity;
+  const own = kpi ? parity?.by_kpi?.[kpi] : undefined;   // this number's own rows and drift; pace has no twin, so no entry and no line
   const when = parity ? new Date(parity.run_at).toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "";
   return (
     <Dialog.Root open={!!kpi} onOpenChange={(o) => !o && onClose()}>
@@ -37,8 +38,8 @@ export function DefinitionWindow({ kpi, onClose }: { kpi: string | null; onClose
           </div>
           <Dialog.Description className="mt-1.5 text-ink">{PLAIN[kpi ?? ""] ?? d?.definition_en ?? ""}</Dialog.Description>
           {!defs && !failed && <div className="mt-3"><Lines n={2} label={copy.defLoading} /></div>}
-          {parity && (
-            <p className="mt-2 flex items-start gap-1.5 text-[12.5px] text-ink-2"><Check className="mt-[3px] shrink-0 text-blue" width={13} height={13} strokeWidth={2.5} /><span>{parity.drift === 0 ? copy.defCheck(when, parity.rows) : copy.defCheckDrift(when, parity.drift)}</span></p>
+          {own && (
+            <p className="mt-2 flex items-start gap-1.5 text-[12.5px] text-ink-2"><Check className="mt-[3px] shrink-0 text-blue" width={13} height={13} strokeWidth={2.5} /><span>{own.drift === 0 ? copy.defCheck(when, own.rows) : copy.defCheckDrift(when, own.drift)}</span></p>
           )}
           {d && (
             <>

@@ -6,7 +6,7 @@
 CREATE OR REPLACE VIEW aa_demo.gold.sales_metrics
 WITH METRICS
 LANGUAGE YAML
-COMMENT 'Agency sales KPIs: AA revenue, AA share of agency sales, fair share (AA seat share from BTS T-100), share gap, year over year. Defined once here; the Power BI measures are kept equal by ops.kpi_parity.'
+COMMENT 'Agency sales KPIs: AA revenue, AA share of agency sales, fair share (AA seat share; the seat shares are made up, one per route), share gap, year over year. Defined once here; a SQL copy of each Power BI measure is compared with it every night in ops.kpi_parity (six of the seven).'
 AS $$
 version: 1.1
 comment: Agency indirect sales. One row of the source is one agency, one market, one month. Share is revenue based.
@@ -63,7 +63,7 @@ dimensions:
   - name: capacity_is_projected
     expr: cap.is_projected
     display_name: Capacity projected
-    comment: true where BTS has not published the month yet and the prior year's month stands in
+    comment: true where the month's seat file is not in yet and the prior year's month stands in; never true with the made-up seat shares
 measures:
   - name: aa_revenue
     expr: SUM(source.aa_revenue)
@@ -97,8 +97,8 @@ measures:
   - name: fair_share
     expr: SUM(source.market_revenue * cap.aa_seat_share) / NULLIF(SUM(source.market_revenue), 0)
     display_name: Fair share
-    synonyms: [seat share, capacity share, expected share, QSI]
-    comment: AA's share of scheduled seats on the market (BTS T-100), weighted by the agency's market revenue so it is comparable with aa_share at any grain
+    synonyms: [seat share, capacity share, expected share]
+    comment: AA's share of scheduled seats on the market (made-up seat shares, one per route), weighted by the agency's market revenue so it is comparable with aa_share at any grain
     format:
       type: percentage
   - name: share_gap_pts

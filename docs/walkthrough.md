@@ -13,12 +13,11 @@ is for." If there is time, pick Harbor in the Agency filter: the trend line show
 partial recovery, with fair share flat at 40%. One sentence on placement: "At American this is the Power BI report on the
 mirrored catalog, same definitions." Then the question: "An account manager at my current company asks me the same thing yours
 ask you: why is Summit's share down on Dallas to Chicago, and what does their contract say about it? Today that is a ticket, a
-query, and a few days. I built a small version of what I think your global sales agent should be, on public airline seat data,
-with made-up agencies on top. One screen, one Monday."
+query, and a few days. I built a small version of what I think your global sales agent should be, on made-up agencies, sales and seats. One screen, one Monday."
 
 **1:00 The app opens on the month (two minutes).** All regions, September. "This is what an account manager sees on Monday:
 one sentence, five numbers, the three agencies that moved, who is behind pace. Hover a word like fair share and you get the
-definition; click it and you get the Power BI check." Then the block under it, "Worth knowing this month": "before I ask
+definition; click it and you get the check against a SQL copy of the Power BI measure." Then the block under it, "Worth knowing this month": "before I ask
 anything, it tells me what deserves attention: Summit two points from an incentive tier worth $188K, Harbor at 96% of its
 revenue commitment with $46K of incentive at stake, a $5M renewal the CRM calls on track while share fell ten points, the
 largest capacity move, last week's corporate bookings. No model wrote these. Each is a fixed query and a template sentence,
@@ -100,7 +99,7 @@ director should want: rules, a review loop, a gate.
 - Why not Genie agent mode for "why"? For a known "why" (volume, mix, share) a fixed decomposition is consistent across analysts; agent mode is for the open-ended exploration after that.
 - What about per-agency security? Genie runs as the asking user; Unity Catalog row filters do the rest; the harness carries the user's token, never a service principal.
 - How do you know it is right? Twenty questions with known answers before and after every change, the verifier on every answer, and traces for anything that goes wrong.
-- What is fake? The agencies, the corporates, the contracts. The seats are BTS T-100. The Power BI twin is a second SQL implementation because Power BI Desktop is Windows only.
+- What is fake? The agencies, the corporates, the contracts, and the seats: one made-up seat share per route, because the T-100 loader has never run. The Power BI twin is a second SQL implementation because Power BI Desktop is Windows only.
 - Why an app and not just the dashboard? The dashboard is the leadership view: what and where, one glance. The app is the conversation: why, the agreement, a verified summary, and the query one click away. Both read one metric view, so they cannot disagree.
 - Why React and FastAPI and not Streamlit? Granular control of the experience for non-technical people: progressive disclosure, a floating chat bar, windows where the information is needed, exports; and a per-request identity so two viewers never share a token or a fact pool.
 - What about Genie App Builder? It would let a sales team describe a view and get an app inside an App Space, one governance boundary for identities, scopes and cost. It is in Beta and not on Free Edition, so this app is a classic Databricks App. The harness and the verifier are what would make those self-built views trustworthy.

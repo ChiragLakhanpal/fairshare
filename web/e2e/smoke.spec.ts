@@ -65,7 +65,7 @@ async function mock(page: Page) {
   await page.route("**/api/summary**", (r) => r.fulfill({ json: summary }));
   await page.route("**/api/signals**", (r) => r.fulfill({ json: signals }));
   await page.route("**/api/agents", (r) => r.fulfill({ json: catalog }));
-  await page.route("**/api/definitions", (r) => r.fulfill({ json: { kpis: [{ kpi: "fair_share", display_name: "Fair share", definition_en: "The exact wording.", metric_view_expr: "SUM(x)", dax_twin: "", twin_sql: "" }], parity: { run_id: "a", run_at: "2026-10-12T07:49:32", kpis: 6, rows: 1500, drift: 0, grid: {}, drifting: [], source: "csv" }, runs: [] } }));
+  await page.route("**/api/definitions", (r) => r.fulfill({ json: { kpis: [{ kpi: "fair_share", display_name: "Fair share", definition_en: "The exact wording.", metric_view_expr: "SUM(x)", dax_twin: "", twin_sql: "" }], parity: { run_id: "a", run_at: "2026-10-12T07:49:32", kpis: 6, rows: 1500, drift: 0, grid: {}, by_kpi: { fair_share: { rows: 250, drift: 0 } }, drifting: [], source: "csv" }, runs: [] } }));
   await page.route("**/api/ask", (r) => r.fulfill({ status: 200, headers: { "content-type": "text/event-stream" }, body: sse }));
 }
 
@@ -103,9 +103,16 @@ test("the sidebar collapse is remembered and the definition window opens and clo
   await page.getByRole("button", { name: "Fair share", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Fair share" });
   await expect(dialog).toContainText("Fair share is AA's share of the scheduled seats");
-  await expect(dialog).toContainText("all 1,500 values matched");
+  await expect(dialog).toContainText("A SQL copy of the Power BI measure was checked against this definition on October 12, and all 250 values matched.");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+  // pace has no twin, so the mock has no entry for it: the definition shows and the check line does not
+  await page.getByRole("button", { name: "Pace to goal", exact: true }).click();
+  const pace = page.getByRole("dialog");
+  await expect(pace).toContainText("Pace is year-to-date AA revenue");
+  await expect(pace).not.toContainText("Power BI");
+  await page.keyboard.press("Escape");
+  await expect(pace).toBeHidden();
 });
 
 test("an answer whose every numeric sentence was removed says so", async ({ page }) => {

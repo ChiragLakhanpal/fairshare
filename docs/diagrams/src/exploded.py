@@ -102,9 +102,9 @@ def app_detail(P, r, z, sk, focal):
 DETAIL = {"data": data_detail, "defs": defs_detail, "agents": agents_detail, "checks": checks_detail, "app": app_detail}
 
 PARTS = [  # bottom to top: (key, name, two sublabel lines, thickness, closed z)
-    ("data", "Data", ("BTS T-100 · Dynamics 365 Sales (stand-in)", "4 agreements · Unity Catalog aa_demo"), 24, 0),
-    ("defs", "Definitions", ("metric view gold.sales_metrics · 7 numbers", "Power BI twin, checked every night"), 12, 24),
-    ("agents", "Agents", ("Genie space “fairshare sales metrics”", "Agent Framework · Foundry gpt-5-mini"), 16, 36),
+    ("data", "Data", ("made-up seats · Dynamics 365 Sales (stand-in)", "4 agreements · Unity Catalog aa_demo"), 24, 0),
+    ("defs", "Definitions", ("metric view gold.sales_metrics · 7 numbers", "6 of 7 checked nightly vs a SQL twin"), 12, 24),
+    ("agents", "Agents", ("Genie space “fairshare sales metrics”", "Agent Framework · Qwen3-Next · Foundry writers"), 16, 36),
     ("checks", "Checks", ("verifier on every sentence · a person approves", "MLflow traces · Foundry content filter"), 12, 52),
     ("app", "The app", ("Databricks App “fairshare”", "AI/BI dashboard · Outlook drafts"), 10, 64),
 ]

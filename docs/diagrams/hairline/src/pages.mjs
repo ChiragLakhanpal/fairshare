@@ -22,7 +22,7 @@ const OPENERS = {
   sieve: "Every number passes through the checks.",
   riffle: "Pages wait for a person to decide.",
   query: "It starts with a question.",
-  elevator: "Four floors: as delivered, cleaned, ready to use, and the app's own records.",
+  elevator: "Four floors: as delivered, cleaned, ready to use, and defined once.",
 };
 
 const page = (title, caption, scripts) => `<!doctype html>

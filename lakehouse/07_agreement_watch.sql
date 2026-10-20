@@ -19,7 +19,7 @@ WITH months AS (
          c.threshold, c.threshold_2, c.window_quarters, c.consequence, c.quote
   FROM aa_demo.gold.contract_clauses c JOIN aa_demo.gold.dim_agency a ON a.agency_id = c.agency_id
 ), ytd AS (
-  -- calendar months, as the agreements define pace (harbor-business-travel.md section 3); gold.agency_pace counts months reported
+  -- calendar months, as the agreements define pace (harbor-business-travel.md section 3). gold.agency_pace counts months reported
   SELECT m.as_of, s.agency_id, CAST(EXTRACT(MONTH FROM m.as_of) AS INT) AS months_elapsed,
          SUM(s.aa_revenue) AS ytd_revenue, SUM(s.market_revenue) AS ytd_market, SUM(s.market_revenue * c.aa_seat_share) AS ytd_fair
   FROM months m

@@ -60,7 +60,7 @@ def build():
             ("delta", d_mix, "Route mix", "mix", False),
             ("delta", d_share, "AA’s share fell", "share", True),
             ("total", end, "September 2026", "total", False)]
-    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand()]
+    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     # what the chart is about, inside the image because a slide takes the SVG alone
     out.append(f'<text x="40" y="100" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}">Harbor Business Travel</text>')
     out.append(f'<text x="40" y="120" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">AA revenue in $ thousands, September 2025 vs September 2026</text>')

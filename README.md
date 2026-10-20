@@ -16,8 +16,9 @@ it, built for people who do not write SQL.
    prose from a fixed query (`harness/signals.py`), checked by the verifier like every other sentence, with one action (ask,
    open the Delegate page, open the definition); the suggested questions under the chat bar follow these lines, and an answer
    about an agency carries the line about that agency. No model runs on this page. Every KPI word opens its
-   definition and the Power BI check. "Write my Monday brief" turns it into prose: every number is checked against its query,
-   a sentence the model wrote that no query supports is removed and shown, and a person approves and sends.
+   definition and its check against a SQL copy of the Power BI measure. "Write my Monday brief" turns it into prose:
+   every number is checked against its query, a sentence the model wrote that no query supports is removed and shown,
+   and a person approves and sends.
 2. **Why**: ask why an agency is down. The change is decomposed into volume, mix and share, with a fair-share diagnostic
    (how much AA's own capacity explains). The parts sum to the total by construction; the model only writes.
 3. **Ask**: share versus last year versus fair share, with the query one click away; what the agreement says (quoted, with
@@ -41,10 +42,9 @@ it, built for people who do not write SQL.
 
 ## Data
 
-Real: BTS T-100 Domestic Segment seats by carrier, route and month, filtered to twelve markets, giving AA's seat share
-(the "fair share" denominator). AA network = AA plus the wholly owned Eagle carriers (Envoy, PSA, Piedmont); Republic
-and SkyWest fly for several brands and are left out, so fair share is slightly understated. Months BTS has not published
-yet carry the prior year's month and are flagged `is_projected`.
+Made up: the seat shares. Each route has one AA seat share that moves by about a point a month, with 150,000 seats in
+every market and month (`data/make_data.py`). The T-100 loader (`data/t100.py`) turns real BTS files into seat shares, but
+it has never run, so every row of `gold.fact_market_capacity` says `source = synthetic`.
 
 Made up: twelve travel agencies, ten corporate accounts, their monthly sales, goals, ticket-level bookings and four
 agreements. Deterministic (`data/make_data.py`, seed 88201) with data-quality traps planted on purpose: dirty channel
@@ -53,7 +53,7 @@ labels, duplicate tickets, a gap, a collapse, a zero month. Nothing here is conf
 ## Shape
 
 ```
-BTS T-100 + synthetic agency layer + 4 agreements
+Made-up seat shares + synthetic agency layer + 4 agreements
   -> Unity Catalog volume -> bronze -> silver -> gold            (Databricks Free Edition, catalog aa_demo)
   -> metric view gold.sales_metrics (one definition per KPI)      ops.kpi_definitions, ops.kpi_parity, ops.decomposition
   -> Genie Agent over the metric view

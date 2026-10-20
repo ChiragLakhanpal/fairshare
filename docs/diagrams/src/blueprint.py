@@ -24,7 +24,7 @@ DBX, AZ = "databricks", "azure"
 ROWS = [
     ("customer", ("ACCOUNT", "MANAGER"), 128, [
         ("Asks a question", None, ()), ("Watches the steps", None, ()), ("Keeps waiting", None, ()),
-        ("Sees nothing yet", None, ()), ("Hovers a number", None, ())]),
+        ("Sees nothing yet", None, ()), ("Clicks a number", None, ())]),
     ("frontstage", ("THE APP",), 216, [
         ("Suggested questions", None, ()), ("Progress steps", None, ()), ("Steps keep moving", None, ()),
         ("Answer held back", None, ()), ("Answer with its query", None, ())]),

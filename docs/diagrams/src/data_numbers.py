@@ -13,7 +13,7 @@ import duckdb
 DB = Path(__file__).resolve().parents[3] / "data" / "out" / "fairshare.duckdb"
 
 # Summit Travel Partners on DFW-ORD in Q3 2026, the metric view's definitions written out: AA share is AA revenue over the
-# agency's all-carrier revenue; fair share is AA's seat share (BTS T-100) weighted by that revenue; the gap is the difference.
+# agency's all-carrier revenue; fair share is AA's seat share (made up, one per route) weighted by that revenue; the gap is the difference.
 FAIR = """
 select round(100 * sum(s.aa_revenue) / sum(s.market_revenue), 1)                                     as aa_share_pct,
        round(100 * sum(s.market_revenue * c.aa_seat_share) / sum(s.market_revenue), 1)                as fair_share_pct,
@@ -53,7 +53,7 @@ def numbers() -> dict:
     # the pipeline diagram's claims, checked here so a rebuilt lakehouse cannot quietly change the story
     assert out["tickets_distinct"] == out["bookings_cleaned"], "silver should hold exactly one row per ticket"
     assert out["gold_rows"] == out["gold_grain"], "gold should hold one row per agency, route and month"
-    assert not out["projected"], "Q3 2026 capacity should be published BTS data, not a projection"
+    assert not out["projected"], "Q3 2026 capacity should not be a projection"
     return out
 
 

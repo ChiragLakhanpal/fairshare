@@ -68,7 +68,7 @@ def pipeline() -> str:
          [f"−{N['bookings_delivered'] - N['bookings_cleaned']} tickets loaded twice",
           f"{N['channel_spellings_delivered']} channel spellings → {N['channel_spellings_cleaned']}"]),
         ("Ready to use", "gold", fmt(N["gold_rows"]), "rows", ["per agency, route, month"]),
-        ("Defined once", "gold.sales_metrics", str(N["kpis"]), "numbers", ["checked vs Power BI"]),
+        ("Defined once", "gold.sales_metrics", str(N["kpis"]), "numbers", ["6 checked each night"]),
     ]
     arcs = [("CLEAN", False), ("SHAPE", False), ("DEFINE", True)]
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', markers()]
@@ -87,7 +87,7 @@ def pipeline() -> str:
         out.append(text(mid, run_y - 13, label, size=12, weight=400, color=stroke, anchor="middle", mono=True, spacing="0.08em"))
 
     # sources into the first tier, and the readers out of the last, on straight runs at the shared ports
-    sources = [("csv", None, "BTS T-100 seats", "real, public"), ("users", None, "Agency sales", "synthetic"),
+    sources = [("csv", None, "Seat shares", "made up, one per route"), ("users", None, "Agency sales", "synthetic"),
                ("file", None, f"{N['agreements']} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
     readers = [("desktop", "The app"), ("monitoring", "Dashboard"), ("search", "Genie"), ("robot", "Agents")]
     out.append(eyebrow(40, ATTACH[0] - 44, "Sources"))
@@ -127,7 +127,7 @@ def pipeline() -> str:
     out.append(tabler("lock", TIER_X0 + 16, sy + 8, 24))
     out.append(text(TIER_X0 + 52, sy + 26, "Every query runs as the person asking", size=16))
     out.append(text(tier_x(3) + TIER_W - 16, sy + 26, "Unity Catalog aa_demo", size=12, weight=400, color=aa.MUTED, anchor="end", mono=True))
-    out.append(aa.brand())
+    out.append(aa.brand(tag="fairshare · synthetic data"))
     return "\n        ".join(out)
 
 
@@ -164,10 +164,10 @@ def fair_share() -> str:
     fair, share, gap, usd = N["fair_share_pct"], N["aa_share_pct"], N["gap_pts"], N["gap_usd"]
     fair_cells, share_cells = round(fair), round(share)  # ponytail: a 100-cell grid rounds to whole cells; the labels carry the decimals
     gy, ax, bx = 168, 96, 456
-    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand()]
+    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     # A: seats on the route, the fair share
     out.append(text(ax, gy - 46, "Seats on DFW to Chicago", size=16))
-    out.append(text(ax, gy - 24, "BTS T-100 · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
+    out.append(text(ax, gy - 24, "made-up seat shares · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
     out.append(f'<g data-grid="seats">{grid(ax, gy, fair_cells, 0, seat)}</g>')
     out.append(text(ax, gy + GRID + 56, f"{fair}%", size=40, color=aa.ACCENT))
     out.append(text(ax, gy + GRID + 84, "are AA's: the fair share", size=16, color=aa.MUTED))
