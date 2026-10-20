@@ -1,4 +1,4 @@
-"""The repo never calls the made-up seat data real, never says Power BI itself was checked, fair share has no wrong synonym, and portable SQL never escapes a quote."""
+"""The repo never calls the made-up seat data real, never says Power BI itself was checked, fair share has no wrong synonym, portable SQL never escapes a quote, and no $$ body holds a semicolon."""
 import re
 import subprocess
 from pathlib import Path
@@ -57,3 +57,13 @@ def test_portable_sql_has_no_doubled_quotes():
     found = [f"lakehouse/{name}:{n}" for name in PORTABLE_SQL
              for n, line in enumerate((ROOT / "lakehouse" / name).read_text(encoding="utf-8").splitlines(), 1) if "''" in line]
     assert not found, "doubled quote in " + ", ".join(found)
+
+
+def test_metric_view_body_has_no_semicolon():
+    # The nightly job's SQL task cuts a file at every semicolon outside single quotes and comments, and it does not know $$ (Oct 20, 2026: it cut the YAML in two).
+    found = []
+    for path in sorted((ROOT / "lakehouse").glob("*.sql")):
+        text = path.read_text(encoding="utf-8")
+        for body in re.finditer(r"\$\$(.*?)\$\$", text, re.S):
+            found += [f"lakehouse/{path.name}:{text.count(chr(10), 0, i) + 1}" for i in range(*body.span(1)) if text[i] == ";"]
+    assert not found, "semicolon inside a $$ body at " + ", ".join(found)
