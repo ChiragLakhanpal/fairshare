@@ -936,6 +936,34 @@
    "source": "evals/results/2026-10-19T213612-genie-eval.json",
    "value": "2026-10-19"
   },
+  "harbor_runs": {
+   "date": "2026-10-20",
+   "display": "10",
+   "note": "Times the question was sent, each in a fresh chat in a signed-in browser. Each run was timed from the Enter key. The test window was in the background, which pauses the page's typing animation, so a time is the moment the checked answer arrived plus the half second the app spends typing a short answer out.",
+   "source": "rehearsal on the App",
+   "value": 10
+  },
+  "harbor_runs_max_s": {
+   "date": "2026-10-20",
+   "display": "7",
+   "note": "Seconds for the slowest of the ten runs, rounded to a whole second (6.6 before rounding). The fastest took 3.8.",
+   "source": "rehearsal on the App",
+   "value": 7
+  },
+  "harbor_runs_median_s": {
+   "date": "2026-10-20",
+   "display": "6",
+   "note": "Seconds from Enter to the full answer, the median of ten runs, rounded to a whole second (5.5 before rounding).",
+   "source": "rehearsal on the App",
+   "value": 6
+  },
+  "harbor_runs_removed": {
+   "date": "2026-10-20",
+   "display": "2",
+   "note": "Runs, out of ten, where the checker removed a sentence and the answer said so. Each of the two removed two sentences because the model had rounded a dollar figure.",
+   "source": "rehearsal on the App",
+   "value": 2
+  },
   "nightly_parity_drift": {
    "date": "2026-10-19",
    "display": "0",

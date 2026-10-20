@@ -428,6 +428,7 @@ _APP_RUN = "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the
 _LIMITS = "docs/limits.md, row dated 2026-10-15, "
 _EVAL = "README.md, the Foundry evaluation paragraph: the first full run, agent version 3"
 _PARITY = "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19"
+_REHEARSAL = "rehearsal on the App"
 
 DATED: dict[str, dict] = {
     "genie_benchmark": _dated(20, "20 of 20", "evals/results/2026-10-19T213612-genie-eval.json", "2026-10-19",
@@ -440,6 +441,14 @@ DATED: dict[str, dict] = {
                                        "Question q14: an answer that gave up with no numbers to check, so the verifier had nothing to flag."),
     "app_answer_median_s": _dated(26, "26", _APP_RUN, "2026-10-13", "Seconds per question, the median of 20, rounded to a whole second."),
     "app_answer_max_s": _dated(37, "37", _APP_RUN, "2026-10-13", "Seconds for the slowest question, rounded to a whole second."),
+    # the question the ask slide asks, sent ten times on the App, each in a fresh chat; each time runs from Enter to the full answer
+    "harbor_runs": _dated(10, "10", _REHEARSAL, "2026-10-20", "Times the question was sent, each in a fresh chat in a signed-in browser. Each run was timed from the Enter key. "
+                          "The test window was in the background, which pauses the page's typing animation, so a time is the moment the checked answer arrived "
+                          "plus the half second the app spends typing a short answer out."),
+    "harbor_runs_median_s": _dated(6, "6", _REHEARSAL, "2026-10-20", "Seconds from Enter to the full answer, the median of ten runs, rounded to a whole second (5.5 before rounding)."),
+    "harbor_runs_max_s": _dated(7, "7", _REHEARSAL, "2026-10-20", "Seconds for the slowest of the ten runs, rounded to a whole second (6.6 before rounding). The fastest took 3.8."),
+    "harbor_runs_removed": _dated(2, "2", _REHEARSAL, "2026-10-20", "Runs, out of ten, where the checker removed a sentence and the answer said so. Each of the two removed two sentences "
+                                  "because the model had rounded a dollar figure."),
     # the days of the runs a slide quotes, so it can say which day without typing a number
     "app_model_date": _dated("2026-10-13", "Oct 13", _APP_RUN, "2026-10-13", "The day of that benchmark run."),
     "genie_benchmark_date": _dated("2026-10-19", "Oct 19", "evals/results/2026-10-19T213612-genie-eval.json", "2026-10-19",

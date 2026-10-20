@@ -1,26 +1,26 @@
 {
   "How did Summit Travel Partners do on DFW to ORD in Q3 2026 versus Q3 2025, and are they ahead of fair share?": {
-    "text": "Q3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, YoY vs Q3 2025 +34.6116%. Q3 2025: AA revenue $221,326, AA share 46.3%, fair share 37.7%, share gap 8.6 pts. Ahead of fair share: Ahead in both quarters. Source: ask_metrics (aa_demo.gold.sales_metrics).",
+    "text": "Q3 2025: AA revenue $221,326, AA share 46.3%, fair share 37.7%, share gap 8.6 pts, AA passengers 488.  \nQ3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, AA passengers 784, revenue change +34.6% YoY.  \nAre they ahead of fair share? Yes: AA share 53.5% vs fair share 37.6%, ahead by 15.9 pts (Q3 2026).  \nSource: ask_metrics, aa_demo.gold.sales_metrics.  \nCould not verify: decomposition of why share changed (volume/mix/share/fair-share effects); run the explain_change tool or provide ops.decomposition for that breakdown.",
     "flagged": [
       {
-        "sentence": "Q3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, YoY vs Q3 2025 +34.6116%.",
-        "reason": "no query supports +34.6116%"
+        "sentence": "Q3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, AA passengers 784, revenue change +34.6% YoY.",
+        "reason": "no query supports +34.6%"
       }
     ],
     "sql": [
-      "WITH quarters AS (\n  SELECT quarter, ROUND(MEASURE(aa_revenue)) AS aa_revenue, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct,\n         ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(share_gap_pts), 1) AS share_gap_pts,\n         MEASURE(aa_revenue) AS aa_revenue_raw,\n         MEASURE(aa_share) AS aa_share_raw,\n         MEASURE(fair_share) AS fair_share_raw,\n         CASE WHEN MEASURE(aa_share) > MEASURE(fair_share) THEN 'Ahead' ELSE 'Behind' END AS ahead_of_fair_share\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')\n  GROUP BY ALL\n)\nSELECT q1.quarter,\n       q1.aa_revenue,\n       q1.aa_share_pct,\n       q1.fair_share_pct,\n       q1.share_gap_pts,\n       q1.ahead_of_fair_share,\n       q1.aa_revenue_raw,\n       q1.aa_share_raw,\n       q1.fair_share_raw,\n       try_divide((q1.aa_revenue_raw - q2.aa_revenue_raw),NULLIF(q2.aa_revenue_raw, 0)) * 100 AS yoy_revenue_pct\nFROM quarters q1\nLEFT JOIN quarters q2 ON q1.quarter = 'Q3 2026' AND q2.quarter = 'Q3 2025'\nORDER BY q1.quarter"
+      "WITH q AS (\n  SELECT quarter, MEASURE(aa_revenue) AS aa_revenue, MEASURE(aa_share) AS aa_share, MEASURE(fair_share) AS fair_share,\n         MEASURE(share_gap_pts) AS share_gap_pts, MEASURE(aa_pax) AS aa_pax\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')\n  GROUP BY ALL)\nSELECT quarter, ROUND(aa_revenue) AS aa_revenue,\n       ROUND(try_divide((aa_revenue - LAG(aa_revenue) OVER (ORDER BY quarter)),LAG(aa_revenue) OVER (ORDER BY quarter)) * 100, 1) AS revenue_change_pct,\n       ROUND(aa_share * 100, 1) AS aa_share_pct, ROUND(fair_share * 100, 1) AS fair_share_pct, ROUND(share_gap_pts, 1) AS share_gap_pts, aa_pax\nFROM q ORDER BY quarter"
     ],
     "sources": [
       "Genie: sales_metrics"
     ],
     "model": "azure/databricks",
-    "recorded": "2026-10-12T08:01"
+    "recorded": "2026-10-20T09:23"
   },
   "What does Summit Travel Partners' agreement say happens if their share drops under 45% for two quarters, and has that happened?": {
-    "text": "\"5.1 If Agency's Carrier revenue share across the Covered Markets falls below 45% for two consecutive calendar quarters, Carrier may review the Agency's tier and reduce it by one tier for the following year.\" (summit-travel-partners.md, page 2)\n\nHas that happened: No. AA share by quarter for Summit Travel Partners from Q1 2025 to Q3 2026 ranged from 45.1% to 52.6%, and there were no instances where two consecutive quarters had AA share below 45%. (ask_metrics: aa_demo.gold.sales_metrics)\n\nCould not verify: whether Carrier actually reviewed or reduced Summit's tier under this clause; would need internal tier-change records or contract amendment history.",
+    "text": "\"5.1 If Agency's Carrier revenue share across the Covered Markets falls below 45% for two consecutive calendar quarters, Carrier may review the Agency's tier and reduce it by one tier for the following year.\" (search_contracts: summit-travel-partners.md, page 2)\n\nHas that happened? No. ask_metrics, source aa_demo.gold.sales_metrics returned quarterly AA share: Q1 2025 45.1%, Q2 2025 46.8%, Q3 2025 47.5%, Q4 2025 49.2%, Q1 2026 50.1%, Q2 2026 51.2%, Q3 2026 52.6%. The lowest was 45.1% in Q1 2025; there were no two consecutive quarters below 45% (ask_metrics query attached).\n\nCould not verify: whether the Carrier actually reviewed or reduced Summit Travel Partners' tier; needed: agency tier-change records or Carrier notice of tier adjustments.",
     "flagged": [],
     "sql": [
-      "WITH q AS (\n  SELECT quarter, MEASURE(aa_share) AS aa_share\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND sales_month >= DATE '2025-01-01' AND sales_month <= DATE '2026-09-30'\n  GROUP BY ALL\n  ORDER BY quarter ASC\n)\nSELECT quarter, ROUND(aa_share * 100, 1) AS aa_share_pct,\n       CASE WHEN aa_share < 0.45 AND LAG(aa_share) OVER (ORDER BY quarter ASC) < 0.45 THEN 'Yes' ELSE 'No' END AS two_consecutive_below_45\nFROM q"
+      "SELECT quarter, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(aa_revenue)) AS aa_revenue, ROUND(MEASURE(market_revenue)) AS market_revenue\nFROM aa_demo.gold.sales_metrics\nWHERE agency = 'Summit Travel Partners' AND sales_month >= DATE '2025-01-01' AND sales_month <= DATE '2026-09-01' AND quarter IS NOT NULL\nGROUP BY ALL\nORDER BY quarter ASC"
     ],
     "sources": [
       "summit-travel-partners.md p.2",
@@ -28,18 +28,32 @@
       "Genie: sales_metrics"
     ],
     "model": "azure/databricks",
-    "recorded": "2026-10-12T08:02"
+    "recorded": "2026-10-20T09:24"
   },
   "Which agencies are about to churn?": {
-    "text": "No churn model or churn label in the data. A reasonable proxy, not a prediction: agencies with AA revenue down >10% YoY (2026-09 vs 2025-09) AND pace_pct < 90 as of 2026-09.\n\nResult for that proxy: zero agencies match (Genie returned 0 rows).\n\nSource: ask_metrics, using aa_demo.gold.sales_metrics, aa_demo.gold.agency_pace, aa_demo.gold.dim_agency (the app attached the SQL and result).\n\nCould not verify: actual churn risk or predicted churn. To produce churn predictions would need a churn label or a trained model, or additional features such as historical account cancellations/terminations, contract nonrenewal signals, recent booking/cancellation trends, account contact/activity logs.",
+    "text": "A proxy, not a prediction: agencies with year-over-year AA revenue decline and behind pace.\n\nFareHub Online: 2026-09 AA revenue 337,460, 2025-09 AA revenue 453,672, YoY -25.6%, pace_pct 97.2.\nHarbor Business Travel: 2026-09 AA revenue 330,114, 2025-09 AA revenue 394,909, YoY -16.4%, pace_pct 96.1.\n\nSource: ask_metrics, tables aa_demo.gold.sales_metrics, aa_demo.gold.dim_agency, aa_demo.gold.agency_pace (query for sales_month 2026-09).  \nCould not verify: true churn labels or a churn prediction model in the data; those are needed to make actual churn predictions.",
     "flagged": [],
     "sql": [
-      "WITH rev AS (SELECT agency, ROUND(MEASURE(aa_revenue)) AS aa_revenue_now, ROUND(MEASURE(aa_revenue_prior_year)) AS aa_revenue_prior, ROUND(MEASURE(yoy_revenue_pct) * 100, 1) AS delta_pct FROM aa_demo.gold.sales_metrics WHERE sales_month = DATE '2026-09-01' GROUP BY ALL HAVING delta_pct < -10), pace AS (SELECT agency_id, ytd_revenue, revenue_goal_usd, ytd_goal, pace_pct FROM aa_demo.gold.agency_pace WHERE sales_month = DATE '2026-09-01' AND goal_year = 2026 AND pace_pct < 90) SELECT a.agency_name, r.aa_revenue_now, r.aa_revenue_prior, r.delta_pct, p.ytd_revenue, p.revenue_goal_usd, p.ytd_goal, p.pace_pct FROM rev r JOIN aa_demo.gold.dim_agency a ON r.agency = a.agency_name JOIN pace p ON a.agency_id = p.agency_id ORDER BY r.delta_pct"
+      "WITH rev AS (\n  SELECT `agency`, ROUND(MEASURE(`aa_revenue`)) AS aa_revenue_2026_09,\n         ROUND(MEASURE(`aa_revenue_prior_year`)) AS aa_revenue_2025_09,\n         ROUND(MEASURE(`yoy_revenue_pct`) * 100, 1) AS delta_pct\n  FROM aa_demo.gold.sales_metrics\n  WHERE sales_month = DATE '2026-09-01'\n  GROUP BY ALL\n)\nSELECT a.agency_name, r.aa_revenue_2026_09, r.aa_revenue_2025_09, r.delta_pct, p.pace_pct\nFROM rev r\nJOIN aa_demo.gold.dim_agency a ON a.agency_name = r.agency\nJOIN aa_demo.gold.agency_pace p ON p.agency_id = a.agency_id\nWHERE p.sales_month = DATE '2026-09-01' AND p.goal_year = 2026\nORDER BY r.delta_pct ASC"
     ],
     "sources": [
       "Genie: sales_metrics"
     ],
     "model": "azure/databricks",
-    "recorded": "2026-10-12T08:03"
+    "recorded": "2026-10-20T09:39"
+  },
+  "Why is Harbor Business Travel down in September?": {
+    "text": "AA revenue 330,114 vs 394,909, delta -64,795 (-16.4%). Agency market revenue +8.3%. AA share 34.2% vs 44.3%, fair share 40.1% vs 40.1%. Effects (sum to the delta): volume 32,836; mix -140; share -97,491; parts_sum -64,795. Fair-share diagnostic 2,420 (not part of the sum). Top markets by share effect: CLT-LGA (-14,784), LAX-JFK (-12,039), DFW-DCA (-11,341), DFW-LAX (-9,324), DFW-DEN (-8,643).\n\nSource: explain_change, table ops.decomposition.\n\nCould not verify: causes outside the sales/decomposition data (contract changes, staffing, promotions, partner actions); to confirm would need contract text, HR/ops notes, and marketing/activity logs.",
+    "flagged": [],
+    "sql": [
+      "aa_demo.ops.decomposition (lakehouse/06_decomposition.sql)",
+      "aa_demo.ops.decomposition_markets"
+    ],
+    "sources": [
+      "ops.decomposition",
+      "ops.decomposition_markets"
+    ],
+    "model": "azure/databricks",
+    "recorded": "2026-10-20T09:25"
   }
 }
