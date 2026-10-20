@@ -301,7 +301,7 @@ test("the notes window says when the warehouse last answered, and says so when a
   const first = (await line.textContent())!;
   down = true;
   await notes.clock.fastForward("08:01"); // the eight-minute ping fires and fails
-  await expect(line).toHaveText(/^The last ping failed\. The warehouse last answered at \d{1,2}:\d{2} [AP]M\.$/);
+  await expect(line).toHaveText(/^The last check failed\. The warehouse last answered at \d{1,2}:\d{2} [AP]M\.$/);
   await expect(line).toHaveClass(/text-red/);
   down = false;
   await notes.clock.fastForward("08:01");

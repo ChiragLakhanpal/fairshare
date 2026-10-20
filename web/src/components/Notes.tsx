@@ -183,7 +183,7 @@ function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg)
       <ul className="mt-1.5 flex flex-col gap-1 text-[15px]">
         {checkpointPlan(slides, path).map((c) => {
           const reached = !backup && at >= c.planned;
-          const late = !reached && !backup && startedAt !== null && elapsed > c.by;
+          const overdue = !reached && !backup && startedAt !== null && elapsed > c.by;
           return (
             <li key={c.label} className="flex items-center justify-between gap-3">
               <span className={`flex items-center gap-1.5 ${reached ? "text-ink-2" : ""}`}>
@@ -195,7 +195,7 @@ function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg)
                   </>
                 )}
               </span>
-              <span className={`tabular-nums ${late ? "font-semibold text-red" : "text-ink-2"}`}>{copy.notesBy(clock(c.by))}</span>
+              <span className={`tabular-nums ${overdue ? "font-semibold text-red" : "text-ink-2"}`}>{copy.notesBy(clock(c.by))}</span>
             </li>
           );
         })}
