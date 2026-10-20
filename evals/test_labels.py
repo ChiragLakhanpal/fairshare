@@ -1,4 +1,4 @@
-"""The repo never calls the made-up seat data real, never says Power BI itself was checked, and fair share has no wrong synonym."""
+"""The repo never calls the made-up seat data real, never says Power BI itself was checked, fair share has no wrong synonym, and portable SQL never escapes a quote."""
 import re
 import subprocess
 from pathlib import Path
@@ -44,3 +44,14 @@ def test_every_data_figure_says_synthetic_data_in_its_logo_band():
     for slug in DATA_FIGURES:
         html = (ROOT / "docs" / "diagrams" / f"{slug}.html").read_text(encoding="utf-8")
         assert "FAIRSHARE · SYNTHETIC DATA" in html, f"{slug} prints data values, so its logo band must say synthetic data"
+
+
+# The files that run on both DuckDB and Databricks SQL (CLAUDE.md rule 5). 00_bronze.sql and 03_metric_view.sql are Databricks only.
+PORTABLE_SQL = ["01_silver.sql", "02_gold.sql", "04_definitions.sql", "06_decomposition.sql", "07_agreement_watch.sql"]
+
+
+def test_portable_sql_has_no_doubled_quotes():
+    # Databricks reads 'AA''s' as two adjacent literals and joins them, so the apostrophe disappears ("AAs"); DuckDB keeps it. Write the text without one.
+    found = [f"lakehouse/{name}:{n}" for name in PORTABLE_SQL
+             for n, line in enumerate((ROOT / "lakehouse" / name).read_text(encoding="utf-8").splitlines(), 1) if "''" in line]
+    assert not found, "doubled quote in " + ", ".join(found)
