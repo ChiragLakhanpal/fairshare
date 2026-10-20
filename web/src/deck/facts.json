@@ -695,13 +695,13 @@
    },
    {
     "example": "0.4012",
-    "meaning": "Fair share this month: AA's seat share on the agency's routes, as a number between zero and one.",
+    "meaning": "Fair share this month: AA's seat share on the agency's routes, as a number between zero and one. The seat shares are made up.",
     "name": "fair_share_now",
     "type": "DOUBLE"
    },
    {
     "example": "0.4013",
-    "meaning": "Fair share a year earlier.",
+    "meaning": "Fair share a year earlier. The seat shares are made up.",
     "name": "fair_share_prior",
     "type": "DOUBLE"
    },
@@ -725,7 +725,7 @@
    },
    {
     "example": "2419.72",
-    "meaning": "The change that AA's own seat changes would have predicted. A side check, not part of the total.",
+    "meaning": "The change that the made-up seat shares would have predicted. A side check, not part of the total.",
     "name": "fair_share_effect",
     "type": "DOUBLE"
    },
@@ -769,7 +769,7 @@
    },
    {
     "example": "SUM(source.aa_revenue) / NULLIF(SUM(source.market_revenue),…",
-    "meaning": "The definition as written in the metric view, the one place every tool reads it from.",
+    "meaning": "The definition as written in the metric view, the one place every tool reads it from, for six of the seven numbers; pace lives in gold.agency_pace.",
     "name": "metric_view_expr",
     "type": "STRING"
    },
@@ -781,7 +781,7 @@
    },
    {
     "example": "SELECT a.agency_name AS agency, s.sales_month, SUM(s.aa_rev…",
-    "meaning": "A SQL copy of the Power BI measure. It is compared with the metric view every night.",
+    "meaning": "A SQL copy of the Power BI measure, compared with the metric view every night, for six of the seven numbers; pace lives in gold.agency_pace.",
     "name": "twin_sql",
     "type": "STRING"
    },
@@ -793,7 +793,7 @@
    },
    {
     "example": "SELECT a.agency_name AS agency, s.sales_month, SUM(s.aa_pax…",
-    "meaning": "The old SQL copy that the nightly comparison caught being wrong. Empty for numbers that never changed.",
+    "meaning": "The old SQL copy that the comparison with the metric view caught being wrong. Empty for numbers that never changed.",
     "name": "twin_sql_retired",
     "type": "STRING"
    },
@@ -939,7 +939,7 @@
   "twins_checked": {
    "date": "2026-10-19",
    "display": "6",
-   "note": "The numbers with a SQL copy of the Power BI measure. Pace has none.",
+   "note": "The numbers whose SQL copy of the Power BI measure is compared with the metric view in every parity run. Pace is not one of them: it has no measure in the metric view.",
    "source": "lakehouse/parity.py, the list of numbers it compares in run()",
    "value": 6
   }
@@ -1055,7 +1055,7 @@
   },
   "harbor_fair_share_effect_usd": {
    "display": "+$2,420",
-   "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the change AA's own seat changes would have predicted. A side check, not part of the total.",
+   "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the change the made-up seat shares would have predicted. A side check, not part of the total.",
    "sql": "SELECT ROUND(d.fair_share_effect) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
    "value": 2420
   },
@@ -1199,13 +1199,13 @@
   },
   "summit_q3_gap_pts": {
    "display": "15.9",
-   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA share minus fair share, in points.",
+   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA share minus fair share, in points. Fair share comes from made-up seat shares.",
    "sql": "SELECT ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 15.9
   },
   "summit_q3_gap_usd": {
    "display": "$88,391",
-   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA revenue minus the revenue fair share would bring.",
+   "grain": "Summit Travel Partners on DFW-ORD, Q3 2026: AA revenue minus the revenue fair share would bring. Fair share comes from made-up seat shares.",
    "sql": "SELECT ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners' AND m.origin = 'DFW' AND m.dest = 'ORD'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 88391
   },

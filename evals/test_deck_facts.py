@@ -37,6 +37,11 @@ def test_facts_json_is_fresh():
     assert {k: STORED.get(k) for k in fresh} == fresh, "rerun: FAIRSHARE_BACKEND=duckdb .venv/bin/python docs/diagrams/src/deck_facts.py"
 
 
+def test_dated_facts_in_the_file_are_the_ones_written_in_deck_facts():
+    """The test above skips the dated section, because a local query cannot reproduce it. A hand edit to DATED still has to reach the file."""
+    assert STORED.get("dated") == json.loads(json.dumps(deck_facts.DATED)), "rerun: FAIRSHARE_BACKEND=duckdb .venv/bin/python docs/diagrams/src/deck_facts.py"
+
+
 def test_the_numbers_said_out_loud():
     v = {k: f["value"] for k, f in deck_facts.collect()["facts"].items()}
     assert (v["summit_q3_aa_share"], v["summit_q3_fair_share"], v["summit_q3_gap_usd"], v["summit_q3_pax_share"]) == (53.5, 37.6, 88391, 52.4)
