@@ -84,7 +84,7 @@ questions:
       WHERE c.sales_month = DATE '2026-08-01' ORDER BY yoy_pct DESC
 
   - id: q09
-    question: Through September 2026, what is each agency's attainment of its full-year 2026 revenue goal, and its pace (year to date against nine twelfths of the goal)?
+    question: Through September 2026, what is each agency's attainment of its full-year 2026 revenue goal, and its pace (year to date against one twelfth of the goal for each month the agency reported)?
     tags: [goal, pace]
     sql: |
       SELECT a.agency_name, p.ytd_revenue, p.revenue_goal_usd, p.attainment_pct, p.pace_pct

@@ -6,7 +6,7 @@ Then one layer deeper only if asked. Numbers below are from the local build; re-
 
 **0:00 The dashboard (one minute).** The AI/BI dashboard, already open (the first load after a publish takes a minute on the
 free warehouse). "This is the Monday view a sales director has today, on the same metric view everything else here uses.
-September close: the network is at 139% of pace, AA share 37.8% against a fair share of 39%. The red bar on the left is what
+September close: the network is at 140% of pace, AA share 37.8% against a fair share of 39%. The red bar on the left is what
 moved: Harbor Business Travel, ten points of share below last September. The dashboard can show you that. It cannot tell you
 why, whether it is capacity or the agency, what the agreement says, or whether the number is right. That is what the app
 is for." If there is time, pick Harbor in the Agency filter: the trend line shows the collapse from February and the

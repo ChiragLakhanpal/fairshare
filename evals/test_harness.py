@@ -188,7 +188,7 @@ def test_build_facts_all_regions_has_the_first_screen_blocks():
     f = summary.build_facts("All", "2026-09")
     r = f["region"].iloc[0]
     assert r["aa_revenue"] == 4492373 and r["aa_share_pct"] == 37.8 and r["fair_share_pct"] == 39.0
-    assert f["pace"].iloc[0]["pace_pct"] == 139.1
+    assert f["pace"].iloc[0]["pace_pct"] == 140.0
     assert list(f["movers"]["agency"])[:2] == ["Harbor Business Travel", "FareHub Online"] and len(f["movers"]) == 3
     assert f["movers"].iloc[0]["share_chg_pts"] == -10.1
     assert set(f["behind_pace"]["agency_name"]) == {"Harbor Business Travel", "FareHub Online"}

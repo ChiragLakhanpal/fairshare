@@ -13,7 +13,7 @@ const PLAIN: Record<string, string> = {
   share_gap_pts: "Share gap in points is AA share minus fair share. Above zero, the agency sells more AA than the schedule alone would predict.",
   share_gap_usd: "Share gap in dollars is AA revenue minus the revenue AA would have if the agency sold exactly fair share.",
   yoy_revenue_pct: "The change from last year compares AA revenue this month with the same calendar month a year earlier.",
-  pace_pct: "Pace is year-to-date AA revenue divided by the year-to-date share of the annual goal, with the goal spread evenly over twelve months. 100 means on pace.",
+  pace_pct: "Pace is year-to-date AA revenue divided by the year-to-date share of the annual goal, counting one twelfth of the goal for each month the agency reported. 100 means on pace.",
 };
 
 export function DefinitionWindow({ kpi, onClose }: { kpi: string | null; onClose: () => void }) {

@@ -61,9 +61,9 @@ INSERT INTO aa_demo.ops.kpi_definitions VALUES
  'v1', NULL, NULL),
 
 ('pace_pct', 'Pace against goal',
- 'Year-to-date AA revenue divided by the year-to-date share of the annual revenue goal, with the goal spread evenly over twelve months. 100 means on pace. Lives in gold.agency_pace, not in the metric view, because the goal is set per agency and year.',
+ 'Year-to-date AA revenue divided by the year-to-date share of the annual revenue goal: one twelfth of the goal for each month the agency reported, so a month with no rows never counts as zero. 100 means on pace. Lives in gold.agency_pace, not in the metric view, because the goal is set per agency and year.',
  'Sales planning', 'gold.agency_pace.pace_pct (from fact_agency_sales_monthly and agency_goals)',
  'not a metric view measure; see gold.agency_pace',
- 'Pace % = DIVIDE ( [YTD AA Revenue], [YTD Goal] ) * 100',
+ 'Pace % = VAR ytdRevenue = TOTALYTD ( [AA Revenue], ''Date''[Date] ) VAR ytdGoal = SUMX ( VALUES ( dim_agency[agency_id] ), [Revenue Goal] * CALCULATE ( DISTINCTCOUNT ( fact_agency_sales_monthly[sales_month] ), DATESYTD ( ''Date''[Date] ) ) / 12 ) RETURN DIVIDE ( ytdRevenue, ytdGoal ) * 100',
  'SELECT a.agency_name AS agency, p.sales_month, p.pace_pct AS value FROM aa_demo.gold.agency_pace p JOIN aa_demo.gold.dim_agency a ON a.agency_id = p.agency_id',
  'v1', NULL, NULL);
