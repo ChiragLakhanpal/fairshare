@@ -108,7 +108,7 @@ const summary = {
 const signals = { region: "All", month: "2026-09", signals: [], calls: [] };
 const catalog = {
   agents: [{
-    key: "precall", name: "Monday pre-call pack", summary: "", one_liner: "Writes one page for each of your agencies before Monday's calls, with an email ready to send.", cadence: "It runs every Monday at 6:00.",
+    key: "precall", name: "Monday pre-call pack", summary: "", one_liner: "Writes one page for each of your agencies before Monday's calls, with an email ready to send.", cadence: "Runs every night. You can also run it now.",
     steps: [{ key: "numbers", title: "Numbers", sub: "Revenue, share, pace" }, { key: "draft", title: "Draft", sub: "The page and the email" }, { key: "approve", title: "Approve", sub: "Waits for you" }],
     reads: ["the month's numbers"], writes: ["an email draft"], approver: "the account manager", scope_kind: "manager", last_run: null, waiting: 0, running: null, pages: [],
   }],

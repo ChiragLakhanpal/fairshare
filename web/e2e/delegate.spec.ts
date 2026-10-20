@@ -75,7 +75,7 @@ async function mock(page: Page) {
     const pages = started ? run().items.map(pageOf) : [];
     return {
       agents: [
-        { key: "precall", name: "Monday pre-call pack", summary: "", one_liner: "Writes one page for each of your agencies before Monday's calls, with an email ready to send.", cadence: "It runs every Monday at 6:00. You can also run it now.", steps: precallSteps,
+        { key: "precall", name: "Monday pre-call pack", summary: "", one_liner: "Writes one page for each of your agencies before Monday's calls, with an email ready to send.", cadence: "Runs every night. You can also run it now.", steps: precallSteps,
           reads: ["the month's numbers", "the agreements", "the CRM stand-in"], writes: ["an activity in the CRM stand-in", "an email draft"], approver: "the account manager", scope_kind: "manager",
           last_run: started ? { run_id: "r1", status: status(), created_at: "2026-10-14T22:10:00" } : null, waiting: pages.filter((p) => p.status === "draft").length, running: started && !done() ? { run_id: "r1", progress: progress() } : null, pages },
         { key: "watch", name: "Agreement watch", summary: "", one_liner: "Checks every promise in the agreements against this month's numbers and drafts a note when one is close to its line.", cadence: "It runs every night.", steps: shortSteps,
