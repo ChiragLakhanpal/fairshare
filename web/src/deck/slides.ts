@@ -29,7 +29,7 @@ export const slides: Slide[] = [
         "How long does a pack take your team today?",
       ],
     },
-    note: "So, two slow steps. A share question turns into a ticket to sales BI, and account managers build every pre-call pack by hand. Ask the sales director how long a pack takes the team today. Then what I built.",
+    note: "So there are two slow steps, a share question turns into a ticket to sales BI, and account managers build pre-call packs by hand. Ask the sales director how long a pack takes today. Then what I built.",
   },
   {
     id: "what", part: "first", kind: "native", title: "An app that answers sales questions with numbers you can check", min: 0.5, short: 0.5,
@@ -45,7 +45,7 @@ export const slides: Slide[] = [
   {
     id: "query-opener", part: "first", kind: "live", title: "It starts with a question", min: 0.25,
     asset: "hairline/opener-query.html", thumb: "hairline/png/query.png",
-    note: "Everything starts with a question, the kind that comes up in a Monday sales meeting. Let it play a few seconds.",
+    note: "It starts with a question, the kind that comes up in a Monday sales meeting. Let it play a few seconds.",
   },
   {
     id: "ask", part: "first", kind: "native", title: "A live question in Ask", min: 3.5, short: 2.5,
@@ -58,7 +58,7 @@ export const slides: Slide[] = [
         "The app matches every number to a query before you see it.",
       ],
     },
-    note: "Click Ask it live, click the box, Enter. Click the share effect, {harbor_share_usd}, for its rows. Fair share there is made up. A removed sentence had a number no query returned. Past a minute, the still. Way back: sidebar.",
+    note: "Click Ask it live, click the box, Enter, talk through the steps. Click the share effect, {harbor_share_usd}. Fair share is made up. A removed sentence had a number no query returned. Past a minute, the still. Back: sidebar.",
   },
   {
     id: "director", part: "first", kind: "animated", title: "Sales director: a question in the Monday meeting", min: 1.25,
@@ -85,12 +85,12 @@ export const slides: Slide[] = [
   {
     id: "coverage", part: "data", kind: "image", title: "Every agency, every month", min: 0.75,
     asset: "export/10-coverage.png",
-    note: "{agency_months_present} of {agency_months_total} agency-months have rows. The holes are Sunbelt, which sent nothing in March and April. Northstar's {northstar_zero_route} in {northstar_zero_month} is a true zero, they sold the route, just none on AA. The holes show in revenue next.",
+    note: "{agency_months_present} of {agency_months_total} agency-months have rows. The holes are Sunbelt, which sent nothing in March and April 2026. Northstar's {northstar_zero_route} in {northstar_zero_month} is a true zero, they sold the route, just none on AA. Revenue shows them next.",
   },
   {
     id: "revenue", part: "data", kind: "image", title: "AA revenue by month, 2025 against 2026", min: 0.75,
     asset: "export/11-revenue-by-month.png",
-    note: "This year against last. 2026 runs ahead except March and April, at {yoy_mar26} and {yoy_apr26}. That's Sunbelt missing and Harbor falling, while the others grew. The axis doesn't start at zero. I planted both of those.",
+    note: "This year runs ahead of last except March and April, at {yoy_mar26} and {yoy_apr26}, and the axis doesn't start at zero. The dip is Sunbelt missing and Harbor falling, while the others grew. I planted both of those.",
   },
   {
     id: "planted", part: "data", kind: "image", title: "What I planted, and what cleaning did", min: 2,
@@ -137,7 +137,7 @@ export const slides: Slide[] = [
   {
     id: "checked", part: "built", kind: "animated", title: "How an answer gets checked", min: 2,
     asset: "02-answer-checked-animated.html", thumb: "export/02-answer-checked.png",
-    note: "The verifier is kind of a newspaper fact-checker with the source documents. A sentence whose number no query returned never reaches you. Genie alone scored {genie_benchmark} in one run on {genie_benchmark_date}, after five questions named their columns. Then Delegate.",
+    note: "The verifier is kind of a newspaper fact-checker with the source documents. A sentence whose number no query returned gets cut from the answer. Genie alone scored {genie_benchmark} in one run on {genie_benchmark_date}, after five questions named their columns.",
   },
   {
     id: "riffle-opener", part: "built", kind: "live", title: "Pages wait for a person to decide", min: 0.25,
@@ -160,7 +160,7 @@ export const slides: Slide[] = [
         "Nothing is sent or recorded until a person approves it.",
       ],
     },
-    note: "Open the pack, pick FareHub Online or Lone Star, the nightly job wrote it. Click a number for its rows, then Approve. If asked, fine means three or more points from a tier line. Past a minute, the still.",
+    note: "Open the pack, pick FareHub Online or Lone Star, the nightly job wrote it. Click a number for its rows, then Approve. If asked, fine means {tier_watch_band_pts} or more points from a tier line. Past a minute, the still.",
   },
   {
     id: "built-how", part: "built", kind: "native", title: "How I built it", min: 1.25,
@@ -173,7 +173,7 @@ export const slides: Slide[] = [
         { head: "The safety hook", body: "A hook blocks DROP, TRUNCATE and any DELETE without a WHERE, in edits and in commands." },
       ],
     },
-    note: "I built this with Claude Code. The posting mentions building with AI tools, and what keeps it in line is the rules file, a commit check, and a hook that blocks destructive SQL. Then, what I measured.",
+    note: "I built this with Claude Code. The sales director's post called vibe coding a plus, and what keeps it in line is the rules file, a commit check and a hook that blocks destructive SQL. Then, what I measured.",
   },
 
   // 4. Proof and next
@@ -188,7 +188,7 @@ export const slides: Slide[] = [
         { head: "The nightly check", body: "From {nightly_parity_from} to {nightly_parity_to}, {nightly_parity_runs} scheduled runs compared the metric view with a SQL copy of the Power BI measure, for {twins_checked} of the {kpis} numbers. They found {nightly_parity_drift} differences." },
       ],
     },
-    note: "Misses first. On {app_model_date} the App's model got {app_model_right} of {app_model_questions} right, and {app_model_gave_up_passed} answer that gave up still passed the verifier, because it had no numbers to check. Genie's {genie_benchmark} was one run, on {genie_benchmark_date}. Then what's next.",
+    note: "I'll start with the misses. On {app_model_date} the App's model got {app_model_right} of {app_model_questions} right, and {app_model_gave_up_passed} answer that gave up still passed the verifier, because it had no numbers to check. Genie's {genie_benchmark} was one run, on {genie_benchmark_date}.",
   },
   {
     id: "limits", part: "proof", kind: "native", title: "What it does not do yet", min: 1,
@@ -220,7 +220,7 @@ export const slides: Slide[] = [
   {
     id: "at-aa", part: "proof", kind: "image", title: "The same layers at AA", min: 1.5,
     asset: "export/15-at-aa.png",
-    note: "Same layers at AA. Each made-up table sits next to the AA feed that would replace it. The hardest is the agency's sales on other airlines, since AA only sees its own. The Microsoft pieces wait on AA's account.",
+    note: "At AA it's the same layers, each made-up table next to the feed that would replace it. The hardest is the agency's sales on other airlines, since AA only sees its own. The Microsoft pieces wait on AA's account.",
   },
   {
     id: "azure", part: "proof", kind: "native", title: "Possibilities on Azure", min: 0.75,
@@ -258,7 +258,7 @@ export const slides: Slide[] = [
   {
     id: "precall-still", part: "backup", kind: "image", still: true, title: "A good run of the pre-call pack", min: 0,
     asset: "export/precall-still.png",
-    note: "Say it's a still of a page the nightly job wrote. The numbers are made up. If asked, fine means three or more points from a tier line. Then pick the next slide from the outline.",
+    note: "Say it's a still of a page the nightly job wrote. The numbers are made up. If asked, fine means {tier_watch_band_pts} or more points from a tier line. Then pick the next slide from the outline.",
   },
   {
     id: "manager", part: "backup", kind: "animated", title: "Account manager: Monday before agency calls", min: 0,
@@ -320,7 +320,7 @@ export const slides: Slide[] = [
   {
     id: "dict-goals", part: "backup", kind: "native", title: "Goals and pace", min: 0,
     native: { layout: "table", tables: ["gold.agency_goals", "gold.agency_pace"] },
-    note: "Goals and pace. The goals are made up and soft, so pace works as a ranking. The goal so far only grows for months an agency reported, which is why Sunbelt's May reads {sunbelt_pace_may26} of pace.",
+    note: "The goals here are made up and soft, so pace works as a ranking. The goal so far only grows for months an agency reported, which is why Sunbelt's May reads {sunbelt_pace_may26} of pace.",
   },
   {
     id: "dict-agreements", part: "backup", kind: "native", title: "The agreements, clause by clause", min: 0,
@@ -340,7 +340,7 @@ export const slides: Slide[] = [
   {
     id: "dict-ops", part: "backup", kind: "native", title: "The app's own tables", min: 0,
     native: { layout: "table", tables: ["ops.decomposition", "ops.kpi_definitions"] },
-    note: "The app's own tables. The decomposition row is Harbor's September, and nothing is left over, so volume, mix and share add up exactly. My first SQL twin for AA share counted passengers, and all {parity_rows} agency-months came back red.",
+    note: "The decomposition row here is Harbor's September, and nothing is left over, so volume, mix and share add up exactly. My first SQL twin for AA share counted passengers, and all {parity_rows} agency-months came back red.",
   },
   {
     id: "security", part: "backup", kind: "native", title: "Who can see what", min: 0,
@@ -381,7 +381,7 @@ export const slides: Slide[] = [
         { head: "What they share", body: "Each runs fixed queries, hands the facts to a writer with no tools, checks every sentence and waits for a person to approve." },
       ],
     },
-    note: "Four agents on one runtime. Each one runs fixed queries, hands the facts to a writer with no tools, checks every sentence, and waits for a person to approve.",
+    note: "There are four agents on one runtime, and each one runs fixed queries, hands the facts to a writer with no tools, checks every sentence, and waits for a person to approve.",
   },
   {
     id: "platform", part: "backup", kind: "native", title: "Free Edition limits", min: 0,

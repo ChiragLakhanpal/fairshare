@@ -978,6 +978,13 @@
    "source": "app/cache/kpi_parity.csv, the aa_share replay labeled v1 (retired), run 64fc8eecdd92",
    "value": 250
   },
+  "tier_watch_band_pts": {
+   "date": "2026-10-20",
+   "display": "three",
+   "note": "A tier row closer than this to its line is Watch; at this distance or more it is Fine.",
+   "source": "lakehouse/07_agreement_watch.sql line 88: a tier row is Watch when it is within 3 points of its line",
+   "value": 3
+  },
   "twins_checked": {
    "date": "2026-10-19",
    "display": "6",

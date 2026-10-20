@@ -471,6 +471,9 @@ DATED: dict[str, dict] = {
     "foundry_groundedness_misses": _dated(1, "1", _EVAL, "2026-10-15",
                                           "Of those pages, the ones whose groundedness grade failed. Relevance, coherence, fluency and the four "
                                           "content harms passed on every page."),
+    # a rule a note quotes: a constant in the SQL that applies it, so a note says it without typing the number
+    "tier_watch_band_pts": _dated(3, "three", "lakehouse/07_agreement_watch.sql line 88: a tier row is Watch when it is within 3 points of its line",
+                                  "2026-10-20", "A tier row closer than this to its line is Watch; at this distance or more it is Fine."),
 }
 
 
