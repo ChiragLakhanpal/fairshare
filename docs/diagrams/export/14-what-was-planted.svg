@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="14-what-was-planted-title 14-what-was-planted-desc" id="d-14-what-was-planted-root">
         <title id="14-what-was-planted-title">What I planted, and what cleaning did</title>
-        <desc id="14-what-was-planted-desc">Six panels about what was planted in the synthetic data: 16 channel spellings cleaned to 4, 6 tickets loaded twice and removed, Sunbelt's two missing months left missing, Northstar's true zero kept, Harbor's falling AA share, which the app catches, and two corporates whose bookings slip, which the app does not flag.</desc>
+        <desc id="14-what-was-planted-desc">Six panels about what was planted in the synthetic data: 16 channel spellings cleaned to 4, 6 tickets loaded twice and removed, Sunbelt's two missing months left missing, Northstar's true zero kept, Harbor's falling AA share, which the app catches, and two corporates whose bookings slipped, which the app does not flag.</desc>
   <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #d-14-what-was-planted-root { --color-paper:  #ffffff;
@@ -112,8 +112,8 @@
         <text x="468" y="436" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Harbor's share</text>
         <text x="468" y="454" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Harbor Business Travel, all 21 months</text>
         <text x="468" y="609" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The app catches it.</text>
-        <text x="468" y="626" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The home page flags Harbor as a risk.</text>
-        <text x="468" y="641" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Its deal in the CRM stand-in is marked On track.</text>
+        <text x="468" y="626" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Its CRM stand-in deal is still marked On track</text>
+        <text x="468" y="641" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">while share fell, so the home page flags it.</text>
         <line x1="468" y1="564" x2="760" y2="564" stroke="#36495a" stroke-width="1" stroke-opacity="0.25"/>
         <polyline data-series="fair" points="468.0,503.6 482.6,502.6 497.2,503.0 511.8,502.4 526.4,502.9 541.0,502.9 555.6,502.4 570.2,503.5 584.8,502.5 599.4,503.8 614.0,503.5 628.6,502.6 643.2,502.7 657.8,502.5 672.4,502.0 687.0,503.2 701.6,502.7 716.2,503.6 730.8,503.3 745.4,502.9 760.0,502.5" fill="none" stroke="#5a7181" stroke-width="1.4" stroke-linejoin="round"/>
         <polyline data-series="aa" points="468.0,484.3 482.6,486.0 497.2,485.6 511.8,488.3 526.4,488.6 541.0,490.1 555.6,492.0 570.2,494.0 584.8,496.0 599.4,495.7 614.0,498.2 628.6,499.5 643.2,499.9 657.8,506.4 672.4,511.6 687.0,519.9 701.6,526.6 716.2,530.8 730.8,509.5 745.4,509.6 760.0,511.5" fill="none" stroke="#006cbf" stroke-width="2.2" stroke-linejoin="round"/>
@@ -132,7 +132,7 @@
         <g data-panel="6">
         <rect x="856" y="404" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <path d="M 857,588 H 1239 V 645 A 6 6 0 0 1 1233,651 H 863 A 6 6 0 0 1 857,645 Z" fill="#f2f5f8"/>
-        <text x="876" y="436" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Two corporates slipping</text>
+        <text x="876" y="436" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Two corporates slipped</text>
         <text x="876" y="454" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">bookings per month, both on one scale from zero</text>
         <text x="876" y="614" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The app does not flag a single corporate yet.</text>
         <text x="876" y="632" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">It only watches the total of all corporate bookings.</text>

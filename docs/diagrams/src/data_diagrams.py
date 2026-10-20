@@ -191,7 +191,7 @@ def fair_share() -> str:
     out.append(text(ax, gy - 24, "made-up seat shares · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
     out.append(f'<g data-grid="seats">{grid(ax, gy, fair_cells, 0, seat)}</g>')
     out.append(text(ax, gy + GRID + 56, f"{fair}%", size=40, color=aa.ACCENT))
-    out.append(text(ax, gy + GRID + 84, "are AA's: the fair share", size=16, color=aa.MUTED))
+    out.append(text(ax, gy + GRID + 84, "AA's made-up seat share: the fair share", size=16, color=aa.MUTED))
     # B: the agency's sales on the same route, the AA share and the premium above fair share
     out.append(text(bx, gy - 46, "Summit's sales on the same route", size=16))
     out.append(text(bx, gy - 24, "Summit Travel Partners · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))

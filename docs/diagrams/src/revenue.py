@@ -138,7 +138,7 @@ def build(by_year, holes, shares) -> str:
     out.append(text(40, cy, span(gap_months), mono=True, fill=aa.ACCENT))
     out.append(text(CALLOUT_X, cy, f"Sunbelt sent nothing: it sold {display('sunbelt_mar25_usd')} and {display('sunbelt_apr25_usd')} in those months of {prior_year}.",
                     size=16, italic=True))
-    out.append(text(CALLOUT_X, cy + 24, f"Harbor's share kept falling: {display('harbor_mar26_chg_usd')} and {display('harbor_apr26_chg_usd')} against {prior_year}.",
+    out.append(text(CALLOUT_X, cy + 24, f"Harbor's AA revenue fell: {display('harbor_mar26_chg_usd')} and {display('harbor_apr26_chg_usd')} against {prior_year}.",
                     size=16, italic=True))
     out.append(text(CALLOUT_X, cy + 48, f"The other {NUMBER_WORDS[others]} agencies grew in total: {display('others_mar26_chg_usd')} and {display('others_apr26_chg_usd')} against {prior_year}.",
                     size=16, italic=True))
@@ -166,7 +166,7 @@ TITLE = "AA revenue by month"
 def desc(by_year, holes) -> str:
     years = sorted(by_year)
     return (f"Two lines of AA revenue by calendar month, {years[-2]} against {years[-1]}: {years[-1]} runs above {years[-2]} except in "
-            f"{span([h['sales_month'] for h in holes])}, when Sunbelt sent nothing and Harbor's share kept falling, though the other agencies grew in total.")
+            f"{span([h['sales_month'] for h in holes])}, when Sunbelt sent nothing and Harbor's AA revenue fell, though the other agencies grew in total.")
 
 
 if __name__ == "__main__":

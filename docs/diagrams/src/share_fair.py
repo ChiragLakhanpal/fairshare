@@ -41,8 +41,8 @@ SLUG = {name: slug for slug, name in AGENCIES}
 dumbbell = aa.load("verify_dumbbell", "verify-dumbbell.py")  # the plugin's own domain and contrast functions
 
 TITLE = "AA share against fair share, Q3 2026"
-SUBTITLE = ("AA share is the part of an agency's sales that went to AA. Fair share is AA's share of the seats on the same routes. "
-            "The seat shares are made up.")
+SUBTITLE = ("AA share is the part of an agency's sales that went to AA, on all routes together.",
+            "Fair share is AA's share of the seats on the same routes, and those seat shares are made up.")
 SOURCE = ("fair share uses made-up seat shares, one per route; the T-100 loader (data/t100.py) has never run "
           "· gold.fact_agency_sales_monthly, gold.fact_market_capacity")
 ORDER = "Rows run from the biggest gap above fair share to the biggest gap below it"
@@ -142,7 +142,8 @@ def build(rows) -> str:
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     # what the chart is about, inside the image because a slide takes the SVG alone
     out.append(text(40, 100, TITLE, size=16, weight=600))
-    out.append(text(40, 120, SUBTITLE, mono=True, fill=aa.MUTED))
+    for i, line in enumerate(SUBTITLE):
+        out.append(text(40, 120 + 16 * i, line, mono=True, fill=aa.MUTED))
     # the axis: a gridline at every step, the axis line in place of the one at the floor, ticks and the axis title below
     for v in range(FLOOR, CEIL + 1, STEP):
         if v == FLOOR:
@@ -197,7 +198,7 @@ def desc(rows) -> str:
     top, bottom = rows[0], rows[-1]
     keys = [f"agency_q3_fair_share_{SLUG[r['name']]}" for r in rows]
     low, high = min(keys, key=fact), max(keys, key=fact)  # the two ends of the fair share column
-    return (f"Dumbbell chart of {NUMBER_WORDS[fact('agencies')]} agencies' AA share against fair share in Q3 2026, sorted by the gap: {top['name']} is highest at "
+    return (f"Dumbbell chart of {NUMBER_WORDS[fact('agencies')]} agencies' AA share against fair share in Q3 2026, on all routes together, sorted by the gap: {top['name']} is highest at "
             f"{display('agency_q3_aa_share_' + SLUG[top['name']])} against {display('agency_q3_fair_share_' + SLUG[top['name']])}, {bottom['name']} lowest at "
             f"{display('agency_q3_aa_share_' + SLUG[bottom['name']])} against {display('agency_q3_fair_share_' + SLUG[bottom['name']])}, "
             f"while fair share stays between {display(low)} and {display(high)} for every agency.")

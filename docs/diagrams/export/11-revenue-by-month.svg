@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="11-revenue-by-month-title 11-revenue-by-month-desc" id="d-11-revenue-by-month-root">
         <title id="11-revenue-by-month-title">AA revenue by month</title>
-        <desc id="11-revenue-by-month-desc">Two lines of AA revenue by calendar month, 2025 against 2026: 2026 runs above 2025 except in Mar and Apr 2026, when Sunbelt sent nothing and Harbor's share kept falling, though the other agencies grew in total.</desc>
+        <desc id="11-revenue-by-month-desc">Two lines of AA revenue by calendar month, 2025 against 2026: 2026 runs above 2025 except in Mar and Apr 2026, when Sunbelt sent nothing and Harbor's AA revenue fell, though the other agencies grew in total.</desc>
   <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #d-11-revenue-by-month-root { --color-paper:  #ffffff;
@@ -62,7 +62,7 @@
         <text x="433.7" y="486" fill="#006cbf" font-size="14" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">-3.2%</text>
         <text x="40" y="562" fill="#006cbf" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Mar and Apr 2026</text>
         <text x="280" y="562" fill="#36495a" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">Sunbelt sent nothing: it sold $162,155 and $143,657 in those months of 2025.</text>
-        <text x="280" y="586" fill="#36495a" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">Harbor's share kept falling: -$194,698 and -$213,063 against 2025.</text>
+        <text x="280" y="586" fill="#36495a" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">Harbor's AA revenue fell: -$194,698 and -$213,063 against 2025.</text>
         <text x="280" y="610" fill="#36495a" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">The other ten agencies grew in total: +$324,369 and +$196,597 against 2025.</text>
         <svg x="280" y="630" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
         <text x="304" y="643" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">AA revenue summed over all agencies and routes · gold.fact_agency_sales_monthly</text>

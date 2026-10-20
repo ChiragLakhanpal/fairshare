@@ -265,7 +265,7 @@ def p5(d: dict) -> list[str]:
     py = lambda v: base - v / ceil * (base - top)                         # noqa: E731
     pts = lambda i: " ".join(f"{px(m):.1f},{py(d['harbor'][m][i]):.1f}" for m in months)  # noqa: E731
     out = frame(5, "Harbor's share", f"Harbor Business Travel, all {display('months')} months", "The app catches it.",
-                ["The home page flags Harbor as a risk.", "Its deal in the CRM stand-in is marked On track."])
+                ["Its CRM stand-in deal is still marked On track", "while share fell, so the home page flags it."])
     out += [f'<line x1="{left}" y1="{base}" x2="{right}" y2="{base}" stroke="{INK_A(0.25)}" stroke-width="1"/>',
             f'<polyline data-series="fair" points="{pts(1)}" fill="none" stroke="{aa.MUTED}" stroke-width="1.4" stroke-linejoin="round"/>',
             f'<polyline data-series="aa" points="{pts(0)}" fill="none" stroke="{aa.ACCENT}" stroke-width="2.2" stroke-linejoin="round"/>']
@@ -290,7 +290,7 @@ def p6(d: dict) -> list[str]:
     step = (right - left) / (len(months) - 1)
     top = max(v for c in d["corporates"] for v in c["series"].values())
     ceil = -(-top // 20_000) * 20_000                                        # the next $20K above the biggest month, one scale for both
-    out = frame(6, "Two corporates slipping", "bookings per month, both on one scale from zero", "The app does not flag a single corporate yet.",
+    out = frame(6, "Two corporates slipped", "bookings per month, both on one scale from zero", "The app does not flag a single corporate yet.",
                 ["It only watches the total of all corporate bookings."])
     for i, (c, low_key) in enumerate(zip(d["corporates"], LOW_KEYS)):
         base = y + 112 + i * 58
@@ -327,7 +327,7 @@ def build(d: dict) -> str:
 def desc(d: dict) -> str:
     return (f"Six panels about what was planted in the synthetic data: {display('channel_spellings_delivered')} channel spellings cleaned to "
             f"{display('channel_spellings_cleaned')}, {display('duplicate_tickets')} tickets loaded twice and removed, Sunbelt's {NUMBER_WORDS[len(missing_months(d))]} missing months "
-            f"left missing, Northstar's true zero kept, Harbor's falling AA share, which the app catches, and {NUMBER_WORDS[len(PLANTED)]} corporates whose bookings slip, "
+            f"left missing, Northstar's true zero kept, Harbor's falling AA share, which the app catches, and {NUMBER_WORDS[len(PLANTED)]} corporates whose bookings slipped, "
             f"which the app does not flag.")
 
 
