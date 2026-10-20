@@ -1,12 +1,13 @@
 // The deck's native slides, in the app's AA tokens under the same logo band as the figures: a statement, tiles (a
 // "Possibility" tile carries a chip), the columns of a table or the basic checks, and a live demo with its button. Every
-// string a slide carries goes through fill(), so its {placeholders} show the facts' display strings. Task 13 wires the
-// two demo buttons; the dashboard link works here, because it only opens a new tab.
+// string a slide carries goes through fill(), so its {placeholders} show the facts' display strings. A demo button hands its
+// demo to onDemo, which the deck answers by jumping into the app in its own tab (the notes window's small previews pass
+// none, so their buttons do nothing); the dashboard link needs no jump, because it only opens a new tab.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Check, ChevronRight, Close, External } from "../components/Icons";
 import { copy } from "../copy";
 import { api } from "../lib/api";
-import { fill, placeholders, texts, type DeckFacts, type Demo, type Slide, type Tile } from "../lib/deck";
+import { fill, placeholders, texts, type DeckFacts, type Demo, type Jump, type Slide, type Tile } from "../lib/deck";
 import { REPORT_URL } from "./slides";
 
 /** The figures' mono face and muted ink (MONO and MUTED in docs/diagrams/src/aa.py). */
@@ -32,7 +33,7 @@ function LogoBand({ tag }: { tag: string }) {
 
 /** A native slide: the logo band, the title, and the layout. The band says "synthetic data" when the slide shows the
  * data: a table, or a number that a query on the made-up data returned. */
-export function NativeSlide({ slide, facts }: { slide: Slide; facts: DeckFacts }) {
+export function NativeSlide({ slide, facts, onDemo }: { slide: Slide; facts: DeckFacts; onDemo?: (demo: Jump) => void }) {
   const n = slide.native!;
   const f = (t: string) => fill(t, facts);
   const data = n.layout === "table" || texts(slide).slice(0, -1).flatMap(placeholders).some((k) => Object.hasOwn(facts.facts, k));
@@ -45,7 +46,7 @@ export function NativeSlide({ slide, facts }: { slide: Slide; facts: DeckFacts }
           {n.layout === "statement" && <Statement lines={n.lines.map(f)} link={slide.id === "start" ? REPORT_URL : null} />}
           {n.layout === "tiles" && <Tiles tiles={n.tiles.map((t) => ({ ...t, head: f(t.head), body: f(t.body) }))} />}
           {n.layout === "table" && <Tables keys={n.tables} facts={facts} />}
-          {n.layout === "demo" && <DemoLayout demo={n.demo} question={n.demo.kind === "ask" ? f(n.demo.question) : null} lines={n.lines.map(f)} />}
+          {n.layout === "demo" && <DemoLayout demo={n.demo} question={n.demo.kind === "ask" ? f(n.demo.question) : null} lines={n.lines.map(f)} onDemo={onDemo} />}
         </div>
       </div>
     </div>
@@ -174,7 +175,7 @@ function Checks({ checks }: { checks: DeckFacts["checks"] }) {
 }
 
 /** A live demo: the Ask question in a box like the app's chat bar, what to watch for, and the button that starts it. */
-function DemoLayout({ demo, question, lines }: { demo: Demo; question: string | null; lines: string[] }) {
+function DemoLayout({ demo, question, lines, onDemo }: { demo: Demo; question: string | null; lines: string[]; onDemo?: (demo: Jump) => void }) {
   return (
     <div className="flex flex-col">
       {question && (
@@ -197,7 +198,7 @@ function DemoLayout({ demo, question, lines }: { demo: Demo; question: string | 
         {demo.kind === "dashboard" ? (
           <DashboardLink />
         ) : (
-          <button type="button" className={`${BUTTON} bg-blue hover:bg-navy`}>
+          <button type="button" onClick={() => onDemo?.(demo.kind)} className={`${BUTTON} bg-blue hover:bg-navy`}>
             {demo.kind === "ask" ? copy.askLive : copy.openPrecall}
             <ChevronRight width={20} height={20} />
           </button>

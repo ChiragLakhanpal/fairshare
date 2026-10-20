@@ -7,7 +7,7 @@
 // it exists only while its slide shows. Native slides are drawn in layouts.tsx. Every string goes through fill().
 import { useReducedMotion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
-import { arrivalKey, fill, PARTS, sendKey, type DeckFacts, type Slide } from "../lib/deck";
+import { arrivalKey, fill, PARTS, sendKey, type DeckFacts, type Jump, type Slide } from "../lib/deck";
 import { images, pages } from "./assets";
 import { MONO, MUTED, NativeSlide } from "./layouts";
 
@@ -27,11 +27,12 @@ function showPage(f: HTMLIFrameElement): boolean {
   }
 }
 
-export function SlideView({ slide, backward, frameRef, facts }: {
+export function SlideView({ slide, backward, frameRef, facts, onDemo }: {
   slide: Slide;
   backward: boolean;
   frameRef: RefObject<HTMLIFrameElement | null>;
   facts: DeckFacts;
+  onDemo: (demo: Jump) => void;
 }) {
   const reduced = useReducedMotion();
   const [ready, setReady] = useState(false); // the animated frame's controller is ready
@@ -104,7 +105,7 @@ export function SlideView({ slide, backward, frameRef, facts }: {
           style={{ ...frame, visibility: shown ? "visible" : "hidden" }}
         />
       )}
-      {slide.kind === "native" && slide.native && <NativeSlide slide={slide} facts={facts} />}
+      {slide.kind === "native" && slide.native && <NativeSlide slide={slide} facts={facts} onDemo={onDemo} />}
       <span
         className="pointer-events-none absolute right-[40px] top-[24px] flex h-[22px] items-center text-[8px] font-medium uppercase tracking-[0.18em]"
         style={{ fontFamily: MONO, color: MUTED }}

@@ -5,7 +5,7 @@ import { SPRING } from "../lib/motion";
 import { sidebarLine } from "../lib/runs";
 import { groupByRecency, type Mode } from "../lib/store";
 import type { AgentDef, Conversation } from "../lib/types";
-import { Agents, Chart, ChatIcon, ChevronsLeft, ChevronsRight, Clock, File, Inbox as InboxIcon, Pen, Phone, Plus, Trash } from "./Icons";
+import { Agents, Chart, ChatIcon, ChevronsLeft, ChevronsRight, Clock, File, Inbox as InboxIcon, Pen, Phone, Plus, Presentation, Trash } from "./Icons";
 
 export type QuickAction = "summary" | "brief" | "call" | "agreement";
 
@@ -110,6 +110,7 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
               </div>
             )}
           </Pane>
+          <Tip label={copy.present}><a href="/present" aria-label={copy.present} className="press flex h-10 w-10 items-center justify-center rounded-lg !text-ink-2 transition-colors hover:bg-line-2 hover:!text-ink hover:!no-underline"><Presentation width={18} height={18} /></a></Tip>
           <Tip label={copy.signedIn(email)}><span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-tint text-xs font-bold text-navy" aria-label={copy.signedIn(email)}>{initials}</span></Tip>
         </nav>
       </Tooltip.Provider>
@@ -184,6 +185,7 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
           </>
         )}
       </Pane>
+      <a href="/present" className="press flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-sm !text-ink transition-colors hover:bg-line-2 hover:!no-underline"><Presentation className="text-ink-2" />{copy.present}</a>
       <div className="mt-2 flex items-center gap-2.5 border-t border-line px-2 pt-3.5">
         <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-tint text-xs font-bold text-navy">{initials}</span>
         <span className="text-[12.5px] leading-snug text-ink-2">{copy.signedIn(email)}</span>

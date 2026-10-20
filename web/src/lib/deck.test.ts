@@ -175,3 +175,12 @@ describe("the clock's start", () => {
   });
   it("starts at the move itself on a backup slide, which has no planned time", () => expect(clockStart(S, "full", "words", 600000)).toBe(600000));
 });
+
+import { askQuestion } from "./deck";
+
+describe("the Ask demo's question", () => {
+  it("is the one the Ask demo slide holds, and none when no slide asks", () => {
+    expect(askQuestion(slides)).toBe("Why is Harbor Business Travel down in September?");
+    expect(askQuestion(S)).toBeNull();
+  });
+});

@@ -6,14 +6,17 @@
 // and counts as zero steps. The deck is the one source of truth for the notes window: it applies each message the notes
 // window sends as if it were pressed here, and posts its state on mount, after every move and after every message it
 // applies. The path (localStorage) and the start of the talk, set on the first move and dated back to the plan
-// (sessionStorage), outlive a reload and a demo jump.
+// (sessionStorage), outlive a reload and a demo jump. A demo button on a slide, or in the notes window, jumps into the app
+// in this tab (jump): the slide to come back to waits in sessionStorage for the app's link, and the deck clears it when it
+// opens again.
 import { useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import facts from "../deck/facts.json";
 import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
-import { blurAfterClick, CHANNEL, clockStart, destination, frameState, fromHash, keyAction, KEYS, pressTarget, sendKey, type Action, type Msg, type PathName } from "../lib/deck";
+import { askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameState, fromHash, keyAction, KEYS, pressTarget, sendKey, type Action, type Jump, type Msg, type PathName } from "../lib/deck";
+import { store } from "../lib/store";
 import { Notes } from "./Notes";
 
 const fit = () => Math.min(innerWidth / 1280, innerHeight / 720);
@@ -87,6 +90,22 @@ function Deck() {
     go(destination(slides, path, slide.id, action));
   };
 
+  /** A demo, in the app, in this tab. The slide to come back to waits in sessionStorage. The app opens where its own memory
+   * says (the mode and, for Delegate, the agent), so that is set first; Ask also gets its question in the URL, which the
+   * app reads once and removes. */
+  const jump = (demo: Jump) => {
+    write(session, KEYS.ret, slide.id);
+    if (demo === "ask") {
+      const question = askQuestion(slides);
+      store.setMode("ask");
+      location.assign(question ? `/?q=${encodeURIComponent(fill(question, facts))}` : "/");
+    } else {
+      store.setDelegate({ agent: "precall", runId: null, itemId: null });
+      store.setMode("delegate");
+      location.assign("/");
+    }
+  };
+
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     const action = keyAction(e);
     if (!action) return; // browser shortcuts stay the browser's
@@ -104,7 +123,8 @@ function Deck() {
     } else if (m.t === "reset") {
       write(session, KEYS.started, null);
       setStartedAt(null);
-    } else if (m.t !== "hello") return; // another deck's state, a demo request (Task 13 wires the jumps), or a bad message
+    } else if (m.t === "demo" && (m.demo === "ask" || m.demo === "precall")) jump(m.demo);
+    else if (m.t !== "hello") return; // another deck's state, or a bad message
     setApplied((n) => n + 1);
   });
 
@@ -121,6 +141,12 @@ function Deck() {
   }, []);
 
   useEffect(blurAfterClick, []);
+
+  // The way back is for one trip: once the deck is open again, by the app's link or by the browser's Back button (which
+  // skips the link), it is cleared.
+  useEffect(() => {
+    write(session, KEYS.ret, null);
+  }, []);
 
   // The channel opens once, so no message can fall between two renders. Each message renders at once (flushSync): the
   // next one, which may already be queued, then reads the slide this one reached.
@@ -143,7 +169,7 @@ function Deck() {
   return (
     <div data-deck-ready={ready ? "" : undefined} className="fixed inset-0 grid place-items-center overflow-hidden bg-white">
       <div className="relative h-[720px] w-[1280px] overflow-hidden bg-white" style={{ zoom }}>
-        <SlideView key={slide.id} slide={slide} backward={backward} frameRef={frameRef} facts={facts} />
+        <SlideView key={slide.id} slide={slide} backward={backward} frameRef={frameRef} facts={facts} onDemo={jump} />
       </div>
     </div>
   );

@@ -27,5 +27,6 @@ export const Link = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M
 export const Trash = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3" /></svg>;
 export const ChatIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M21 12a8 8 0 01-8 8H8l-5 3 1.5-4.5A8 8 0 1121 12z" /></svg>;
 export const Agents = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><rect x="4" y="8" width="16" height="12" rx="3" /><path d="M12 8V4M8 4h8M9 14h.01M15 14h.01M9 17h6" /></svg>;
+export const Presentation = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M3 4h18M20 4v9a2 2 0 01-2 2H6a2 2 0 01-2-2V4M8 21l4-6 4 6" /></svg>;
 export const Play = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)} fill="currentColor" stroke="none"><path d="M7 5v14l12-7z" /></svg>;
 export const Spinner = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)} strokeWidth={2.5} className={`animate-spin ${p.className ?? ""}`}><path d="M12 3a9 9 0 019 9" /></svg>;

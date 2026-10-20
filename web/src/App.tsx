@@ -8,6 +8,7 @@ import { DefinitionWindow } from "./components/DefinitionWindow";
 import { Delegate } from "./components/Delegate";
 import { FloatingBar } from "./components/FloatingBar";
 import { HowItWorks } from "./components/HowItWorks";
+import { ChevronLeft } from "./components/Icons";
 import { Present } from "./components/Present";
 import { Sidebar, type QuickAction } from "./components/Sidebar";
 import { Summary } from "./components/Summary";
@@ -15,6 +16,7 @@ import { SummaryStrip } from "./components/SummaryStrip";
 import { TopBar } from "./components/TopBar";
 import { copy } from "./copy";
 import { api, ask, lastAnswerOf } from "./lib/api";
+import { KEYS } from "./lib/deck";
 import { monthLabel } from "./lib/format";
 import { SPRING, slideDirection, slideVariants } from "./lib/motion";
 import { chipsFrom } from "./lib/signals";
@@ -24,6 +26,22 @@ import type { Agency, AgentsCatalog, Brief as BriefT, Me, Mover, Scope, SignalAc
 function scopeFromUrl(): Scope {
   const u = new URL(location.href);
   return { region: u.searchParams.get("region") || "All", month: u.searchParams.get("month") || "" };
+}
+
+// The slide the deck left to open the app, while its way back is set. Blocked storage keeps nothing, and then there is none.
+function deckReturn(): string | null {
+  try {
+    return sessionStorage.getItem(KEYS.ret);
+  } catch {
+    return null;
+  }
+}
+function clearDeckReturn(): void {
+  try {
+    sessionStorage.removeItem(KEYS.ret);
+  } catch {
+    // the deck clears it when it opens again
+  }
 }
 
 export function App() {
@@ -49,6 +67,7 @@ function Main() {
   const [barHeight, setBarHeight] = useState(0);
   const [catalog, setCatalog] = useState<AgentsCatalog | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [fromDeck] = useState(deckReturn); // read once: the deck's jump is a full page load
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -86,6 +105,18 @@ function Main() {
     u.searchParams.set("region", s.region);
     u.searchParams.set("month", s.month);
     history.replaceState(null, "", u);
+  }, []);
+
+  // The deck's "Ask it live" opens /?q=<question>: the question goes into the box once, and the URL is clean again. The timer
+  // is not cleared on cleanup: StrictMode runs this effect twice in development, and the second run finds no q.
+  useEffect(() => {
+    const u = new URL(location.href);
+    const q = u.searchParams.get("q");
+    if (!q) return;
+    setPrefill({ text: q, n: Date.now() });
+    u.searchParams.delete("q");
+    history.replaceState(null, "", u);
+    setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
   useEffect(() => {
@@ -272,6 +303,11 @@ function Main() {
       <DefinitionWindow kpi={kpi} onClose={() => setKpi(null)} />
       <KpiBridge onOpen={setKpi} />
       <Toast />
+      {fromDeck && (
+        <a href={`/present#${fromDeck}`} onClick={clearDeckReturn} className="floating no-print press fixed bottom-5 right-5 z-20 inline-flex items-center gap-1.5 rounded-full py-2 pl-3 pr-4 text-[13.5px] font-medium !text-ink hover:!text-blue hover:!no-underline">
+          <ChevronLeft width={15} height={15} />{copy.backToDeck}
+        </a>
+      )}
     </Tooltip.Provider>
   );
 }

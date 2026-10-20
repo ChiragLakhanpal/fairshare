@@ -10,6 +10,8 @@ export type Kind = "image" | "live" | "animated" | "native";
 export type PathName = "full" | "short";
 export type Slide = { id: string; part: Part; kind: Kind; title: string; min: number; short?: number; asset?: string; thumb?: string; native?: Native; note: string };
 export type Demo = { kind: "ask"; question: string } | { kind: "precall" } | { kind: "dashboard" };
+/** The demos the deck jumps into the app for. The dashboard only opens in a new tab, so it needs no jump. */
+export type Jump = Exclude<Demo["kind"], "dashboard">;
 export type Tile = { head: string; body: string; tag?: "Possibility" };
 export type Native =
   | { layout: "statement"; lines: string[] }
@@ -58,6 +60,13 @@ export function move(slides: Slide[], path: PathName, id: string, dir: 1 | -1): 
 export function fromHash(slides: Slide[], hash: string): string {
   const id = hash.replace(/^#/, "");
   return (slides.find((s) => s.id === id) ?? slides[0]).id;
+}
+
+/** The question the Ask demo puts in the app's box, from the one slide that asks a question, or null when none does. Like
+ * every slide text it may hold {placeholders}, which fill() fills. */
+export function askQuestion(slides: Slide[]): string | null {
+  for (const s of slides) if (s.native?.layout === "demo" && s.native.demo.kind === "ask") return s.native.demo.question;
+  return null;
 }
 
 /** Whether a press on an animated slide steps the diagram or moves the deck: forward steps the diagram until its last
@@ -254,13 +263,14 @@ export type Msg =
   | { t: "state"; id: string; path: PathName; startedAt: number | null }
   | { t: "key"; action: Action }
   | { t: "go"; id: string }
-  | { t: "demo"; demo: "ask" | "precall" }
+  | { t: "demo"; demo: Jump }
   | { t: "path"; path: PathName }
   | { t: "reset" }
   | { t: "hello" };
 
-/** Where the deck keeps what must outlive a demo jump or a reload: the slide to come back to (sessionStorage, Task 13),
- * when the talk started by the clock, set on the first move (sessionStorage, clockStart), and the path (localStorage). */
+/** Where the deck keeps what must outlive a demo jump or a reload: the slide to come back to (sessionStorage; the deck sets
+ * it as it jumps, the app's link back reads it, and the deck clears it when it opens again), when the talk started by the
+ * clock, set on the first move (sessionStorage, clockStart), and the path (localStorage). */
 export const KEYS = { ret: "fairshare.deck.return", started: "fairshare.deck.startedAt", path: "fairshare.deck.path" };
 
 /** After a click, the clicked button or link gives up the focus, so a Space press after it moves the deck once instead of
