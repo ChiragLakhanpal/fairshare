@@ -38,7 +38,7 @@ def test_fair_share_has_no_qsi_synonym():
 
 # the figures that print data values (05 prints none); every one says so in its logo band
 DATA_FIGURES = ["04-journey-sales-director", "06-data-pipeline", "07-fair-share", "08-why-it-moved", "09-definitions", "10-coverage",
-                "11-revenue-by-month"]
+                "11-revenue-by-month", "12-share-vs-fair", "14-what-was-planted"]
 
 
 def test_every_data_figure_says_synthetic_data_in_its_logo_band():

@@ -185,6 +185,49 @@ def _pace(agency: str, month: str, old_rule: bool = False) -> str:
         WHERE a.agency_name = '{agency}' AND p.sales_month = DATE '{month}'"""
 
 
+# The twelve agencies by the short name their per-agency keys use, in dim_agency order (data/make_data.py). A test keeps the list equal to the table.
+AGENCIES = (("summit", "Summit Travel Partners"), ("bluesky", "BlueSky Corporate Travel"), ("farehub", "FareHub Online"),
+            ("northstar", "Northstar Leisure"), ("harbor", "Harbor Business Travel"), ("pacific", "Pacific Gateway Travel"),
+            ("lonestar", "Lone Star Travel Group"), ("capitol", "Capitol Corporate Travel"), ("sunbelt", "Sunbelt Vacations"),
+            ("golden", "Golden Coast Travel"), ("midway", "Midway Travel Services"), ("atlantic", "Atlantic Premier Travel"))
+
+
+def _agency_q3(agency: str, expr: str) -> str:
+    """One agency's number for Q3 2026 over all routes together, one number. Like _summit_q3 for one route, the metric view's
+    definitions are written out: AA share is AA revenue over everything the agency sold; fair share is AA's seat share (made up,
+    one per route) weighted by that revenue."""
+    return f"""
+        SELECT {expr} AS value
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+        WHERE a.agency_name = '{agency}'
+          AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'"""
+
+
+def _agency_q3_facts() -> list[tuple[str, str, str, str]]:
+    """AA share and fair share for every agency in Q3 2026, all routes together: the two ends of each row of figure 12."""
+    out = []
+    for slug, name in AGENCIES:
+        out.append((f"agency_q3_aa_share_{slug}", _agency_q3(name, "ROUND(100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
+                    f"{name}, Q3 2026, all routes together: AA revenue over everything the agency sold."))
+        out.append((f"agency_q3_fair_share_{slug}",
+                    _agency_q3(name, "ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
+                    f"{name}, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold."))
+    return out
+
+
+def _corporate_low(corporate: str) -> str:
+    """The lowest month of one corporate's bookings: fare times tickets, on the tickets booked in the month."""
+    return f"""
+        SELECT ROUND(MIN(t.usd)) AS value
+        FROM (SELECT SUM(b.fare_usd * b.ticket_count) AS usd
+              FROM aa_demo.gold.fact_corporate_bookings b
+              JOIN aa_demo.gold.dim_corporate c ON c.corp_id = b.corp_id
+              WHERE c.corp_name = '{corporate}'
+              GROUP BY DATE_TRUNC('month', b.booking_date)) AS t"""
+
+
 FACTS: list[tuple[str, str, str, str]] = [
     # --- the shape of the data
     ("agencies", "SELECT COUNT(*) AS value FROM aa_demo.gold.dim_agency", "int",
@@ -268,6 +311,12 @@ FACTS: list[tuple[str, str, str, str]] = [
         JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
         WHERE a.agency_name = 'Northstar Leisure' AND s.aa_revenue = 0""", "usd",
      "What Northstar Leisure sold on other airlines on that route in that month, in dollars."),
+    ("northstar_zero_aa_usd", """
+        SELECT ROUND(s.aa_revenue) AS value
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE a.agency_name = 'Northstar Leisure' AND s.aa_revenue = 0""", "usd",
+     "AA revenue in the one cell where Northstar Leisure reported none: a reported zero, not a missing row."),
 
     # --- Q3 2026: shares, and why a ratio is computed at the grain asked
     ("avg_of_shares_q3", """
@@ -301,6 +350,9 @@ FACTS: list[tuple[str, str, str, str]] = [
               WHERE sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'
               GROUP BY agency_id) AS t""", "pts",
      "Q3 2026, all routes, per agency: the largest gap between passenger share and revenue share, in points."),
+
+    # --- Q3 2026, every agency, all routes together (figure 12)
+    *_agency_q3_facts(),
 
     # --- why Harbor's September moved (ops.decomposition, Sep 2025 to Sep 2026)
     ("harbor_delta_usd", _harbor_move("delta_revenue", "2026-09-01"), "usd_signed",
@@ -356,6 +408,12 @@ FACTS: list[tuple[str, str, str, str]] = [
      "Sunbelt Vacations, Sep 2026: pace now, counting only the months it reported."),
     ("sunbelt_pace_sep26_before", _pace("Sunbelt Vacations", "2026-09-01", old_rule=True), "pts",
      "Sunbelt Vacations, Sep 2026: pace under the old rule, where a missing month counted as zero."),
+
+    # --- two corporates whose bookings slip (planted in data/make_data.py): the lowest month of each
+    ("northwind_low_usd", _corporate_low("Northwind Logistics"), "usd",
+     "Northwind Logistics: its lowest month of corporate bookings, fare times tickets on the tickets booked in the month, in dollars."),
+    ("coastal_low_usd", _corporate_low("Coastal Media Group"), "usd",
+     "Coastal Media Group: its lowest month of corporate bookings, fare times tickets on the tickets booked in the month, in dollars."),
 ]
 
 

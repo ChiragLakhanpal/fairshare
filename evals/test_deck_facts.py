@@ -47,6 +47,13 @@ def test_display_is_the_string_the_file_stores():
     assert {k: deck_facts.display(k) for k, *_ in deck_facts.FACTS} == {k: f["display"] for k, f in STORED["facts"].items()}
 
 
+def test_the_agency_list_is_the_table():
+    """The per-agency keys name the twelve agencies in deck_facts.AGENCIES; the list must be dim_agency exactly, in id order."""
+    rows = db.query("SELECT agency_name FROM aa_demo.gold.dim_agency ORDER BY agency_id")
+    assert [name for _slug, name in deck_facts.AGENCIES] == list(rows["agency_name"])
+    assert len({slug for slug, _name in deck_facts.AGENCIES}) == len(deck_facts.AGENCIES), "a short name is used twice"
+
+
 def test_the_numbers_said_out_loud():
     v = {k: f["value"] for k, f in deck_facts.collect()["facts"].items()}
     assert (v["summit_q3_aa_share"], v["summit_q3_fair_share"], v["summit_q3_gap_usd"], v["summit_q3_pax_share"]) == (53.5, 37.6, 88391, 52.4)
