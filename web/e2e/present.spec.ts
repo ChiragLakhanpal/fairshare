@@ -40,3 +40,41 @@ test("with reduced motion an animated slide shows the whole figure and the first
   await page.keyboard.press("ArrowRight");
   await expect(page).not.toHaveURL(/#system$/);
 });
+
+test("the notes window follows the deck, drives it, keeps the warehouse awake, and resyncs after a reload", async ({ page, context }) => {
+  let pings = 0;
+  await context.route("**/api/agencies", (r) => { pings += 1; return r.fulfill({ json: [] }); });
+  await page.goto("/present#title");
+  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
+  const now = notes.locator("[data-now]");
+  await expect(now).toHaveAttribute("data-now", "title");
+  await page.keyboard.press("ArrowRight");
+  await expect(now).toHaveAttribute("data-now", "problem");
+  await notes.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#what$/);
+  await notes.getByRole("button", { name: "Short" }).click();
+  await notes.keyboard.press("Space"); // the switch lost focus, so Space moves the slide once and does not toggle back
+  await expect(page).toHaveURL(/#ask$/);
+  await page.reload();
+  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  await notes.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#system$/);
+  await expect(now).toHaveAttribute("data-now", "system");
+  expect(pings).toBeGreaterThan(0);
+});
+
+test("keys the notes window sends in a burst all reach the deck", async ({ page, context }) => {
+  await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
+  await page.goto("/present#title");
+  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "title");
+  await notes.evaluate(() => {
+    const channel = new BroadcastChannel("fairshare-deck");
+    for (let i = 0; i < 3; i++) channel.postMessage({ t: "key", action: "next" }); // queued before the deck renders once
+    channel.close();
+  });
+  await expect(page).toHaveURL(/#query-opener$/);
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "query-opener");
+});

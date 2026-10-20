@@ -103,3 +103,63 @@ describe("slides.ts", () => {
     expect(short >= 10 && short <= 12, `short path ${short}`).toBe(true);
   });
 });
+
+import { checkpointPlan, drift, keyAction, nextPart, plannedStart } from "./deck";
+
+describe("keyAction", () => {
+  it("maps clicker and keyboard keys, letters in either case", () => {
+    for (const k of ["ArrowRight", " ", "PageDown"]) expect(keyAction({ key: k })).toBe("next");
+    for (const k of ["ArrowLeft", "PageUp"]) expect(keyAction({ key: k })).toBe("prev");
+    expect([keyAction({ key: "Home" }), keyAction({ key: "End" }), keyAction({ key: "s" }), keyAction({ key: "S" }), keyAction({ key: "p" })])
+      .toEqual(["first", "last", "part", "part", "notes"]);
+  });
+  it("leaves browser shortcuts alone", () => {
+    expect(keyAction({ key: "p", metaKey: true })).toBeNull();
+    expect(keyAction({ key: "f", ctrlKey: true, metaKey: true })).toBeNull();
+    expect(keyAction({ key: "ArrowRight", altKey: true })).toBeNull();
+  });
+});
+
+describe("parts and the clock", () => {
+  it("jumps to the first slide of the next part on the path", () => {
+    expect(nextPart(S, "full", "title")).toBe("pipeline");
+    expect(nextPart(S, "short", "ask")).toBe("system");
+    expect(nextPart(S, "full", "start")).toBe("start");
+  });
+  it("plans each slide's start from the minutes before it", () => {
+    expect(plannedStart(S, "full", "ask")).toBe(0.5);
+    expect(plannedStart(S, "short", "system")).toBe(3);
+  });
+  it("says how far behind plan the talk is", () => expect(drift(S, "full", "ask", 1.5)).toBe(1));
+  it("puts the checkpoints where the spec says", () => {
+    expect(checkpointPlan(slides, "full")).toEqual([{ label: "precall done", planned: 28, by: 29 }, { label: "start", planned: 35.25, by: 36 }]);
+    expect(checkpointPlan(slides, "short")).toEqual([{ label: "ask done", planned: 4.5, by: 5 }, { label: "start", planned: 9.75, by: 11 }]);
+  });
+});
+
+import { clock, destination, liveDrift } from "./deck";
+
+describe("where the keys go, and the notes window's clock", () => {
+  it("sends Home and End to the main path's ends from anywhere, S to the next part, and the arrows along the path", () => {
+    expect(destination(S, "short", "words", "first")).toBe("title");
+    expect(destination(S, "full", "ask", "last")).toBe("start");
+    expect(destination(S, "full", "title", "part")).toBe("pipeline");
+    expect(destination(S, "short", "ask", "next")).toBe("system");
+    expect(destination(S, "full", "ask", "prev")).toBe("title");
+    expect(keyAction({ key: "P" })).toBe("notes");
+  });
+  it("keeps S on a backup slide, and walks the real deck's parts", () => {
+    expect(nextPart(S, "full", "words")).toBe("words");
+    expect(nextPart(slides, "full", "title")).toBe("elevator-opener");
+    expect(nextPart(slides, "short", "title")).toBe("system");
+  });
+  it("shows the drift a slide arrived with until the slide runs past its minutes", () => {
+    expect(liveDrift(S, "full", "ask", 1.5, 1.5)).toBe(1);
+    expect(liveDrift(S, "full", "ask", 1.5, 4)).toBe(1); // two and a half of its three and a half minutes
+    expect(liveDrift(S, "full", "ask", 1.5, 6)).toBe(2); // a minute over
+    expect(liveDrift(S, "short", "pipeline", 3, 4)).toBe(1); // off the short path, every minute counts
+  });
+  it("reads minutes as a clock", () => {
+    expect([clock(80 / 60), clock(-0.75), clock(35.25), clock(0), clock(59.6 / 60)]).toEqual(["1:20", "0:45", "35:15", "0:00", "1:00"]);
+  });
+});

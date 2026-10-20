@@ -2,7 +2,8 @@
 // the handoff on an animated slide, where a press steps the framed diagram until its last step and then moves the deck.
 // frameState and sendKey are the only two that touch a frame, and both read it inside try and catch, because an aborted
 // or blocked frame cannot be read. The text helpers fill a slide's {placeholders} from facts.json and read its words for
-// the content rules. The pure parts are tested in deck.test.ts.
+// the content rules. The keys, the parts, the clock and the messages between the deck and its notes window are at the
+// end. The pure parts are tested in deck.test.ts.
 
 export type Part = "first" | "data" | "built" | "proof" | "backup";
 export type Kind = "image" | "live" | "animated" | "native";
@@ -151,4 +152,115 @@ export function bareNumbers(text: string): string[] {
 /** How many words a text has, split on runs of white space. */
 export function words(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
+}
+
+/** What a key does, in the deck or in the notes window. Clickers send Page Up and Page Down. A key held with Command,
+ * Control or Option stays the browser's (Command P prints, Control Command F goes full screen). */
+export type Action = "next" | "prev" | "first" | "last" | "part" | "notes";
+const KEYS_TO_ACTIONS: Record<string, Action> = {
+  ArrowRight: "next", " ": "next", PageDown: "next", ArrowLeft: "prev", PageUp: "prev", Home: "first", End: "last", s: "part", p: "notes",
+};
+
+/** The action a key press asks for, or null for a key the deck leaves alone. Letters work in either case. */
+export function keyAction(e: { key: string; metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean }): Action | null {
+  if (e.metaKey || e.ctrlKey || e.altKey) return null;
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  return Object.hasOwn(KEYS_TO_ACTIONS, key) ? KEYS_TO_ACTIONS[key] : null;
+}
+
+/** The first slide of the next part on the path: the first path slide after this one in a later part. It stays put on
+ * the last part, and on a backup slide, because the backup slides come after the whole path. An unknown id goes to the
+ * first slide. */
+export function nextPart(slides: Slide[], path: PathName, id: string): string {
+  const line = onPath(slides, path);
+  const at = slides.findIndex((s) => s.id === id);
+  if (at < 0) return (line[0] ?? slides[0]).id;
+  return (line.find((s) => slides.indexOf(s) > at && s.part !== slides[at].part) ?? slides[at]).id;
+}
+
+/** Where an action takes the deck: next and prev one press along the path (move), first and last to the ends of the
+ * main path, part to the next part. */
+export function destination(slides: Slide[], path: PathName, id: string, action: Exclude<Action, "notes">): string {
+  if (action === "next" || action === "prev") return move(slides, path, id, action === "next" ? 1 : -1);
+  if (action === "part") return nextPart(slides, path, id);
+  const main = onPath(slides, "full");
+  return (action === "first" ? main[0] : main[main.length - 1]).id;
+}
+
+/** A slide's planned minutes on a path: min on the full path, short on the short one. A slide off the path has none. */
+function minutes(s: Slide, path: PathName): number {
+  return s.part === "backup" ? 0 : path === "full" ? s.min : (s.short ?? 0);
+}
+
+/** The minute a slide should start, counted from the first move: the planned minutes of the path slides before it in the
+ * deck. A slide off the path starts where the path would be; a backup slide comes after the whole path. */
+export function plannedStart(slides: Slide[], path: PathName, id: string): number {
+  const at = slides.findIndex((s) => s.id === id);
+  return onPath(slides, path)
+    .filter((s) => slides.indexOf(s) < at)
+    .reduce((m, s) => m + minutes(s, path), 0);
+}
+
+/** How far behind plan the talk is on this slide, in minutes: the time since the first move less the slide's planned
+ * start. Positive is behind, negative ahead. */
+export function drift(slides: Slide[], path: PathName, id: string, elapsedMin: number): number {
+  return elapsedMin - plannedStart(slides, path, id);
+}
+
+/** The drift the notes window shows: drift() when the slide arrived, plus the time spent on it past its planned minutes.
+ * drift() at the current time climbs through every slide, so a three-minute slide would read three minutes behind at its
+ * planned end; this one stays put while the slide is within its minutes and climbs once it runs over. A slide off the
+ * path has no minutes, so all of its time counts. */
+export function liveDrift(slides: Slide[], path: PathName, id: string, arrivedMin: number, nowMin: number): number {
+  const s = slides.find((x) => x.id === id);
+  return drift(slides, path, id, arrivedMin) + Math.max(0, nowMin - arrivedMin - (s ? minutes(s, path) : 0));
+}
+
+/** The clock's checkpoints (Global Constraints): a slide done by a minute, or a slide started by one. */
+const CHECKPOINTS: Record<PathName, { id: string; done: boolean; by: number }[]> = {
+  full: [{ id: "precall", done: true, by: 29 }, { id: "start", done: false, by: 36 }],
+  short: [{ id: "ask", done: true, by: 5 }, { id: "start", done: false, by: 11 }],
+};
+
+/** Each checkpoint with the minute the plan reaches it: the slide's planned end for a "done" checkpoint, its planned
+ * start otherwise, and the minute it must be reached by. */
+export function checkpointPlan(slides: Slide[], path: PathName): { label: string; planned: number; by: number }[] {
+  return CHECKPOINTS[path].map(({ id, done, by }) => {
+    const s = slides.find((x) => x.id === id);
+    const start = plannedStart(slides, path, id);
+    return { label: done ? `${id} done` : id, planned: done && s ? start + minutes(s, path) : start, by };
+  });
+}
+
+/** Minutes as a clock reads them, to the nearest second and without a sign: 1.333 is "1:20", 35.25 is "35:15". */
+export function clock(min: number): string {
+  const sec = Math.round(Math.abs(min) * 60);
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+/** The BroadcastChannel between the deck and its notes window. The deck is the one source of truth: the notes window
+ * sends keys, outline jumps, the path, a clock reset, demo requests and a hello when it opens, and the deck applies each
+ * and answers with its state. */
+export const CHANNEL = "fairshare-deck";
+export type Msg =
+  | { t: "state"; id: string; path: PathName; startedAt: number | null }
+  | { t: "key"; action: Action }
+  | { t: "go"; id: string }
+  | { t: "demo"; demo: "ask" | "precall" }
+  | { t: "path"; path: PathName }
+  | { t: "reset" }
+  | { t: "hello" };
+
+/** Where the deck keeps what must outlive a demo jump or a reload: the slide to come back to (sessionStorage, Task 13),
+ * when the first move started the clock (sessionStorage) and the path (localStorage). */
+export const KEYS = { ret: "fairshare.deck.return", started: "fairshare.deck.startedAt", path: "fairshare.deck.path" };
+
+/** After a click, the clicked button or link gives up the focus, so a Space press after it moves the deck once instead of
+ * pressing the button again. Returns the cleanup for an effect. */
+export function blurAfterClick(): () => void {
+  const onClick = (e: MouseEvent) => {
+    if (e.target instanceof Element) e.target.closest<HTMLElement>("button, a")?.blur();
+  };
+  addEventListener("click", onClick);
+  return () => removeEventListener("click", onClick);
 }
