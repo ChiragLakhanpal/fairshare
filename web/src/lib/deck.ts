@@ -165,6 +165,12 @@ export function bareNumbers(text: string): string[] {
   return rest.match(/\d+(?:[.,]\d+)*/g) ?? [];
 }
 
+/** The table keys a table slide can draw: the basic checks, and the tables facts.json holds columns for. An unknown key is left
+ * out, because the deck has no error boundary and a slide that throws goes blank; deck.test.ts holds slides.ts to known keys. */
+export function knownTables(keys: string[], columns: DeckFacts["columns"]): string[] {
+  return keys.filter((k) => k === "checks" || Object.hasOwn(columns, k));
+}
+
 /** How many words a text has, split on runs of white space. */
 export function words(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;

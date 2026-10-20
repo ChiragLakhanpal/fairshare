@@ -200,3 +200,26 @@ describe("the part label", () => {
     slides.filter((s) => s.still).forEach((s) => expect(s.kind, s.id).toBe("image"));
   });
 });
+
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { NativeSlide } from "../deck/layouts";
+import { knownTables } from "./deck";
+
+// A table slide names its tables by key, and the deck has no error boundary: a key that facts.json does not describe used to
+// leave facts.columns[key] undefined and throw while the slide drew.
+describe("a table slide's keys", () => {
+  const tableKeys = (list: Slide[]) => list.flatMap((s) => (s.native?.layout === "table" ? s.native.tables.map((key) => ({ id: s.id, key })) : []));
+  const unknown = (list: Slide[]) => tableKeys(list).filter(({ key }) => knownTables([key], facts.columns).length === 0).map(({ id, key }) => `${id}: ${key}`);
+  const named = ["checks", "gold.dim_agency", "gold.no_such_table"];
+  const fake: Slide = { id: "fake", part: "backup", kind: "native", title: "A fixture", min: 0, note: "", native: { layout: "table", tables: named } };
+
+  it("are the checks or a table that facts.json describes, on every slide of the deck", () => expect(unknown(slides)).toEqual([]));
+  it("catches a key that facts.json does not describe (a fixture, not the deck)", () => expect(unknown([fake])).toEqual(["fake: gold.no_such_table"]));
+  it("are skipped by the guard when unknown, in order", () => expect(knownTables(named, facts.columns)).toEqual(["checks", "gold.dim_agency"]));
+  it("do not stop a table slide from drawing, and the unknown one is left out", () => {
+    const html = renderToStaticMarkup(createElement(NativeSlide, { slide: fake, facts }));
+    expect(html).toContain("gold.dim_agency");
+    expect(html).not.toContain("no_such_table");
+  });
+});

@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Check, ChevronRight, Close, External } from "../components/Icons";
 import { copy } from "../copy";
 import { api } from "../lib/api";
-import { fill, placeholders, texts, type DeckFacts, type Demo, type Jump, type Slide, type Tile } from "../lib/deck";
+import { fill, knownTables, placeholders, texts, type DeckFacts, type Demo, type Jump, type Slide, type Tile } from "../lib/deck";
 import { REPORT_URL } from "./slides";
 
 /** The figures' mono face and muted ink (MONO and MUTED in docs/diagrams/src/aa.py). */
@@ -105,8 +105,9 @@ const CHECKS = "minmax(0,1fr) 15em 15em 1.4em";
 /** Each table's columns in plain words with one example from the data, or the basic checks. More than sixteen rows take
  * two columns. The name and example columns are as wide as the slide's longest name and example need (an example wraps
  * to two lines at most), and the type steps down until every row fits on the slide, again once the fonts arrive. */
-function Tables({ keys, facts }: { keys: string[]; facts: DeckFacts }) {
+function Tables({ keys: named, facts }: { keys: string[]; facts: DeckFacts }) {
   const box = useRef<HTMLDivElement>(null);
+  const keys = knownTables(named, facts.columns); // a key facts.json does not describe is skipped, not thrown on
   const columns = keys.filter((k) => k !== "checks").flatMap((k) => facts.columns[k]);
   const rows = columns.length + (keys.includes("checks") ? facts.checks.length : 0);
   const two = rows > 16;
