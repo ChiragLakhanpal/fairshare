@@ -4,7 +4,8 @@
     FAIRSHARE_BACKEND=duckdb .venv/bin/python docs/diagrams/src/deck_facts.py --print  # every fact next to its SQL
 
 FACTS     one row per number: (key, SQL that returns one row with a column `value`, format, grain in plain words).
-DATED     numbers a local query cannot reproduce (a Databricks run, a results file); each keeps its source and date.
+DATED     numbers a local query cannot reproduce (a Databricks run, a results file), and the days of those runs; each keeps
+          its source and date.
 COLUMNS   the tables a slide shows: an example row, and what each column means in one plain sentence.
 CHECKS    sentences the data must keep true: (sentence, SQL that returns one value, the value it must return).
 
@@ -425,6 +426,8 @@ def _dated(value, display, source, date, note=None) -> dict:
 
 _APP_RUN = "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini"
 _LIMITS = "docs/limits.md, row dated 2026-10-15, "
+_EVAL = "README.md, the Foundry evaluation paragraph: the first full run, agent version 3"
+_PARITY = "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19"
 
 DATED: dict[str, dict] = {
     "genie_benchmark": _dated(20, "20 of 20", "evals/results/2026-10-19T213612-genie-eval.json", "2026-10-19",
@@ -437,18 +440,23 @@ DATED: dict[str, dict] = {
                                        "Question q14: an answer that gave up with no numbers to check, so the verifier had nothing to flag."),
     "app_answer_median_s": _dated(26, "26", _APP_RUN, "2026-10-13", "Seconds per question, the median of 20, rounded to a whole second."),
     "app_answer_max_s": _dated(37, "37", _APP_RUN, "2026-10-13", "Seconds for the slowest question, rounded to a whole second."),
+    # the days of the runs a slide quotes, so it can say which day without typing a number
+    "app_model_date": _dated("2026-10-13", "Oct 13", _APP_RUN, "2026-10-13", "The day of that benchmark run."),
+    "genie_benchmark_date": _dated("2026-10-19", "Oct 19", "evals/results/2026-10-19T213612-genie-eval.json", "2026-10-19",
+                                   "The day of the Genie run in genie_benchmark."),
     "parity_red": _dated(250, "250", "app/cache/kpi_parity.csv, the aa_share replay labeled v1 (retired), run 64fc8eecdd92", "2026-10-12",
                          "Agency-months where the retired passenger-based copy disagreed with the metric view."),
     "parity_rows": _dated(250, "250", "app/cache/kpi_parity.csv, the aa_share replay labeled v1 (retired), run 64fc8eecdd92", "2026-10-12",
                           "Agency-months in that replay."),
     "twins_checked": _dated(6, "6", "lakehouse/parity.py, the list of numbers it compares in run()", "2026-10-19",
                             "The numbers whose SQL copy of the Power BI measure is compared with the metric view in every parity run. Pace is not one of them: it has no measure in the metric view."),
-    "nightly_parity_runs": _dated(5, "5", "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19", "2026-10-19",
+    "nightly_parity_runs": _dated(5, "5", _PARITY, "2026-10-19",
                                   "The scheduled 6 am runs on Oct 15 to 19, all green. The same query counted 9 runs since Oct 14, "
                                   "which adds three one-time runs on Oct 14 and one manual run on Oct 19."),
-    "nightly_parity_drift": _dated(0, "0", "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19", "2026-10-19",
-                                   "Values that disagreed with the metric view, across those runs."),
-    # the Foundry evaluation, only the numbers docs/limits.md states plainly
+    "nightly_parity_drift": _dated(0, "0", _PARITY, "2026-10-19", "Values that disagreed with the metric view, across those runs."),
+    "nightly_parity_from": _dated("2026-10-15", "Oct 15", _PARITY, "2026-10-19", "The day of the first scheduled run counted in nightly_parity_runs."),
+    "nightly_parity_to": _dated("2026-10-19", "Oct 19", _PARITY, "2026-10-19", "The day of the last scheduled run counted in nightly_parity_runs."),
+    # the Foundry evaluation, only the numbers docs/limits.md and the README's record of the first full run state plainly
     "foundry_shield_pages": _dated(23, "23", _LIMITS + "Foundry prompt shield", "2026-10-15", "Real pages in the first evaluation runs."),
     "foundry_shield_refused": _dated(2, "2", _LIMITS + "Foundry prompt shield", "2026-10-15",
                                      "Of those pages, refused by the prompt shield although the message was legitimate."),
@@ -459,6 +467,10 @@ DATED: dict[str, dict] = {
     "foundry_refusal_s": _dated(3, "3", _LIMITS + "Foundry guardrails", "2026-10-15", "Seconds until a jailbreak was refused at the prompt."),
     "foundry_nightly_pages": _dated(20, "20", _LIMITS + "Databricks serverless jobs", "2026-10-15",
                                     "Pages the nightly agents task wrote through the four Foundry agents, every sentence verified."),
+    "foundry_quality_pages": _dated(23, "23", _EVAL, "2026-10-15", "Real pages the quality evaluators graded in that run."),
+    "foundry_groundedness_misses": _dated(1, "1", _EVAL, "2026-10-15",
+                                          "Of those pages, the ones whose groundedness grade failed. Relevance, coherence, fluency and the four "
+                                          "content harms passed on every page."),
 }
 
 

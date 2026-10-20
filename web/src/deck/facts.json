@@ -820,6 +820,13 @@
    "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
    "value": 26
   },
+  "app_model_date": {
+   "date": "2026-10-13",
+   "display": "Oct 13",
+   "note": "The day of that benchmark run.",
+   "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
+   "value": "2026-10-13"
+  },
   "app_model_gave_up_passed": {
    "date": "2026-10-13",
    "display": "1",
@@ -873,12 +880,26 @@
    "source": "docs/limits.md, row dated 2026-10-15, Foundry guardrails",
    "value": 38
   },
+  "foundry_groundedness_misses": {
+   "date": "2026-10-15",
+   "display": "1",
+   "note": "Of those pages, the ones whose groundedness grade failed. Relevance, coherence, fluency and the four content harms passed on every page.",
+   "source": "README.md, the Foundry evaluation paragraph: the first full run, agent version 3",
+   "value": 1
+  },
   "foundry_nightly_pages": {
    "date": "2026-10-15",
    "display": "20",
    "note": "Pages the nightly agents task wrote through the four Foundry agents, every sentence verified.",
    "source": "docs/limits.md, row dated 2026-10-15, Databricks serverless jobs",
    "value": 20
+  },
+  "foundry_quality_pages": {
+   "date": "2026-10-15",
+   "display": "23",
+   "note": "Real pages the quality evaluators graded in that run.",
+   "source": "README.md, the Foundry evaluation paragraph: the first full run, agent version 3",
+   "value": 23
   },
   "foundry_refusal_s": {
    "date": "2026-10-15",
@@ -908,6 +929,13 @@
    "source": "evals/results/2026-10-19T213612-genie-eval.json",
    "value": 20
   },
+  "genie_benchmark_date": {
+   "date": "2026-10-19",
+   "display": "Oct 19",
+   "note": "The day of the Genie run in genie_benchmark.",
+   "source": "evals/results/2026-10-19T213612-genie-eval.json",
+   "value": "2026-10-19"
+  },
   "nightly_parity_drift": {
    "date": "2026-10-19",
    "display": "0",
@@ -915,12 +943,26 @@
    "source": "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19",
    "value": 0
   },
+  "nightly_parity_from": {
+   "date": "2026-10-19",
+   "display": "Oct 15",
+   "note": "The day of the first scheduled run counted in nightly_parity_runs.",
+   "source": "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19",
+   "value": "2026-10-15"
+  },
   "nightly_parity_runs": {
    "date": "2026-10-19",
    "display": "5",
    "note": "The scheduled 6 am runs on Oct 15 to 19, all green. The same query counted 9 runs since Oct 14, which adds three one-time runs on Oct 14 and one manual run on Oct 19.",
    "source": "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19",
    "value": 5
+  },
+  "nightly_parity_to": {
+   "date": "2026-10-19",
+   "display": "Oct 19",
+   "note": "The day of the last scheduled run counted in nightly_parity_runs.",
+   "source": "aa_demo.ops.kpi_parity on Databricks, queried 2026-10-19",
+   "value": "2026-10-19"
   },
   "parity_red": {
    "date": "2026-10-12",

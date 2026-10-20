@@ -138,7 +138,7 @@ export const slides: Slide[] = [
   {
     id: "checked", part: "built", kind: "animated", title: "How an answer gets checked", min: 2,
     asset: "02-answer-checked-animated.html", thumb: "export/02-answer-checked.png",
-    note: "Step through how an answer gets checked. Then say the benchmark: Genie alone scored {genie_benchmark} in one run, after five questions named their columns.",
+    note: "Step through how an answer gets checked. Then say the benchmark: Genie alone scored {genie_benchmark} in one run on {genie_benchmark_date}, after five questions named their columns.",
   },
   {
     id: "riffle-opener", part: "built", kind: "live", title: "Pages wait for a person to decide", min: 0.25,
@@ -183,10 +183,10 @@ export const slides: Slide[] = [
     native: {
       layout: "tiles",
       tiles: [
-        { head: "The App's own model", body: "In one benchmark run, Qwen3-Next got {app_model_right} of {app_model_questions} right, {app_model_partly} partly right and {app_model_wrong} wrong. Answers took {app_answer_median_s} seconds at the median and {app_answer_max_s} at the slowest." },
-        { head: "What the verifier missed", body: "{app_model_gave_up_passed} answer gave up and still passed, because it had no numbers to check." },
-        { head: "Genie alone", body: "{genie_benchmark} in one run, after five questions were reworded to name their columns. Two earlier runs that day scored lower." },
-        { head: "The nightly check", body: "{nightly_parity_runs} scheduled runs compared the metric view with a SQL copy of the Power BI measure, for {twins_checked} of the {kpis} numbers. They found {nightly_parity_drift} differences." },
+        { head: "The App's own model", body: "In one benchmark run on {app_model_date}, Qwen3-Next got {app_model_right} of {app_model_questions} right, {app_model_partly} partly right and {app_model_wrong} wrong. Answers took {app_answer_median_s} seconds at the median and {app_answer_max_s} at the slowest." },
+        { head: "What the verifier missed", body: "In the {app_model_date} run, {app_model_gave_up_passed} answer that gave up still passed the verifier, because it had no numbers to check." },
+        { head: "Genie alone", body: "It scored {genie_benchmark} in one run on {genie_benchmark_date}, after five questions were reworded to name their columns. Two earlier runs that day scored lower." },
+        { head: "The nightly check", body: "From {nightly_parity_from} to {nightly_parity_to}, {nightly_parity_runs} scheduled runs compared the metric view with a SQL copy of the Power BI measure, for {twins_checked} of the {kpis} numbers. They found {nightly_parity_drift} differences." },
       ],
     },
     note: "Say the misses plainly, including the answer that gave up and still passed. Say Genie's score as one run on one day.",
@@ -346,7 +346,7 @@ export const slides: Slide[] = [
       layout: "tiles",
       tiles: [
         { head: "One nightly run", body: "The four Foundry writers wrote {foundry_nightly_pages} pages, and the verifier checked every sentence." },
-        { head: "Quality", body: "Every normal page passed relevance, coherence, fluency and the content harm checks." },
+        { head: "Quality", body: "Every normal page passed relevance, coherence, fluency and the content harm checks. Groundedness failed on {foundry_groundedness_misses} of the {foundry_quality_pages} pages." },
         { head: "The prompt shield", body: "It refused {foundry_shield_refused} of {foundry_shield_pages} normal pages in the first runs. Moving the rules into the agents fixed it." },
         { head: "The indirect attack check", body: "It flagged the planted instruction, and also {foundry_attack_false_flags} of {foundry_attack_notes} normal CRM correction notes." },
         { head: "Speed", body: "A clean page took {foundry_clean_page_s} seconds. The guardrail refused a jailbreak at the prompt in {foundry_refusal_s} seconds." },

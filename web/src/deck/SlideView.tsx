@@ -1,6 +1,6 @@
 // One slide on the 1280 by 720 stage, with a small eyebrow naming its part at the right end of the logo band. An image
-// slide is its PNG. A live slide is its thumb with the hairline page in a frame on top, shown once the page has loaded,
-// so its motion starts on arrival. An animated slide is its thumb with the diagram's motion page in a frame on top,
+// slide is its PNG. A live slide is its thumb with the hairline page in a frame on top, shown once the page has loaded
+// (without its live readout), so its motion starts on arrival. An animated slide is its thumb with the diagram's motion page in a frame on top,
 // hidden until the page's controller is ready; then the frame switches to embed mode (only the figure, fitted to the
 // frame), gets Home or End (arrivalKey), and shows. A frame that never gets ready, slow or blocked, leaves the thumb, and
 // the deck counts it as zero steps. A frame never takes the pointer or the focus, so the deck keeps every key press, and
@@ -13,10 +13,15 @@ import { MONO, MUTED, NativeSlide } from "./layouts";
 
 const POLL_MS = 50;
 
-/** Whether a live frame shows its hairline page: a blocked frame cannot be read, and a failed one holds another page. */
-function pageShown(f: HTMLIFrameElement): boolean {
+/** Whether a live frame shows its hairline page, which then loses its live readout (#read), as the thumb under it does.
+ * A blocked frame cannot be read, and a failed one holds another page: both keep the thumb. The page opened on its own
+ * keeps its readout. */
+function showPage(f: HTMLIFrameElement): boolean {
   try {
-    return !!f.contentDocument?.querySelector(".frame");
+    const doc = f.contentDocument;
+    if (!doc?.querySelector(".frame")) return false;
+    doc.getElementById("read")?.style.setProperty("display", "none");
+    return true;
   } catch {
     return false;
   }
@@ -94,7 +99,7 @@ export function SlideView({ slide, backward, frameRef, facts }: {
           src={pages[slide.asset!]}
           title={title}
           tabIndex={-1}
-          onLoad={(e) => setShown(pageShown(e.currentTarget))}
+          onLoad={(e) => setShown(showPage(e.currentTarget))}
           className={`${cover} border-0`}
           style={{ ...frame, visibility: shown ? "visible" : "hidden" }}
         />
