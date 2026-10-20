@@ -60,31 +60,40 @@ async function mock(page: Page) {
     run_id: "r1", agent: "precall", agent_name: "Monday pre-call pack", scope: { manager: "Marcus Lee", month: "2026-09" }, status: status(), requested_by: "dana@example.com", model: "azure/gpt-5-mini",
     created_at: "2026-10-14T22:10:00", finished_at: done() ? "2026-10-14T22:12:00" : null, progress: progress(), items: polls === 0 ? [] : polls === 1 ? [items.i1] : list(), error: null,
   });
-  const header = () => ({ run_id: "r1", agent: "precall", agent_name: "Monday pre-call pack", scope: { manager: "Marcus Lee", month: "2026-09" }, status: status(), created_at: "2026-10-14T22:10:00", finished_at: done() ? "2026-10-14T22:12:00" : null, items: 2, needs_approval: drafts().length });
-  const catalog = () => ({
-    agents: [
-      { key: "precall", name: "Monday pre-call pack", summary: "", one_liner: "Writes one page for each of your agencies before Monday's calls, with an email ready to send.", cadence: "It runs every Monday at 6:00. You can also run it now.", steps: precallSteps,
-        reads: ["the month's numbers", "the agreements", "the CRM stand-in"], writes: ["an activity in the CRM stand-in", "an email draft"], approver: "the account manager", scope_kind: "manager",
-        last_run: started ? { run_id: "r1", status: status(), created_at: "2026-10-14T22:10:00" } : null, waiting: done() ? drafts().length : 0, running: started && !done() ? { run_id: "r1", progress: progress() } : null },
-      { key: "watch", name: "Agreement watch", summary: "", one_liner: "Checks every promise in the agreements against this month's numbers and drafts a note when one is close to its line.", cadence: "It runs every night.", steps: shortSteps,
-        reads: ["the agreements"], writes: ["an email draft"], approver: "the Sales Ops lead", scope_kind: "region", last_run: { run_id: "r0", status: "approved", created_at: "2026-10-13T06:10:00" }, waiting: 0, running: null },
-      { key: "prospect", name: "Prospect research", summary: "", one_liner: "Picks a route, shows where the money is, and adds what the news says about it.", cadence: "It runs when you ask for a market.", steps: shortSteps,
-        reads: ["the sales numbers", "public sources"], writes: ["a brief to read"], approver: "the account manager", scope_kind: "market", last_run: null, waiting: 0, running: null },
-      { key: "mismatch", name: "CRM check", summary: "", one_liner: "Finds opportunities where the CRM stand-in says one thing and the numbers say another, and drafts the fix.", cadence: "It runs every night.", steps: shortSteps,
-        reads: ["the CRM stand-in"], writes: ["a note in the CRM stand-in"], approver: "the account manager", scope_kind: "region", last_run: null, waiting: 0, running: null },
-    ],
-    managers: ["Dana Whitfield", "Marcus Lee", "Priya Raman", "Tom Okafor"],
-    markets: [{ market_id: 3, market: "CLT-LGA" }, { market_id: 6, market: "DFW-DCA" }],
-    crm_label: "the CRM stand-in",
-  });
-  const inbox = () => (done() && drafts().length ? { waiting: drafts().length, groups: [{ run_id: "r1", agent: "precall", agent_name: "Monday pre-call pack", scope: { manager: "Marcus Lee", month: "2026-09" }, created_at: "2026-10-14T22:10:00",
-    items: drafts().map((i) => ({ item_id: i.item_id, kind: i.kind, title: i.title, subtitle: i.subtitle, severity: i.severity, summary: i.summary, status: i.status })) }] } : { waiting: 0, groups: [] });
+  // The server lists the pages of a run in progress too, so the catalog's pages follow the run's items. Each page here has
+  // one version, the item itself.
+  const pageOf = (i: Record<string, unknown>) => {
+    const at = "2026-10-14T22:10:00";
+    const scope = { manager: "Marcus Lee", month: "2026-09" };
+    const decision = { status: i.status, decided_at: i.decided_at, decided_by: i.decided_by };
+    return {
+      item_id: i.item_id, kind: i.kind, title: i.title, subtitle: i.subtitle, severity: i.severity, summary: i.summary, ...decision,
+      run_id: "r1", created_at: at, scope, versions: [{ run_id: "r1", item_id: i.item_id, created_at: at, scope, ...decision }],
+    };
+  };
+  const catalog = () => {
+    const pages = started ? run().items.map(pageOf) : [];
+    return {
+      agents: [
+        { key: "precall", name: "Monday pre-call pack", summary: "", one_liner: "Writes one page for each of your agencies before Monday's calls, with an email ready to send.", cadence: "It runs every Monday at 6:00. You can also run it now.", steps: precallSteps,
+          reads: ["the month's numbers", "the agreements", "the CRM stand-in"], writes: ["an activity in the CRM stand-in", "an email draft"], approver: "the account manager", scope_kind: "manager",
+          last_run: started ? { run_id: "r1", status: status(), created_at: "2026-10-14T22:10:00" } : null, waiting: pages.filter((p) => p.status === "draft").length, running: started && !done() ? { run_id: "r1", progress: progress() } : null, pages },
+        { key: "watch", name: "Agreement watch", summary: "", one_liner: "Checks every promise in the agreements against this month's numbers and drafts a note when one is close to its line.", cadence: "It runs every night.", steps: shortSteps,
+          reads: ["the agreements"], writes: ["an email draft"], approver: "the Sales Ops lead", scope_kind: "region", last_run: { run_id: "r0", status: "approved", created_at: "2026-10-13T06:10:00" }, waiting: 0, running: null, pages: [] },
+        { key: "prospect", name: "Prospect research", summary: "", one_liner: "Picks a route, shows where the money is, and adds what the news says about it.", cadence: "It runs when you ask for a market.", steps: shortSteps,
+          reads: ["the sales numbers", "public sources"], writes: ["a brief to read"], approver: "the account manager", scope_kind: "market", last_run: null, waiting: 0, running: null, pages: [] },
+        { key: "mismatch", name: "CRM check", summary: "", one_liner: "Finds opportunities where the CRM stand-in says one thing and the numbers say another, and drafts the fix.", cadence: "It runs every night.", steps: shortSteps,
+          reads: ["the CRM stand-in"], writes: ["a note in the CRM stand-in"], approver: "the account manager", scope_kind: "region", last_run: null, waiting: 0, running: null, pages: [] },
+      ],
+      managers: ["Dana Whitfield", "Marcus Lee", "Priya Raman", "Tom Okafor"],
+      markets: [{ market_id: 3, market: "CLT-LGA" }, { market_id: 6, market: "DFW-DCA" }],
+      crm_label: "the CRM stand-in",
+    };
+  };
   await page.route((u) => u.pathname.startsWith("/api/agents") || u.pathname.startsWith("/api/crm"), (r: Route) => {
     const u = new URL(r.request().url());
     const m = r.request().method();
     if (u.pathname === "/api/agents") return r.fulfill({ json: catalog() });
-    if (u.pathname === "/api/agents/inbox") return r.fulfill({ json: inbox() });
-    if (u.pathname === "/api/agents/runs") return r.fulfill({ json: started ? [header()] : [] });
     if (u.pathname === "/api/agents/precall/run" && m === "POST") {
       started = r.request().postDataJSON();
       return r.fulfill({ json: run() });
@@ -105,12 +114,12 @@ async function mock(page: Page) {
   return { requested: () => started, summaryUrl: () => lastSummaryUrl };
 }
 
-test("Delegate opens on the inbox, runs an agent with live progress, opens a page beside the list, and records decisions", async ({ page }) => {
+test("Delegate opens on the overview, runs an agent with live progress, opens a page beside the list, and records decisions", async ({ page }) => {
   const m = await mock(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Delegate" }).click();
-  await expect(page.getByRole("heading", { name: "Waiting for you" })).toBeVisible();
-  await expect(page.getByText("Nothing is waiting for you. Pick an agent on the left and run it when you want a fresh look.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByText("Nothing needs a decision right now.")).toBeVisible();
   await expect(page.getByLabel("Ask a question")).toHaveCount(0);
   const nav = page.getByRole("navigation", { name: "Sidebar" });
   const precall = nav.getByRole("button", { name: /Monday pre-call pack/ });
@@ -126,7 +135,8 @@ test("Delegate opens on the inbox, runs an agent with live progress, opens a pag
   await expect(steps).toContainText("Approve");
   await expect(page.getByText("This agent has not run yet. Press Run now to start it.")).toBeVisible();
 
-  await page.getByLabel("Account manager").selectOption("Marcus Lee");
+  await page.getByRole("button", { name: /^Account manager:/ }).click();
+  await page.getByRole("menuitemradio", { name: "Marcus Lee" }).click();
   await page.getByRole("button", { name: "Run now" }).click();
   expect(m.requested()).toEqual({ scope: { manager: "Marcus Lee", month: "2026-09" } });
   await expect(page.getByText(/^Started\./)).toBeVisible();
