@@ -48,11 +48,14 @@ function Pill({ id, reduced }: { id: string; reduced: boolean | null }) {
   return <motion.span layoutId={id} aria-hidden="true" className="absolute inset-0 -z-10 rounded-md bg-white shadow-sm" transition={reduced ? { duration: 0 } : SPRING} />;
 }
 
-/** The part of the sidebar that belongs to one mode crossfades when the mode changes. */
-function Pane({ k, children }: { k: string; children: React.ReactNode }) {
+/** The part of the sidebar that belongs to one mode crossfades when the mode changes. It scrolls inside its own box, so in a short
+ * window its rows never run over the rows under it (the way back, Present, who is signed in). The narrow rail hides the bar,
+ * because a bar would take a third of its width. */
+function Pane({ k, children, rail }: { k: string; children: React.ReactNode; rail?: boolean }) {
   return (
     <AnimatePresence mode="wait" initial={false}>
-      <motion.div key={k} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.14 }} className="flex min-h-0 flex-1 flex-col gap-1">
+      <motion.div key={k} data-pane initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.14 }}
+        className={`flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto ${rail ? "[scrollbar-width:none]" : ""}`}>
         {children}
       </motion.div>
     </AnimatePresence>
@@ -80,7 +83,7 @@ export function Sidebar({ collapsed, onToggle, conversations, activeId, onSelect
               </Tip>
             ))}
           </div>
-          <Pane k={mode}>
+          <Pane k={mode} rail>
             {mode === "ask" ? (
               <div className="flex flex-col items-center gap-1.5">
                 <Tip label={copy.newChat}><button type="button" onClick={onNew} aria-label={copy.newChat} className="press flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white text-ink transition-colors hover:border-blue hover:text-blue"><Plus /></button></Tip>

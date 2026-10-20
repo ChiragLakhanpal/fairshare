@@ -238,6 +238,16 @@ export function liveDrift(slides: Slide[], path: PathName, id: string, arrivedMi
   return drift(slides, path, id, arrivedMin) + Math.max(0, nowMin - arrivedMin - (s ? minutes(s, path) : 0));
 }
 
+/** How far behind plan the talk may get, in seconds, before the notes window's drift line turns red. A few seconds behind is
+ * normal, and a line that is red from the first second stops meaning anything. */
+export const RED_AFTER_SEC = 30;
+
+/** Whether a drift, in minutes, is far enough behind plan for the drift line to turn red. It rounds to the second, as the
+ * line does. On time and ahead are never red. */
+export function driftIsRed(driftMin: number): boolean {
+  return Math.round(driftMin * 60) >= RED_AFTER_SEC;
+}
+
 /** When the talk started, for a clock that starts on the first move: that move's time, dated back by the planned start of
  * the slide it lands on, because the talk began before it (the title's half minute, on both paths). A talk on plan then
  * reads on time from its first move. A backup slide has no planned time, so the clock starts at the move itself. */

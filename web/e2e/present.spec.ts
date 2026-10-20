@@ -287,3 +287,69 @@ test("the part label sits on an ordinary slide and stays off the two stills", as
   await expect(page.locator('[data-slide="precall-still"]')).toBeVisible();
   await expect(label("precall-still", "Backup")).toHaveCount(0);
 });
+
+// The notes window pings the warehouse when it opens and every eight minutes, and a failed ping used to say nothing. Its
+// timers are fake here, so the test can make eight minutes pass; the window is opened on its own, which it allows.
+test("the notes window says when the warehouse last answered, and says so when a ping fails", async ({ context }) => {
+  let down = false;
+  await context.route("**/api/agencies", (r) => (down ? r.fulfill({ status: 500, json: { message: "down" } }) : r.fulfill({ json: [] })));
+  const notes = await context.newPage();
+  await notes.clock.install();
+  await notes.goto("/present?notes");
+  const line = notes.getByRole("status").filter({ hasText: /warehouse/i });
+  await expect(line).toHaveText(/^The warehouse is awake\. It last answered at \d{1,2}:\d{2} [AP]M\.$/);
+  const first = (await line.textContent())!;
+  down = true;
+  await notes.clock.fastForward("08:01"); // the eight-minute ping fires and fails
+  await expect(line).toHaveText(/^The last ping failed\. The warehouse last answered at \d{1,2}:\d{2} [AP]M\.$/);
+  await expect(line).toHaveClass(/text-red/);
+  down = false;
+  await notes.clock.fastForward("08:01");
+  await expect(line).toHaveText(/^The warehouse is awake\. It last answered at \d{1,2}:\d{2} [AP]M\.$/);
+  expect(await line.textContent(), "the second good ping is a later one").not.toBe(first);
+});
+
+test("a window whose first ping fails says the warehouse has not answered", async ({ context }) => {
+  await context.route("**/api/agencies", (r) => r.fulfill({ status: 500, json: { message: "down" } }));
+  const notes = await context.newPage();
+  await notes.goto("/present?notes");
+  await expect(notes.getByRole("status").filter({ hasText: /warehouse/i })).toHaveText("The warehouse has not answered yet.");
+});
+
+// The mode Pane holds the chats or the agent list; the way back, Present and the signed-in line sit under it. In a short window
+// the Pane scrolls inside its own box, so no row runs over the rows under it, with the sidebar open or collapsed. 600 is a
+// laptop window with its toolbars; 400 makes even the collapsed rail overflow.
+for (const height of [600, 400]) {
+  for (const collapsed of [false, true]) {
+    test(`at 1280 by ${height} the sidebar's agent list scrolls in its pane and the Present row stays clear, sidebar ${collapsed ? "collapsed" : "open"}`, async ({ page, context }) => {
+      const first = catalog.agents[0];
+      const four = [["precall", "Monday pre-call pack"], ["watch", "Agreement watch"], ["prospect", "Prospect research"], ["mismatch", "CRM check"]]
+        .map(([key, name]) => ({ ...first, key, name }));
+      await mockApp(context);
+      await context.route("**/api/agents", (r) => r.fulfill({ json: { ...catalog, agents: four } }));
+      await page.setViewportSize({ width: 1280, height });
+      await page.addInitScript(([c]) => {
+        localStorage.setItem("fairshare.sidebar", c);
+        localStorage.setItem("fairshare.mode", '"delegate"');
+        sessionStorage.setItem("fairshare.deck.return", "ask"); // the way back shows
+      }, [String(collapsed)]);
+      await page.goto("/");
+      const pane = page.locator("nav [data-pane]");
+      await expect(pane).toBeVisible();
+      await expect(pane.getByRole("button", { name: /CRM check/ })).toHaveCount(1);
+      const box = async (l: Locator) => (await l.boundingBox())!;
+      const p = await box(pane);
+      const way = await box(page.getByRole("link", { name: "Back to the deck" }));
+      const present = await box(page.getByRole("link", { name: "Present" }));
+      expect(await pane.evaluate((el) => getComputedStyle(el).overflowY), "the pane scrolls").toBe("auto");
+      expect(p.y + p.height, "the pane ends above the way back").toBeLessThanOrEqual(way.y + 0.5);
+      expect(way.y + way.height, "the way back ends above Present").toBeLessThanOrEqual(present.y + 0.5);
+      expect(present.y + present.height, "Present is on the screen").toBeLessThanOrEqual(height);
+      // the last agent is inside the pane's box once scrolled to, and never down on the rows below it
+      const last = pane.getByRole("button", { name: /CRM check/ });
+      await last.scrollIntoViewIfNeeded();
+      const l = await box(last);
+      expect(l.y >= p.y - 0.5 && l.y + l.height <= p.y + p.height + 0.5, `the last agent ${JSON.stringify(l)} is inside the pane ${JSON.stringify(p)}`).toBe(true);
+    });
+  }
+}

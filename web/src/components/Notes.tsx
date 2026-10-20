@@ -5,7 +5,7 @@
 // the screen and the next one (native and image slides drawn small, live and animated ones as their thumbs), the note in
 // large type, the talk time with the drift and the checkpoints, and the outline of every slide, backup included. It also
 // calls api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL warehouse
-// awake, because the warehouse stops after ten idle minutes.
+// awake, because the warehouse stops after ten idle minutes. Under the demo buttons it says when the last ping got through.
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { images } from "../deck/assets";
@@ -14,7 +14,7 @@ import { NativeSlide } from "../deck/layouts";
 import { slides } from "../deck/slides";
 import { api } from "../lib/api";
 import {
-  blurAfterClick, CHANNEL, checkpointPlan, clock, fill, fromHash, keyAction, KEYS, liveDrift, move, onPath, PARTS, plannedStart,
+  blurAfterClick, CHANNEL, checkpointPlan, clock, driftIsRed, fill, fromHash, keyAction, KEYS, liveDrift, move, onPath, PARTS, plannedStart,
   type Msg, type Part, type PathName, type Slide,
 } from "../lib/deck";
 import { Check } from "./Icons";
@@ -25,6 +25,16 @@ const ORDER = Object.keys(PARTS) as Part[];
 
 /** What the deck last posted, and when its slide arrived here (the drift is measured from the arrival). */
 type View = { id: string; path: PathName; startedAt: number | null; arrivedAt: number };
+
+/** The keep-warm ping: when one last got through, and whether the latest one failed. */
+type Warm = { at: number | null; missed: boolean };
+
+const clockTime = (t: number) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+function warmLine({ at, missed }: Warm): string {
+  if (missed) return copy.notesWarmMissed(at === null ? null : clockTime(at));
+  return at === null ? copy.notesWarmWaking : copy.notesWarm(clockTime(at));
+}
 
 function savedPath(): PathName {
   try {
@@ -38,6 +48,7 @@ export function Notes() {
   // until the deck answers: the slide in this window's hash and the path saved in this browser
   const [view, setView] = useState<View>(() => ({ id: fromHash(slides, location.hash), path: savedPath(), startedAt: null, arrivedAt: Date.now() }));
   const [heard, setHeard] = useState(false);
+  const [warm, setWarm] = useState<Warm>({ at: null, missed: false });
   const channel = useRef<BroadcastChannel | null>(null);
   const slide = slides.find((s) => s.id === view.id) ?? slides[0];
   const nextId = move(slides, view.path, slide.id, 1);
@@ -80,7 +91,11 @@ export function Notes() {
   useEffect(blurAfterClick, []);
 
   useEffect(() => {
-    const ping = () => void api.agencies().catch(() => undefined); // only the query matters, not its rows
+    const ping = () =>
+      void api.agencies().then(
+        () => setWarm({ at: Date.now(), missed: false }), // only the query matters, not its rows
+        () => setWarm((w) => ({ ...w, missed: true })), // the next ping is eight minutes away, so the line says this one failed
+      );
     ping();
     const every = setInterval(ping, PING_MS);
     return () => clearInterval(every);
@@ -127,6 +142,7 @@ export function Notes() {
               {copy.openPrecall}
             </button>
           </div>
+          <p role="status" className={`mt-2.5 text-[13px] leading-snug ${warm.missed ? "font-semibold text-red" : "text-ink-2"}`}>{warmLine(warm)}</p>
         </section>
       </aside>
 
@@ -150,19 +166,19 @@ function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg)
   const backup = slide.part === "backup";
   const at = plannedStart(slides, path, slide.id);
   let line = copy.notesNotStarted;
-  let behind = false;
+  let late = false;
   if (startedAt !== null && backup) line = copy.notesNoPlan;
   else if (startedAt !== null) {
     const d = liveDrift(slides, path, slide.id, since(arrivedAt), elapsed);
     const sec = Math.round(d * 60);
-    behind = sec > 0;
+    late = driftIsRed(d);
     line = sec > 0 ? copy.notesBehind(clock(d)) : sec < 0 ? copy.notesAhead(clock(d)) : copy.notesOnTime;
   }
   return (
     <section>
       <h2 className="t-label">{copy.notesClock}</h2>
       <p className={`mt-1 text-[46px] font-semibold leading-none tracking-[-0.02em] tabular-nums ${startedAt === null ? "text-grey" : ""}`}>{clock(elapsed)}</p>
-      <p className={`mt-2 text-[17px] font-semibold ${behind ? "text-red" : "text-ink-2"}`}>{line}</p>
+      <p className={`mt-2 text-[17px] font-semibold ${late ? "text-red" : "text-ink-2"}`}>{line}</p>
       <h2 className="t-label mt-5">{copy.notesCheckpoints}</h2>
       <ul className="mt-1.5 flex flex-col gap-1 text-[15px]">
         {checkpointPlan(slides, path).map((c) => {

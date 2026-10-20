@@ -268,6 +268,10 @@ export const copy = {
   notesShort: "Short",
   notesReset: "Reset the clock",
   notesDemos: "Demos",
+  // the keep-warm ping: the SQL warehouse stops after ten idle minutes, so the window asks it a small question every eight
+  notesWarmWaking: "Waiting for the warehouse to answer.",
+  notesWarm: (t: string) => `The warehouse is awake. It last answered at ${t}.`,
+  notesWarmMissed: (t: string | null) => (t ? `The last ping failed. The warehouse last answered at ${t}.` : "The warehouse has not answered yet."),
   notesOutline: "Every slide",
   notesOffPath: "not on this path",
 };

@@ -223,3 +223,13 @@ describe("a table slide's keys", () => {
     expect(html).not.toContain("no_such_table");
   });
 });
+
+import { driftIsRed } from "./deck";
+
+describe("the drift line's colour", () => {
+  it("stays plain until the talk is 30 seconds behind plan, then turns red", () => {
+    expect([1, 5, 29].map((s) => driftIsRed(s / 60))).toEqual([false, false, false]);
+    expect([30, 31, 120].map((s) => driftIsRed(s / 60))).toEqual([true, true, true]);
+  });
+  it("is never red when the talk is on time or ahead", () => expect([driftIsRed(0), driftIsRed(-0.5), driftIsRed(-10)]).toEqual([false, false, false]));
+});
