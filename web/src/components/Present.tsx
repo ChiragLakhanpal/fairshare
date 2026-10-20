@@ -5,15 +5,15 @@
 // last step going forward or step 0 going back, and only then moves the deck. Under reduced motion the diagram shows whole
 // and counts as zero steps. The deck is the one source of truth for the notes window: it applies each message the notes
 // window sends as if it were pressed here, and posts its state on mount, after every move and after every message it
-// applies. The path (localStorage) and the time of the first move, which starts the clock (sessionStorage), outlive a
-// reload and a demo jump.
+// applies. The path (localStorage) and the start of the talk, set on the first move and dated back to the plan
+// (sessionStorage), outlive a reload and a demo jump.
 import { useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import facts from "../deck/facts.json";
 import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
-import { blurAfterClick, CHANNEL, destination, frameState, fromHash, keyAction, KEYS, pressTarget, sendKey, type Action, type Msg, type PathName } from "../lib/deck";
+import { blurAfterClick, CHANNEL, clockStart, destination, frameState, fromHash, keyAction, KEYS, pressTarget, sendKey, type Action, type Msg, type PathName } from "../lib/deck";
 import { Notes } from "./Notes";
 
 const fit = () => Math.min(innerWidth / 1280, innerHeight / 720);
@@ -56,16 +56,16 @@ function Deck() {
   const channel = useRef<BroadcastChannel | null>(null);
   const slide = slides.find((s) => s.id === id) ?? slides[0];
 
-  /** Shows another slide. The first move starts the clock. */
+  /** Shows another slide. The first move starts the clock, dated back by the planned start of the slide it lands on. */
   const go = (next: string) => {
     if (next === slide.id) return;
     history.replaceState(null, "", `#${next}`);
     setBackward(slides.findIndex((s) => s.id === next) < slides.indexOf(slide));
     setId(next);
     if (startedAt === null) {
-      const now = Date.now();
-      write(session, KEYS.started, String(now));
-      setStartedAt(now);
+      const start = clockStart(slides, path, next, Date.now());
+      write(session, KEYS.started, String(start));
+      setStartedAt(start);
     }
   };
 

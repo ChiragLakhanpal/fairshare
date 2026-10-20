@@ -163,3 +163,15 @@ describe("where the keys go, and the notes window's clock", () => {
     expect([clock(80 / 60), clock(-0.75), clock(35.25), clock(0), clock(59.6 / 60)]).toEqual(["1:20", "0:45", "35:15", "0:00", "1:00"]);
   });
 });
+
+import { clockStart } from "./deck";
+
+describe("the clock's start", () => {
+  it("dates the talk back by the planned start of the slide the first move lands on, on the path that is on", () => {
+    expect(clockStart(S, "full", "ask", 600000)).toBe(600000 - 0.5 * 60000);
+    expect(clockStart(S, "short", "ask", 600000)).toBe(600000 - 0.5 * 60000);
+    expect(clockStart(S, "short", "system", 600000)).toBe(600000 - 3 * 60000); // the short plan's start
+    expect(clockStart(S, "full", "system", 600000)).toBe(600000 - 5.5 * 60000);
+  });
+  it("starts at the move itself on a backup slide, which has no planned time", () => expect(clockStart(S, "full", "words", 600000)).toBe(600000));
+});

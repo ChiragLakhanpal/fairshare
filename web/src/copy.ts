@@ -252,7 +252,7 @@ export const copy = {
   notesNow: "On the screen",
   notesNext: "Next",
   notesLast: "Nothing comes after this slide.",
-  notesClock: "Time since the first move",
+  notesClock: "Talk time",
   notesNotStarted: "The clock starts on the first move.",
   notesBehind: (t: string) => `${t} behind`,
   notesAhead: (t: string) => `${t} ahead`,

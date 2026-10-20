@@ -3,9 +3,9 @@
 // posts. Every key, outline click, path switch, clock reset and demo request goes to the deck, which applies it as if it
 // were pressed there and posts its state back; this window never posts a state, so nothing echoes. It shows the slide on
 // the screen and the next one (native and image slides drawn small, live and animated ones as their thumbs), the note in
-// large type, the time since the first move with the drift and the checkpoints, and the outline of every slide, backup
-// included. It also calls api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps
-// the SQL warehouse awake, because the warehouse stops after ten idle minutes.
+// large type, the talk time with the drift and the checkpoints, and the outline of every slide, backup included. It also
+// calls api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL warehouse
+// awake, because the warehouse stops after ten idle minutes.
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { images } from "../deck/assets";
@@ -135,8 +135,9 @@ export function Notes() {
   );
 }
 
-/** The time since the first move, the drift, the checkpoints, the path switch and the reset. The time is worked out from
- * startedAt on every tick, never by counting ticks, because Chrome slows the timers of a hidden or covered window. */
+/** The talk time, the drift, the checkpoints, the path switch and the reset. The time is worked out from startedAt (which
+ * the deck sets on the first move, dated back to the plan) on every tick, never by counting ticks, because Chrome slows
+ * the timers of a hidden or covered window. */
 function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg) => void }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

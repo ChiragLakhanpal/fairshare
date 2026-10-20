@@ -78,3 +78,18 @@ test("keys the notes window sends in a burst all reach the deck", async ({ page,
   await expect(page).toHaveURL(/#query-opener$/);
   await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "query-opener");
 });
+
+test("the first move starts the clock on plan, so a talk on plan reads on time", async ({ page, context }) => {
+  await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
+  await page.goto("/present#title");
+  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
+  await expect(notes.getByText("The clock starts on the first move.")).toBeVisible();
+  const before = await page.evaluate(() => Date.now());
+  await page.keyboard.press("ArrowRight"); // the title's planned half minute is already behind the talk
+  const after = await page.evaluate(() => Date.now());
+  const started = Number(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt")));
+  expect(started).toBeGreaterThanOrEqual(before - 30_000);
+  expect(started).toBeLessThanOrEqual(after - 30_000);
+  await expect(notes.getByText("On time", { exact: true })).toBeVisible();
+});

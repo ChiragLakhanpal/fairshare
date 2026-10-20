@@ -192,8 +192,8 @@ function minutes(s: Slide, path: PathName): number {
   return s.part === "backup" ? 0 : path === "full" ? s.min : (s.short ?? 0);
 }
 
-/** The minute a slide should start, counted from the first move: the planned minutes of the path slides before it in the
- * deck. A slide off the path starts where the path would be; a backup slide comes after the whole path. */
+/** The minute a slide should start, counted from the start of the talk: the planned minutes of the path slides before it
+ * in the deck. A slide off the path starts where the path would be; a backup slide comes after the whole path. */
 export function plannedStart(slides: Slide[], path: PathName, id: string): number {
   const at = slides.findIndex((s) => s.id === id);
   return onPath(slides, path)
@@ -201,8 +201,8 @@ export function plannedStart(slides: Slide[], path: PathName, id: string): numbe
     .reduce((m, s) => m + minutes(s, path), 0);
 }
 
-/** How far behind plan the talk is on this slide, in minutes: the time since the first move less the slide's planned
- * start. Positive is behind, negative ahead. */
+/** How far behind plan the talk is on this slide, in minutes: the talk time on the clock less the slide's planned start.
+ * Positive is behind, negative ahead. */
 export function drift(slides: Slide[], path: PathName, id: string, elapsedMin: number): number {
   return elapsedMin - plannedStart(slides, path, id);
 }
@@ -214,6 +214,14 @@ export function drift(slides: Slide[], path: PathName, id: string, elapsedMin: n
 export function liveDrift(slides: Slide[], path: PathName, id: string, arrivedMin: number, nowMin: number): number {
   const s = slides.find((x) => x.id === id);
   return drift(slides, path, id, arrivedMin) + Math.max(0, nowMin - arrivedMin - (s ? minutes(s, path) : 0));
+}
+
+/** When the talk started, for a clock that starts on the first move: that move's time, dated back by the planned start of
+ * the slide it lands on, because the talk began before it (the title's half minute, on both paths). A talk on plan then
+ * reads on time from its first move. A backup slide has no planned time, so the clock starts at the move itself. */
+export function clockStart(slides: Slide[], path: PathName, id: string, now: number): number {
+  const s = slides.find((x) => x.id === id);
+  return s?.part === "backup" ? now : now - plannedStart(slides, path, id) * 60_000;
 }
 
 /** The clock's checkpoints (Global Constraints): a slide done by a minute, or a slide started by one. */
@@ -252,7 +260,7 @@ export type Msg =
   | { t: "hello" };
 
 /** Where the deck keeps what must outlive a demo jump or a reload: the slide to come back to (sessionStorage, Task 13),
- * when the first move started the clock (sessionStorage) and the path (localStorage). */
+ * when the talk started by the clock, set on the first move (sessionStorage, clockStart), and the path (localStorage). */
 export const KEYS = { ret: "fairshare.deck.return", started: "fairshare.deck.startedAt", path: "fairshare.deck.path" };
 
 /** After a click, the clicked button or link gives up the focus, so a Space press after it moves the deck once instead of
