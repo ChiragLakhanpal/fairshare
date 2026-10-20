@@ -1,9 +1,10 @@
 # Diagrams for the presentation
 
 American Airlines colors and fonts from the app's own theme, with the official AA logo in the corner of every image. Each
-diagram is a live HTML page, and every slide image is in `export/` (2560 by 1440, 16:9). Six of them also come as an animated
-page that steps forward one idea at a time. The deck at `/present` (the app's presentation mode, in `web/src/deck/`) shows
-the figures as slides and steps the animated pages with its arrow keys.
+diagram is a live HTML page, and every figure's slide image is in `export/` (2560 by 1440, 16:9). Six of them also come as an
+animated page that steps forward one idea at a time. The deck at `/present` (the app's presentation mode, in
+`web/src/deck/`) shows the figures as slides and steps the animated pages with its arrow keys. Two other PNGs sit in
+`export/`: the stills, which are screenshots of the running app, not figures (see "The two stills").
 
 ## In the order they could be shown
 
@@ -46,6 +47,33 @@ controller is ready, sets `data-embed` on the frame's `html` element, which hide
 fits the figure to the frame (`EMBED_CSS` in `src/aa.py`), then sends Home or End and the arrow keys to the figure. Which
 slide uses which page is in `web/src/deck/slides.ts`. An animated page has no PNG of its own: the static page's export is
 its thumbnail, which the deck shows until the frame is ready.
+
+## The two stills
+
+`export/ask-still.png` and `export/precall-still.png` are not built from HTML. They are screenshots of a good run on the
+Databricks App, kept for the two backup slides `ask-still` and `precall-still` (flagged `still: true` in
+`web/src/deck/slides.ts`, which draws no part label over them), for when a live demo stalls:
+
+- `ask-still.png`: the Harbor question answered in Ask, with every number checked.
+- `precall-still.png`: a pre-call page that the nightly job wrote, with the pack's list beside it.
+
+Each is 2560 by 1440, like the figures: a 1280 by 720 window at device scale 2, the size of the deck's stage. They show the
+signed-in line in the sidebar, as the room would see it. Retake one when the app, its copy or the data changes, or when a
+better run turns up:
+
+1. Pick a good run on the App, signed in. For Ask, ask "Why is Harbor Business Travel down in September?" until an answer
+   keeps all its sentences (no "I removed a sentence" note) with exact dollar figures, and check its numbers against
+   `web/src/deck/facts.json`. For the pre-call still, open Delegate's pre-call pack and pick a page the nightly job wrote
+   (its "Version of" line says so) whose paragraphs have every comma and period, and whose possessives keep their apostrophes.
+2. Frame it at 1280 by 720 and device scale 2: in Chrome's developer tools, switch on the device toolbar, choose Responsive,
+   set 1280 by 720 and a device pixel ratio of 2. Scroll so that no line sits half hidden under the Approve bar or the question
+   bar, and the list's last row is not cut. Keep the pointer off the numbers, so no tooltip shows.
+3. Capture the whole viewport ("Capture screenshot" in the developer tools' command menu) and save it over the file in
+   `export/`. A tool that caps screenshot size can take four overlapping tiles of the window instead, at native pixels, and
+   join them where they match exactly.
+4. Run `cd web && bun run test` (the asset check finds both files), `bun run build`, then compare each built copy with the
+   file (`cmp web/dist/assets/ask-still-*.png docs/diagrams/export/ask-still.png`, and the same for the pre-call one), deploy,
+   and look at both slides on the App.
 
 ## Presenting
 
