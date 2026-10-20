@@ -1,9 +1,14 @@
-"""The repo never calls the made-up seat data real, never says Power BI itself was checked, fair share has no wrong synonym, portable SQL never escapes a quote, and no $$ body holds a semicolon."""
+"""The repo never calls the made-up seat data real, never says Power BI itself was checked, fair share has no wrong synonym, portable SQL never escapes a quote, no $$ body holds a semicolon, and the nightly job cuts every SQL file where run.py does."""
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from fairshare import db  # noqa: E402
+
 REAL = re.compile(r"T-100 \(real\)|seat data is real|seats are BTS|real, public|public\s+airline\s+(seat\s+)?data|real seat data"
                   r"|BTS T-100 seats|BTS T-100 ·|BTS T-100 \+|seat share from BTS|\(BTS T-100|capacity \(T-100\)"
                   r"|BTS has not published|published BTS data|^Real: BTS", re.M)
@@ -67,3 +72,42 @@ def test_metric_view_body_has_no_semicolon():
         for body in re.finditer(r"\$\$(.*?)\$\$", text, re.S):
             found += [f"lakehouse/{path.name}:{text.count(chr(10), 0, i) + 1}" for i in range(*body.span(1)) if text[i] == ";"]
     assert not found, "semicolon inside a $$ body at " + ", ".join(found)
+
+
+# How the nightly job's SQL task cuts a file, read off the warehouse's query history (Oct 19 and 20, 2026); run.py cuts differently, in db.statements.
+# An apostrophe flips "inside quotes" wherever it sits in code, a line that starts with -- is left alone, a semicolon outside quotes cuts, and $$ means
+# nothing to it. Comment lines stay in the piece they sit in, and the warehouse rejects a piece made only of comments. This predicted all 48 statements
+# of the Oct 20 run exactly. Not seen yet: a backslash before an apostrophe, and a -- after code on the same line; both count as plain code here.
+def job_pieces(text):
+    """Every piece the job would send for one file, with the line of the semicolon that ended it (None for the last piece)."""
+    pieces, cur, quoted = [], "", False
+    for n, line in enumerate(text.splitlines(keepends=True), 1):
+        if not quoted and line.lstrip().startswith("--"):
+            cur += line
+            continue
+        for ch in line:
+            if ch == "'":
+                quoted = not quoted
+            if ch == ";" and not quoted:
+                pieces.append((n, cur))
+                cur = ""
+            else:
+                cur += ch
+    return pieces + [(None, cur)]
+
+
+def without_comments(piece):
+    return "\n".join(l for l in piece.splitlines() if not l.lstrip().startswith("--")).strip()
+
+
+def test_nightly_job_cuts_each_sql_file_where_run_py_does():
+    # Oct 20, 2026: the job cut 03_metric_view.sql at a semicolon in its YAML and run.py did not, so only the job failed. The two must cut every file the same way.
+    problems = []
+    for path in sorted((ROOT / "lakehouse").glob("0*.sql")):
+        pieces = job_pieces(path.read_text(encoding="utf-8"))
+        real = [(n, p) for n, p in pieces if p.strip()]  # what follows the last semicolon is usually just a newline
+        sent = [without_comments(p).rstrip(";").strip() for _, p in real if without_comments(p)]
+        problems += [f"lakehouse/{path.name}: the piece that ends {'at line ' + str(n) if n else 'the file'} holds only comments" for n, p in real if not without_comments(p)]
+        if sent != db.statements(path):
+            problems.append(f"lakehouse/{path.name}: the job sends {len(sent)} statements, run.py runs {len(db.statements(path))} (the job cuts after lines {[n for n, _ in pieces if n]})")
+    assert not problems, "\n".join(problems)
