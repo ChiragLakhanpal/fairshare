@@ -32,7 +32,7 @@ ROWS = [
     ("backstage", ("BEHIND THE", "SCREEN"), 304, [
         ("Router picks tools", None, ()), ("Genie runs the query", "fairshare sales metrics", (DBX,)),
         ("Model writes from rows", None, (DBX, AZ)), ("Unproven sentences cut", "verifier", ()),
-        ("Trace logged", "MLflow fairshare", (DBX,))]),
+        ("Trace on laptop runs", "MLflow fairshare", (DBX,))]),
     ("support", ("FOUNDATIONS",), 392, [
         ("Runs as the viewer", "Unity Catalog aa_demo", (DBX,)), ("Defined once", "gold.sales_metrics", (DBX,)),
         ("Clauses cite the page", None, ()), ("Numbers only from tools", None, ()), ("Tested on 20 questions", None, ())]),

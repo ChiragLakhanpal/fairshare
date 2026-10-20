@@ -108,14 +108,14 @@ PARTS = [  # bottom to top: (key, name, two sublabel lines, thickness, closed z)
     ("data", "Data", ("made-up seats · Dynamics 365 Sales (stand-in)", "4 agreements · Unity Catalog aa_demo"), 24, 0),
     ("defs", "Definitions", ("metric view gold.sales_metrics · 7 numbers", "6 of 7 checked nightly vs a SQL twin"), 12, 24),
     ("agents", "Agents", ("Genie space “fairshare sales metrics”", "Agent Framework · Qwen3-Next · Foundry writers"), 16, 36),
-    ("checks", "Checks", ("verifier on every sentence · a person approves", "MLflow traces on benchmark runs · Foundry content filter"), 12, 52),
+    ("checks", "Checks", ("verifier on every sentence · a person approves", "MLflow traces on laptop runs · Foundry content filter"), 12, 52),
     ("app", "The app", ("Databricks App “fairshare”", "AI/BI dashboard · Outlook drafts"), 10, 64),
 ]
 FOCUS = "checks"
 PLATFORMS = [("databricks", "Databricks"), ("azure", "AI Foundry"), ("microsoft", "Microsoft")]
 LIVES = {  # layer -> {platform: "run" | "stand-in"}
     "app": {"databricks": "run", "microsoft": "run"},          # Databricks App + AI/BI dashboard; Outlook drafts
-    "checks": {"databricks": "run", "azure": "run"},           # verifier in the app; Foundry content filter (MLflow traces run on benchmark runs, not in the App)
+    "checks": {"databricks": "run", "azure": "run"},           # verifier in the app; Foundry content filter (MLflow traces are kept on laptop runs, not in the App)
     "agents": {"databricks": "run", "azure": "run"},           # Genie and the harness; the four Foundry writers
     "defs": {"databricks": "run", "microsoft": "stand-in"},    # metric view; a SQL copy of each Power BI measure (Power BI itself does not run)
     "data": {"databricks": "run", "microsoft": "stand-in"},    # Unity Catalog; a CRM shaped like Dynamics 365 Sales
@@ -267,7 +267,7 @@ KEY_W = {RUN: 88, BUILT: 115, WAIT: 212}  # the legend's text widths at 13px Int
 AT_AA_FOCUS = "data"
 AT_AA = {  # layer -> (mark, piece), in the order they print
     "app": [(RUN, "Databricks App and dashboard"), (WAIT, "Teams through Copilot Studio"), (WAIT, "Entra ID sign-in")],
-    "checks": [(RUN, "Verifier in the Databricks App"), (RUN, "MLflow traces on benchmark runs")],
+    "checks": [(RUN, "Verifier in the Databricks App"), (RUN, "MLflow traces on laptop runs")],
     "agents": [(RUN, "Databricks Genie and the harness"), (RUN, "Foundry writers"), (BUILT, "Harness as a Foundry hosted agent")],
     "defs": [(RUN, "Databricks metric view")],
     "data": [(RUN, "Databricks Unity Catalog"), (WAIT, "Fabric and OneLake"), (WAIT, "Dataverse mirror")],
@@ -381,8 +381,8 @@ def check_at_aa(body: str):
         found = {k for k, p in pieces if name in p}
         assert found == {kind}, f"{name} should print under {MARKS[kind]!r} and nothing else; it prints under {sorted(found)}"
     assert all(any(k == RUN and "Databricks" in p for k, p in rows) for rows in AT_AA.values()), "Databricks runs under every layer"
-    # tracing: the App runs with it off, so no figure may show MLflow traces as running in the App; they run on the laptop's benchmark runs (01 says the same)
-    assert re.search(r'name:\s*FAIRSHARE_TRACES\s+value:\s*""', (root / "app.yaml").read_text(encoding="utf-8")), "the App traces now: 01 and 15 say benchmark runs only"
+    # tracing: the App runs with it off, so no figure may show MLflow traces as running in the App; they are kept on the laptop's runs (01 says the same)
+    assert re.search(r'name:\s*FAIRSHARE_TRACES\s+value:\s*""', (root / "app.yaml").read_text(encoding="utf-8")), "the App traces now: 01 and 15 say laptop runs only"
     # Foundry: the writers run in the nightly job's task, and the harness as a hosted agent is built (its host and its image); that it was never deployed no file can show
     assert re.search(r'parameters:\s*\["agents",\s*"foundry"', (root / "databricks.yml").read_text(encoding="utf-8")), "the nightly job no longer runs the Foundry writers"
     assert (root / "harness/foundry/host.py").exists() and (root / "harness/foundry/Dockerfile").exists(), "the Foundry hosted agent is not built"
