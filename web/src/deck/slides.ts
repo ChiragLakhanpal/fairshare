@@ -58,7 +58,7 @@ export const slides: Slide[] = [
         "The app matches every number to a query before you see it.",
       ],
     },
-    note: "Click Ask it live, click the box, Enter, talk through the steps. Click the share effect, {harbor_share_usd}. Fair share is made up. A removed sentence had a number no query returned. Past a minute, the still. Back: sidebar.",
+    note: "Click Ask it live, click the box, Enter, talk through the steps. Click the share effect, {harbor_share_usd}. Fair share's made up. If it removed a sentence, the model rounded a dollar figure. Past a minute, the still. Back: sidebar.",
   },
   {
     id: "director", part: "first", kind: "animated", title: "Sales director: a question in the Monday meeting", min: 1.25,
@@ -127,7 +127,7 @@ export const slides: Slide[] = [
   {
     id: "system", part: "built", kind: "animated", title: "The system", min: 2.25, short: 1.5,
     asset: "01-system-exploded-animated.html", thumb: "export/01-system-exploded.png",
-    note: "Five layers, one press each. The data's made up, Ask runs on Genie and Qwen3-Next, Delegate on Foundry writers. Blue is the checks: every number matched to a query, and a person approves what goes out.",
+    note: "Five layers, one press each. The data's made up, Ask runs on Genie and Qwen3-Next, Delegate on Foundry writers. Blue is the checks: every number matched to a query, a person approves what goes out, traces on benchmark runs.",
   },
   {
     id: "sieve-opener", part: "built", kind: "live", title: "Every number passes through the checks", min: 0.25,
@@ -241,12 +241,12 @@ export const slides: Slide[] = [
       layout: "statement",
       lines: [
         "Time today's work first: how long a pre-call pack takes, and how many share questions become tickets.",
-        "Put AA's own fair share into the metric view. It lives in one place, so that is one change.",
+        "Put AA's own seat shares into the one capacity table. Every number that uses fair share reads it, so that is one change.",
         "Connect AA's own agency sales, and match each number to the reports people use now.",
         "Give account managers a way to mark an answer as wrong, and read every one.",
       ],
     },
-    note: "First I'd time today's work, so there's a before. Then I'd swap AA's own fair share in for my made-up one, one change, connect AA's agency sales, and add a way to flag a wrong answer. Leave this up.",
+    note: "First I'd time today's work, so there's a before. Then I'd put AA's own seat shares in the one table fair share reads, connect AA's agency sales, and add a way to flag a wrong answer. Leave this up.",
   },
 
   // Backup, reached from the notes window's outline
@@ -356,18 +356,18 @@ export const slides: Slide[] = [
     note: "Who sees what, if it comes up. Every query runs with the viewer's own token, so you only see what you're allowed to. The writers get a fact sheet and no tools, and the app never sends anything itself.",
   },
   {
-    id: "foundry-eval", part: "backup", kind: "native", title: "Foundry's evaluators on the four writers", min: 0,
+    id: "foundry-eval", part: "backup", kind: "native", title: "Foundry's evaluators on the four writers: the {foundry_eval_date} runs", min: 0,
     native: {
       layout: "tiles",
       tiles: [
         { head: "One nightly run", body: "The four Foundry writers wrote {foundry_nightly_pages} pages, and the verifier checked every sentence." },
-        { head: "Quality", body: "Every normal page passed relevance, coherence, fluency and the content harm checks. Groundedness failed on {foundry_groundedness_misses} of the {foundry_quality_pages} pages." },
+        { head: "Quality", body: "Every normal page passed relevance, coherence, fluency and the content harm checks. Groundedness failed on {foundry_groundedness_misses} of the {foundry_quality_pages} normal pages." },
         { head: "The prompt shield", body: "It refused {foundry_shield_refused} of {foundry_shield_pages} normal pages in the first runs. Moving the rules into the agents fixed it." },
         { head: "The indirect attack check", body: "It flagged the planted instruction, and also {foundry_attack_false_flags} of {foundry_attack_notes} normal CRM correction notes." },
         { head: "Speed", body: "A clean page took {foundry_clean_page_s} seconds. The guardrail refused a jailbreak at the prompt in {foundry_refusal_s} seconds." },
       ],
     },
-    note: "How the writers were tested, if asked. Groundedness failed on {foundry_groundedness_misses} of {foundry_quality_pages} pages, the prompt shield refused {foundry_shield_refused} normal pages until I moved the rules into the agents, and the attack check flagged {foundry_attack_false_flags} normal notes too.",
+    note: "How the writers were tested, if asked. Groundedness failed on {foundry_groundedness_misses} of {foundry_quality_pages} normal pages, the prompt shield refused {foundry_shield_refused} normal pages until I moved the rules into the agents, and the attack check flagged {foundry_attack_false_flags} normal notes too.",
   },
   {
     id: "agents", part: "backup", kind: "native", title: "Four agents on one runtime", min: 0,

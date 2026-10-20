@@ -880,6 +880,13 @@
    "source": "docs/limits.md, row dated 2026-10-15, Foundry guardrails",
    "value": 38
   },
+  "foundry_eval_date": {
+   "date": "2026-10-15",
+   "display": "Oct 15",
+   "note": "The day of the Foundry evaluation runs behind the foundry_* numbers; docs/limits.md dates its Foundry rows the same day.",
+   "source": "README.md, the Foundry evaluation paragraph: the first full run, agent version 3",
+   "value": "2026-10-15"
+  },
   "foundry_groundedness_misses": {
    "date": "2026-10-15",
    "display": "1",

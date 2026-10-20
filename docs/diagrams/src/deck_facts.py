@@ -453,6 +453,8 @@ DATED: dict[str, dict] = {
     "app_model_date": _dated("2026-10-13", "Oct 13", _APP_RUN, "2026-10-13", "The day of that benchmark run."),
     "genie_benchmark_date": _dated("2026-10-19", "Oct 19", "evals/results/2026-10-19T213612-genie-eval.json", "2026-10-19",
                                    "The day of the Genie run in genie_benchmark."),
+    "foundry_eval_date": _dated("2026-10-15", "Oct 15", _EVAL, "2026-10-15",
+                                "The day of the Foundry evaluation runs behind the foundry_* numbers; docs/limits.md dates its Foundry rows the same day."),
     "parity_red": _dated(250, "250", "app/cache/kpi_parity.csv, the aa_share replay labeled v1 (retired), run 64fc8eecdd92", "2026-10-12",
                          "Agency-months where the retired passenger-based copy disagreed with the metric view."),
     "parity_rows": _dated(250, "250", "app/cache/kpi_parity.csv, the aa_share replay labeled v1 (retired), run 64fc8eecdd92", "2026-10-12",
