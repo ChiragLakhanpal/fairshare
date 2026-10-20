@@ -170,6 +170,14 @@ def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def motion_item(step: int, label: str, marks) -> str:
+    """One step of an animated figure: its marks in a single group that the controller reveals together. The label is what
+    the controller announces ("Step 2 of 7: ..."), so it says in plain words what the step shows."""
+    marks = list(marks)
+    assert marks, f"motion step {step} holds no marks"
+    return f'<g data-motion-item data-step="{step}" aria-label="{esc(label)}">\n          ' + "\n          ".join(marks) + "\n        </g>"
+
+
 # ---------------------------------------------------------------- brand and platform marks
 
 # The official American Airlines logo (web/public/aa-logo.svg, the same file the app ships) keeps its own colors, so

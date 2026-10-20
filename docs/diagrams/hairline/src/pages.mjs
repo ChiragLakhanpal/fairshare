@@ -15,7 +15,7 @@ const BRAND = execFileSync("python3", ["-c", "import aa; print(aa.brand(0, 0, 22
 const CUSTOM = {
   stack: ["stack.html", "Five layers under every answer. Point at one to lift it clear."],
   "flight-symbol": ["title-a-flight-symbol.html", "The Flight Symbol in line. Point at it and it turns and banks."],
-  airliner: ["title-b-airliner.html", "A narrow-body in flight. Point at it and it banks and pitches."],
+  airliner: ["title-b-airliner.html", "Fairshare: sales answers you can check"],
   seats: ["title-c-seats.html", "Fair share is AA's share of the seats on a route."],
 };
 const OPENERS = {

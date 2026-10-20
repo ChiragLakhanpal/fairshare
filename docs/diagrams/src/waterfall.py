@@ -1,11 +1,12 @@
 """08: why Harbor's September revenue moved, as a waterfall: last year's total, the three parts the SQL splits the
 change into (volume, mix, share), this year's total. The share bar is the focal bar.
 
-    .venv/bin/python docs/diagrams/src/waterfall.py   # writes docs/diagrams/08-why-it-moved.html
+    .venv/bin/python docs/diagrams/src/waterfall.py   # writes docs/diagrams/08-why-it-moved.html and 08-why-it-moved-animated.html
 
 Values come from ops.decomposition through deck_facts.py (whole dollars), shown in $ thousands to one decimal because the
 waterfall verifier reads each printed value as a plain number. scripts/verify-waterfall.py in the plugin checks conservation,
-geometry, carries, printed values and sign fills.
+geometry, carries, printed values and sign fills. The animated page brings the bars in left to right, each with the carry line into it;
+the title, the axes and the legend stay put, the callout comes in with the focal bar and the sum note with the last total.
 """
 from __future__ import annotations
 
@@ -41,7 +42,7 @@ def fmt(v, signed):
     return (("+" if v > 0 else "−") + s) if signed else s
 
 
-def build():
+def build(motion=False):
     prior, volume, mix, share, now, fair, delta = numbers()
     start, d_vol, d_mix, d_share, end = k1(prior), k1(volume), k1(mix), k1(share), k1(now)
     assert round(start + d_vol + d_mix + d_share, 1) == end, "rounded parts must still reconcile"
@@ -64,6 +65,13 @@ def build():
     out.append(f'<text x="{AXIS_X - 8}" y="{BASE + 4}" fill="{aa.MUTED}" font-size="11" font-family="{aa.MONO}" text-anchor="end">$0</text>')
     out.append(f'<line x1="{AXIS_X}" y1="{y(450):.2f}" x2="{AXIS_X}" y2="{BASE}" stroke="{INK_A(0.25)}" stroke-width="1"/>')
     out.append(f'<line x1="{AXIS_X}" y1="{BASE}" x2="{AXIS_R}" y2="{BASE}" stroke="{INK_A(0.25)}" stroke-width="1"/>')
+    # Every mark that moves is kept with its motion step (1 to 5, one per bar), in paint order. Static flattens them as they are;
+    # motion groups them, so each bar comes in with the carry line into it.
+    parts = []
+
+    def put(step, markup):
+        parts.append((step, markup))
+
     # carries first, so the bars paint over their ends
     running, levels = 0.0, []
     for role, v, *_ in bars:
@@ -73,7 +81,7 @@ def build():
     for i in range(len(bars) - 1):
         lvl = levels[i][1]
         x1, x2 = X0 + i * PITCH + BAR, X0 + (i + 1) * PITCH
-        out.append(f'<line x1="{x1}" y1="{y(lvl):.2f}" x2="{x2}" y2="{y(lvl):.2f}" stroke="{INK_A(0.55)}" stroke-width="1" data-carry="{lvl:.1f}"/>')
+        put(i + 2, f'<line x1="{x1}" y1="{y(lvl):.2f}" x2="{x2}" y2="{y(lvl):.2f}" stroke="{INK_A(0.55)}" stroke-width="1" data-carry="{lvl:.1f}"/>')
     for i, ((role, v, name, tag, focal), (before, after)) in enumerate(zip(bars, levels)):
         x, cx = X0 + i * PITCH, X0 + i * PITCH + BAR / 2
         lo, hi = (0.0, v) if role == "total" else (min(before, after), max(before, after))
@@ -91,41 +99,56 @@ def build():
         if focal:
             stroke = aa.ACCENT
         declared = f"{v:.1f}" if role == "total" else fmt(v, True).replace("−", "-")
-        out.append(f'<rect x="{x}" y="{top}" width="{BAR}" height="{h}" fill="{aa.PAPER}"/>')
-        out.append(f'<rect x="{x}" y="{top}" width="{BAR}" height="{h}" fill="{fill}" stroke="{stroke}" stroke-width="1" '
+        put(i + 1, f'<rect x="{x}" y="{top}" width="{BAR}" height="{h}" fill="{aa.PAPER}"/>')
+        put(i + 1, f'<rect x="{x}" y="{top}" width="{BAR}" height="{h}" fill="{fill}" stroke="{stroke}" stroke-width="1" '
                    f'data-role="{role}" data-value="{declared}" data-name="{name}"/>')
         if focal:
             # ponytail: the verifier knows only the shipped accent strokes, so the declared fill stays the hollow decrease
             # fill and the AA focal tint is laid over it
-            out.append(f'<rect x="{x}" y="{top}" width="{BAR}" height="{h}" fill="{FOCAL_TINT}"/>')
+            put(i + 1, f'<rect x="{x}" y="{top}" width="{BAR}" height="{h}" fill="{FOCAL_TINT}"/>')
         ly = bottom + 12 if (role == "delta" and v < 0) else top - 8
         weight = ' font-weight="600"' if focal else ""
-        out.append(f'<text x="{cx}" y="{ly:g}" fill="{aa.ACCENT if focal else aa.MUTED}" font-size="12" font-family="{aa.MONO}"{weight} '
+        put(i + 1, f'<text x="{cx}" y="{ly:g}" fill="{aa.ACCENT if focal else aa.MUTED}" font-size="12" font-family="{aa.MONO}"{weight} '
                    f'text-anchor="middle">{fmt(v, role == "delta")}</text>')
-        out.append(f'<text x="{cx}" y="{BASE + 28}" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}" text-anchor="middle">{name}</text>')
-        out.append(f'<text x="{cx}" y="{BASE + 48}" fill="{aa.ACCENT if focal else aa.MUTED}" font-size="12" font-family="{aa.MONO}" text-anchor="middle">{tag}</text>')
-    # the one callout, and the note that the parts add up
-    out.append(f'<text x="40" y="616" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">FOCAL BAR</text>')
-    out.append(f'<text x="144" y="616" fill="{aa.INK}" font-size="14" font-style="italic" font-family="{aa.SANS}">'
-               f'AA’s own seat changes would have predicted {money(fair)}, so the drop is not about AA’s seats.</text>')
-    out.append(aa.icon("databricks", 144, 630, 16))
-    out.append(f'<text x="168" y="643" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">volume + mix + share = {money(delta)}, the whole change, exactly · ops.decomposition</text>')
-    # legend strip
-    out.append(f'<line x1="40" y1="664" x2="1240" y2="664" stroke="{aa.RULE}" stroke-width="0.8"/>')
-    out.append(f'<text x="40" y="694" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">LEGEND</text>')
+        put(i + 1, f'<text x="{cx}" y="{BASE + 28}" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}" text-anchor="middle">{name}</text>')
+        put(i + 1, f'<text x="{cx}" y="{BASE + 48}" fill="{aa.ACCENT if focal else aa.MUTED}" font-size="12" font-family="{aa.MONO}" text-anchor="middle">{tag}</text>')
+    # the one callout comes in with the focal bar, and the note that the parts add up with the last total
+    focal_step = 1 + [b[4] for b in bars].index(True)
+    put(focal_step, f'<text x="40" y="616" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">FOCAL BAR</text>')
+    put(focal_step, f'<text x="144" y="616" fill="{aa.INK}" font-size="14" font-style="italic" font-family="{aa.SANS}">'
+                    f'The made-up seat shares would have predicted {money(fair)}, so the drop is not about seats.</text>')
+    put(len(bars), aa.icon("databricks", 144, 630, 16))
+    put(len(bars), f'<text x="168" y="643" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">volume + mix + share = {money(delta)}, the whole change, exactly · ops.decomposition</text>')
+    # legend strip, which never moves
+    legend = [f'<line x1="40" y1="664" x2="1240" y2="664" stroke="{aa.RULE}" stroke-width="0.8"/>',
+              f'<text x="40" y="694" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">LEGEND</text>']
     keys = [(INK_A(0.08), aa.INK, "Total"), (MUTED_TINT, aa.MUTED, "Increase"), ("#ffffff", aa.MUTED, "Decrease"), (FOCAL_TINT, aa.ACCENT, "Focal: AA’s share")]
     for i, (fill, stroke, text) in enumerate(keys):
         kx = 144 + i * 200
-        out.append(f'<rect x="{kx}" y="682" width="20" height="14" fill="{fill}" stroke="{stroke}" stroke-width="1"/>')
-        out.append(f'<text x="{kx + 28}" y="694" fill="{aa.INK}" font-size="11" font-family="{aa.SANS}">{text}</text>')
-    return "\n        ".join(out)
+        legend.append(f'<rect x="{kx}" y="682" width="20" height="14" fill="{fill}" stroke="{stroke}" stroke-width="1"/>')
+        legend.append(f'<text x="{kx + 28}" y="694" fill="{aa.INK}" font-size="11" font-family="{aa.SANS}">{text}</text>')
+    if motion:
+        up = lambda v: "added" if v > 0 else "took off"  # noqa: E731
+        words = [f"September 2025: Harbor's AA revenue is ${start:.1f}K",
+                 f"Volume: Harbor sold more travel, which {up(d_vol)} ${abs(d_vol):.1f}K",
+                 f"Mix: the route mix barely moved, which {up(d_mix)} ${abs(d_mix):.1f}K",
+                 f"Share: AA's share fell, which {up(d_share)} ${abs(d_share):.1f}K",
+                 f"September 2026: Harbor's AA revenue is ${end:.1f}K"]
+        assert len(words) == len(bars) and {n for n, _ in parts} == set(range(1, len(bars) + 1))
+        out += [aa.motion_item(n, w, [m for step, m in parts if step == n]) for n, w in enumerate(words, 1)]
+    else:
+        out += [m for _, m in parts]
+    return "\n        ".join(out + legend)
 
 
 TITLE = "Why a number moved"
+EYEBROW = "fairshare · the data"
 DESC = ("Waterfall of Harbor Business Travel's AA revenue from September 2025 to September 2026: more travel added revenue, "
         "the route mix barely moved, and AA's share inside its routes fell, which is the focal bar.")
 
 if __name__ == "__main__":
-    html = aa.page(slug="08-why-it-moved", title=TITLE, desc=DESC, eyebrow="fairshare · the data", body=build())
+    html = aa.page(slug="08-why-it-moved", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=build())
     (aa.OUT / "08-why-it-moved.html").write_text(html, encoding="utf-8")
-    print("wrote 08-why-it-moved.html")
+    html = aa.animated(slug="08-why-it-moved-animated", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=build(True), steps=5, css=aa.FADE_ONLY)  # one step per bar
+    (aa.OUT / "08-why-it-moved-animated.html").write_text(html, encoding="utf-8")
+    print("wrote 08-why-it-moved.html and 08-why-it-moved-animated.html")

@@ -1,11 +1,12 @@
 """04 and 05: two journeys as sequence diagrams, step by step, for the two people the director cares about most.
 
-    .venv/bin/python docs/diagrams/src/journeys.py   # writes docs/diagrams/04-journey-sales-director.html and 05-journey-account-manager.html
+    .venv/bin/python docs/diagrams/src/journeys.py   # writes 04-journey-sales-director.html and 05-journey-account-manager.html, each with an -animated.html twin
 
 diagram-design's sequence grammar (references/type-sequence.md): actors in a row, dashed lifelines, time flows down,
 calls solid with a filled head, replies dashed with a filled head, a one-way notice dashed with an open head, self
 messages as U loops, at most one combined fragment, two accent elements. A label sits in one gap between two lifelines,
-never over a third; builder asserts keep every label mask clear of every lifeline.
+never over a third; builder asserts keep every label mask clear of every lifeline. The animated twins keep the actors, the lifelines and the
+legend in place and bring in the messages a few at a time: each diagram's `groups` lists the motion steps, a label and the step indexes it shows.
 
 The numbers on 04 come from src/deck_facts.py (Harbor Business Travel, Sep 2026 vs Sep 2025, ops.decomposition):
 harbor_volume_usd, harbor_mix_usd and harbor_share_usd, shown in $ thousands to one decimal.
@@ -20,6 +21,8 @@ BOX_TOP, BOX_H = 72, 72
 LOOP = 16  # a self message's U loop
 LIFE_TOP = BOX_TOP + BOX_H
 NOTE = "Today's process is how the role was described in round one."
+EYEBROW = "fairshare · step by step"
+NOTE_CSS = "    .note { margin-top: 1rem; font-size: 0.875rem; line-height: 1.5; color: var(--color-muted); }\n"
 
 # Tabler generics from diagram-design's references/primitive-icons.md (MIT), stroked like the rest of the skill
 TABLER = {
@@ -77,6 +80,16 @@ DIAGRAMS = [
             ("call", "dir", "app", f"clicks {kilo('harbor_share_usd')}: sees its rows", False),
         ],
         bars=[("app", 0, 10), ("genie", 1, 4), ("sql", 2, 3), ("sql", 5, 6), ("model", 7, 8)],
+        groups=[  # (what the controller announces, the indexes in `steps` it brings in)
+            ("The sales director asks why Harbor is down in September", [0]),
+            ("The app asks Genie as the viewer, and Genie runs the query and sends back the rows and the SQL", [1, 2, 3, 4]),
+            (f"The app runs explain_change on ops.decomposition and gets volume {kilo('harbor_volume_usd')}, "
+             f"mix {kilo('harbor_mix_usd')} and share {kilo('harbor_share_usd')}", [5, 6]),
+            ("The model writes a draft from those rows only", [7, 8]),
+            ("The verifier checks every number against the rows and cuts any sentence that has no match", [9]),
+            ("The answer goes back to the director with its query attached", [10]),
+            (f"The director clicks {kilo('harbor_share_usd')} and sees its rows", [11]),
+        ],
         legend=[("call", "Request"), ("ret", "Reply"), ("accent", "Checked, then answered")],
         payoff="Today the same question becomes a ticket to sales BI.",
     ),
@@ -112,6 +125,16 @@ DIAGRAMS = [
             ("end", None, None, "", False),
         ],
         bars=[("rt", 0, 5), ("writer", 2, 3), ("rt", 6, 13)],
+        groups=[
+            ("The nightly job asks the runtime to write one page per agency", [0]),
+            ("The runtime pulls the numbers, the reasons, the agreement and the open deals with fixed SQL", [1]),
+            ("The AI Foundry writer drafts the page and the email from facts only, with no tools", [2, 3]),
+            ("The verifier checks every number against the rows", [4]),
+            ("The page waits and the older version is retired. On Monday the account manager opens Delegate "
+             "and sees the numbers, the reason, the cited clause and the email", [5, 6, 7]),
+            ("If the account manager approves, the edits are checked again, the activity is logged and the email draft opens", [8, 9, 10, 11]),
+            ("If the account manager rejects, the page is closed and nothing is logged or sent", [12, 13, 14]),
+        ],
         legend=[("call", "Request"), ("ret", "Reply"), ("async", "Notice, no reply"), ("accent", "Checked, then approved")],
         payoff="Today the account manager builds this by hand before every call.",
     ),
@@ -152,7 +175,7 @@ def actor_box(cx, w, icons, name, subs):
     return out
 
 
-def build(d) -> str:
+def build(d, motion=False) -> str:
     xs = {a[0]: a[1] for a in d["actors"]}
     lifelines = sorted(xs.values())
     row = d["row"]
@@ -171,15 +194,16 @@ def build(d) -> str:
 
     # pass 1: y for every step
     y, ys, frame = LIFE_TOP + 12, [], None
-    for kind, a, b, s, hot in d["steps"]:
+    for i, (kind, a, b, s, hot) in enumerate(d["steps"]):
         if kind == "alt":  # the frame starts 8px under the last message; its guard sits under the tab
-            frame = dict(top=y + 8, lanes=a, guards=[(y + 40, s)], who=set())  # guard 16px under the 16px tab
+            frame = dict(top=y + 8, lanes=a, guards=[(y + 40, s)], who=set(), at=[i])  # guard 16px under the 16px tab
             y += 40
             ys.append(None)
             continue
         if kind == "else":  # divider 16px clear of the message above, the second guard 20px under it
             frame["divider"] = y + 16
             frame["guards"].append((y + 36, s))
+            frame["at"].append(i)  # [alt step, else step]: the frame, tab and first guard belong to the first, the divider and second guard to the second
             y += 36
             ys.append(None)
             continue
@@ -206,6 +230,10 @@ def build(d) -> str:
     for x in lifelines:
         out.append(f'<line x1="{x}" y1="{LIFE_TOP}" x2="{x}" y2="{life_bottom}" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="3,3"/>')
 
+    # Every mark that belongs to one of the figure's steps is kept with that step's index, in paint order: the frame, the activation
+    # bars, the message lines, then their labels. Static flattens them as they are; motion gathers each group's marks into one item.
+    marks = {"frame": [], "bars": [], "lines": [], "labels": []}
+
     # the ALT frame paints before its messages
     if frame:
         lo, hi = sorted((xs[frame["lanes"][0]], xs[frame["lanes"][1]]))
@@ -215,47 +243,54 @@ def build(d) -> str:
         fw = hi + 28 - fx
         # the frame may only cover lifelines that have a message inside it (type-sequence.md anti-pattern)
         assert all(x in {xs[k] for k in frame["who"]} for x in lifelines if lo <= x <= hi), "frame covers an idle lifeline"
-        out.append(f'<rect x="{fx}" y="{frame["top"]}" width="{fw}" height="{frame["bottom"] - frame["top"]}" rx="4" fill="rgba(54,73,90,0.02)" stroke="rgba(54,73,90,0.22)" stroke-width="1"/>')
-        out.append(f'<rect x="{fx}" y="{frame["top"]}" width="40" height="16" rx="2" fill="{aa.PAPER}" stroke="rgba(54,73,90,0.22)" stroke-width="1"/>')
-        out.append(text(fx + 20, frame["top"] + 12, "ALT", size=8, fill=aa.MUTED, family=aa.MONO, anchor="middle", spacing="0.12em"))
-        out.append(f'<line x1="{fx + 8}" y1="{frame["divider"]}" x2="{fx + fw - 8}" y2="{frame["divider"]}" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="4,3"/>')
-        for gy, g in frame["guards"]:
-            out.append(text(fx + 12, gy, g, size=12, fill=aa.MUTED, family=aa.MONO))
+        alt_at, else_at = frame["at"]
+        marks["frame"].append((alt_at, f'<rect x="{fx}" y="{frame["top"]}" width="{fw}" height="{frame["bottom"] - frame["top"]}" rx="4" fill="rgba(54,73,90,0.02)" stroke="rgba(54,73,90,0.22)" stroke-width="1"/>'))
+        marks["frame"].append((alt_at, f'<rect x="{fx}" y="{frame["top"]}" width="40" height="16" rx="2" fill="{aa.PAPER}" stroke="rgba(54,73,90,0.22)" stroke-width="1"/>'))
+        marks["frame"].append((alt_at, text(fx + 20, frame["top"] + 12, "ALT", size=8, fill=aa.MUTED, family=aa.MONO, anchor="middle", spacing="0.12em")))
+        marks["frame"].append((else_at, f'<line x1="{fx + 8}" y1="{frame["divider"]}" x2="{fx + fw - 8}" y2="{frame["divider"]}" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="4,3"/>'))
+        for at, (gy, g) in zip(frame["at"], frame["guards"]):
+            marks["frame"].append((at, text(fx + 12, gy, g, size=12, fill=aa.MUTED, family=aa.MONO)))
 
-    # activation bars
+    # activation bars, each with the step its first message sits in
     for who, i, j in d["bars"]:
         top, bottom = ys[i] - 4, (ys[j] + (LOOP if d["steps"][j][0] == "self" else 0)) + 4
-        out.append(f'<rect x="{xs[who] - 4}" y="{top}" width="8" height="{bottom - top}" fill="rgba(54,73,90,0.06)" stroke="{aa.MUTED}" stroke-width="0.8"/>')
+        marks["bars"].append((i, f'<rect x="{xs[who] - 4}" y="{top}" width="8" height="{bottom - top}" fill="rgba(54,73,90,0.06)" stroke="{aa.MUTED}" stroke-width="0.8"/>'))
 
     # messages, then their labels
     labels = []
-    for (kind, a, b, s, hot), y in zip(d["steps"], ys):
+    for i, ((kind, a, b, s, hot), y) in enumerate(zip(d["steps"], ys)):
         if y is None:
             continue
         tone = aa.ACCENT if hot else aa.MUTED
         head = "arrow-accent" if hot else ("arrow-open" if kind == "async" else "arrow")
         if kind == "self":
             x = xs[a]
-            out.append(f'<path d="M {x + 4} {y} L {x + 36} {y} L {x + 36} {y + LOOP} L {x + 4} {y + LOOP}" fill="none" stroke="{tone}" '
-                       f'stroke-width="{1.4 if hot else 1.2}" marker-end="url(#{head})"/>')
+            marks["lines"].append((i, f'<path d="M {x + 4} {y} L {x + 36} {y} L {x + 36} {y + LOOP} L {x + 4} {y + LOOP}" fill="none" stroke="{tone}" '
+                                      f'stroke-width="{1.4 if hot else 1.2}" marker-end="url(#{head})"/>'))
             lines = s.split("|")
             for k, ln in enumerate(lines):
                 ly = y + (12 if len(lines) == 1 else -2 + 14 * k)  # two lines straddle the loop's top edge, clear of the next label
                 markup, left, right = label(x + 48, ly, ln, tone, anchor="start")
-                labels.append((markup, left, right))
+                labels.append((i, markup, left, right))
             continue
         x1, x2 = xs[a], xs[b]
         sgn = 1 if x2 > x1 else -1
         dash = ' stroke-dasharray="5,4"' if kind in ("ret", "async") and not hot else ""  # the headline is solid
-        out.append(f'<line x1="{x1 + 4 * sgn}" y1="{y}" x2="{x2 - 4 * sgn}" y2="{y}" stroke="{tone}" stroke-width="{1.4 if hot else 1.2}"{dash} marker-end="url(#{head})"/>')
+        marks["lines"].append((i, f'<line x1="{x1 + 4 * sgn}" y1="{y}" x2="{x2 - 4 * sgn}" y2="{y}" stroke="{tone}" stroke-width="{1.4 if hot else 1.2}"{dash} marker-end="url(#{head})"/>'))
         for cx in gaps(a, b):
             markup, left, right = label(cx, y - 10, s, tone)
             if clear(left, right):
                 break
-        labels.append((markup, left, right))
-    for markup, left, right in labels:  # no label mask may sit over a lifeline
+        labels.append((i, markup, left, right))
+    for i, markup, left, right in labels:  # no label mask may sit over a lifeline
         assert not any(left - 6 < x < right + 6 for x in lifelines), f"{d['file']}: label over a lifeline: {markup[-80:]}"
-        out.append(markup)
+        marks["labels"].append((i, markup))
+    if motion:  # one item per group, its marks in the static paint order; every step lands in exactly one group
+        assert sorted(i for _, idxs in d["groups"] for i in idxs) == list(range(len(d["steps"]))), f"{d['file']}: groups must cover every step once"
+        for n, (words, idxs) in enumerate(d["groups"], 1):
+            out.append(aa.motion_item(n, words, [m for part in marks.values() for i, m in part if i in idxs]))
+    else:
+        out += [m for part in marks.values() for _, m in part]
 
     # actor boxes paint last, over the lifeline tops
     for key, cx, w, icons, name, subs in d["actors"]:
@@ -277,13 +312,27 @@ def build(d) -> str:
     return "\n        ".join(out)
 
 
-def page(d) -> str:
-    html = aa.page(slug=d["slug"], title=d["title"], desc=d["desc"], eyebrow="fairshare · step by step", body=build(d), vw=VW, vh=VH)
-    html = html.replace("  </style>", "    .note { margin-top: 1rem; font-size: 0.875rem; line-height: 1.5; color: var(--color-muted); }\n  </style>", 1)
+def add_note(html: str) -> str:
+    """The one line under the figure: where the "today" line comes from."""
     return html.replace("      </svg>\n    </div>\n", f"      </svg>\n    </div>\n    <p class=\"note\">{aa.esc(NOTE)}</p>\n", 1)
+
+
+def page(d) -> str:
+    html = aa.page(slug=d["slug"], title=d["title"], desc=d["desc"], eyebrow=EYEBROW, body=build(d), vw=VW, vh=VH)
+    return add_note(html.replace("  </style>", NOTE_CSS + "  </style>", 1))
+
+
+def animated(d) -> str:
+    """The same figure as a reveal page. The note stays, but the /present deck hides it with the rest of the page around the figure."""
+    css = f"    {aa.FADE_ONLY}\n{NOTE_CSS}    html[data-embed] .note {{ display: none; }}\n"
+    html = aa.animated(slug=d["slug"] + "-animated", title=d["title"], desc=d["desc"], eyebrow=EYEBROW, body=build(d, True),
+                       steps=len(d["groups"]), css=css, vw=VW, vh=VH)
+    return add_note(html)
 
 
 if __name__ == "__main__":
     for d in DIAGRAMS:
         (aa.OUT / d["file"]).write_text(page(d), encoding="utf-8")
-        print("wrote", d["file"])
+        twin = d["file"].replace(".html", "-animated.html")
+        (aa.OUT / twin).write_text(animated(d), encoding="utf-8")
+        print("wrote", d["file"], "and", twin)

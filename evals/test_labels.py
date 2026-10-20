@@ -36,8 +36,9 @@ def test_fair_share_has_no_qsi_synonym():
     assert "QSI" not in (ROOT / "lakehouse/03_metric_view.sql").read_text(encoding="utf-8")
 
 
-# the figures that print data values (05 prints none); every one says so in its logo band
-DATA_FIGURES = ["04-journey-sales-director", "06-data-pipeline", "07-fair-share", "08-why-it-moved", "09-definitions", "10-coverage",
+# the figures that print data values (05 prints none); every one says so in its logo band, and so does each animated twin
+DATA_FIGURES = ["04-journey-sales-director", "04-journey-sales-director-animated", "06-data-pipeline", "06-data-pipeline-animated",
+                "07-fair-share", "08-why-it-moved", "08-why-it-moved-animated", "09-definitions", "10-coverage",
                 "11-revenue-by-month", "12-share-vs-fair", "14-what-was-planted"]
 
 

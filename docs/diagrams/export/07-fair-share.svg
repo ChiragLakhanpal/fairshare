@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="07-fair-share-title 07-fair-share-desc" id="d-07-fair-share-root">
         <title id="07-fair-share-title">What fair share means</title>
-        <desc id="07-fair-share-desc">Two grids of one hundred: AA's 37.6% share of the seats on DFW to Chicago in Q3 2026, and the 53.5% of Summit Travel Partners' sales on that route that went to AA, a premium of 15.9 points.</desc>
+        <desc id="07-fair-share-desc">Two grids of one hundred: the made-up seat share for AA on DFW to Chicago in Q3 2026, 37.6%, and the 53.5% of Summit Travel Partners' sales on that route that went to AA, a premium of 15.9 points.</desc>
   <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #d-07-fair-share-root { --color-paper:  #ffffff;
@@ -34,7 +34,7 @@
         <text x="836" y="368" fill="#5a7181" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">more AA revenue than</text>
         <text x="836" y="390" fill="#5a7181" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">fair share would bring</text>
         <text x="836" y="420" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">same route, same quarter</text>
-        <text x="96" y="562" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">An agency that sold every airline in proportion to its seats would give AA 37.6% here. Summit gives 53.5%.</text>
+        <text x="96" y="562" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">With the made-up seat shares, an agency that sold every airline in proportion to its seats would give AA 37.6% here. Summit gives 53.5%.</text>
         <line x1="96" y1="652" x2="1240" y2="652" stroke="#36495a" stroke-width="1" stroke-opacity="0.14"/>
         <text x="96" y="684" fill="#5a7181" font-size="8" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.18em">LEGEND</text>
         <rect x="195" y="668" width="14" height="13" rx="3" fill="#006cbf" stroke="#006cbf" stroke-width="1"/><rect x="193" y="681" width="18" height="7" rx="2" fill="#006cbf" stroke="#006cbf" stroke-width="1"/>
