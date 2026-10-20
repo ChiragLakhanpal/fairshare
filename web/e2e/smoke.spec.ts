@@ -115,6 +115,18 @@ test("the sidebar collapse is remembered and the definition window opens and clo
   await expect(pace).toBeHidden();
 });
 
+test("the hover on a number promises a check only where the number has a SQL twin", async ({ page }) => {
+  await mock(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Fair share", exact: true }).hover();
+  await expect(page.getByRole("tooltip")).toHaveText(/\. Click the word for the full definition and how it is checked\.$/);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await page.getByRole("button", { name: "Pace to goal", exact: true }).hover();
+  await expect(page.getByRole("tooltip")).toHaveText(/\. Click the word for the full definition\.$/);
+  await expect(page.getByRole("tooltip")).not.toContainText("how it is checked");
+});
+
 test("an answer whose every numeric sentence was removed says so", async ({ page }) => {
   await mock(page);
   await page.route("**/api/ask", (r) => r.fulfill({ status: 200, headers: { "content-type": "text/event-stream" }, body: allRemoved }));

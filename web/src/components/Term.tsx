@@ -10,6 +10,7 @@ const ONE_LINE: Record<string, string> = {
   pace_pct: "Pace is year-to-date revenue against the year-to-date share of the annual goal. 100 means on pace.",
   yoy_revenue_pct: "The change from the same month a year earlier.",
 };
+const NO_TWIN = new Set(["pace_pct"]);   // pace has no SQL twin and is not in the nightly check, so there is no check to open
 
 export function Term({ kpi, children, onOpen }: { kpi: string; children: ReactNode; onOpen?: (kpi: string) => void }) {
   return (
@@ -20,7 +21,7 @@ export function Term({ kpi, children, onOpen }: { kpi: string; children: ReactNo
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content side="bottom" align="start" sideOffset={6} className="menu z-30 max-w-[300px] rounded-md bg-ink px-3 py-2 text-[13px] leading-snug text-white shadow-lg">
-            {ONE_LINE[kpi] ?? kpi} Click the word for the full definition and how it is checked.
+            {ONE_LINE[kpi] ?? kpi} {NO_TWIN.has(kpi) ? "Click the word for the full definition." : "Click the word for the full definition and how it is checked."}
           </Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>

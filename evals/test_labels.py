@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REAL = re.compile(r"T-100 \(real\)|seat data is real|seats are BTS|real, public|public airline seat data|real seat data"
+REAL = re.compile(r"T-100 \(real\)|seat data is real|seats are BTS|real, public|public\s+airline\s+(seat\s+)?data|real seat data"
                   r"|BTS T-100 seats|BTS T-100 ·|BTS T-100 \+|seat share from BTS|\(BTS T-100|capacity \(T-100\)"
                   r"|BTS has not published|published BTS data|^Real: BTS", re.M)
 POWER_BI = re.compile(r"Power BI uses the same definition|the Power BI check|kept equal by|checked vs Power BI"

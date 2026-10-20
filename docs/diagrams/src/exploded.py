@@ -114,7 +114,7 @@ LIVES = {  # layer -> {platform: "run" | "stand-in"}
     "app": {"databricks": "run", "microsoft": "run"},          # Databricks App + AI/BI dashboard; Outlook drafts
     "checks": {"databricks": "run", "azure": "run"},           # verifier in the app, MLflow traces; Foundry content filter
     "agents": {"databricks": "run", "azure": "run"},           # Genie and the harness; the four Foundry writers
-    "defs": {"databricks": "run", "microsoft": "run"},         # metric view; the Power BI twin
+    "defs": {"databricks": "run", "microsoft": "stand-in"},    # metric view; a SQL copy of each Power BI measure (Power BI itself does not run)
     "data": {"databricks": "run", "microsoft": "stand-in"},    # Unity Catalog; a CRM shaped like Dynamics 365 Sales
 }
 PITCH, TOP = 100, 72  # matrix column pitch; y of the stack's top vertex, under the logo band

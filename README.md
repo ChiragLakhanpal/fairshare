@@ -2,8 +2,8 @@
 
 "How did Summit do on DFW to Chicago last quarter versus last year, are they ahead of fair share, and what does their
 contract say if they drop under 45%?" Today that question is a Power BI hunt or a ticket to the sales BI team and a few
-days. This is a small version of the agent that should answer it in ten seconds, with the SQL attached, built on public
-airline data in a couple of weekends.
+days. This is a small version of the agent that should answer it in ten seconds, with the SQL attached, built on made-up
+airline sales data in a couple of weekends.
 
 It is one system, told as an account manager's Monday. It opens on the sales director's dashboard (an AI/BI dashboard on
 the same metric view, standing in for Power BI: pace, share against fair share, what moved), which can say *what* and
