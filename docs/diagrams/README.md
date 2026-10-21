@@ -51,8 +51,8 @@ stays complete. Each step brings in one idea: on `01` each layer lifts clear, an
 
 A page's structure shows from the start, so the room knows what kind of picture it is looking at: the headers, the lane labels or
 actors, the lifelines, the axes, the tier cards, a chart's lines and the legend. What gives the point away waits for its step: the
-legend key that names the focal item or the check, a caption, a payoff line and a chart's notes. `15`'s legend is the one that
-comes in a piece at a time, each entry with the marks it names, and the first brings the legend's rule and its heading too.
+legend key that names the focal item or the check, a caption, a payoff line and a chart's notes. On `15` the legend does not show
+on arrival: it comes in an entry at a time, each with the pieces it marks, and the first brings the legend's rule and its heading too.
 
 | Page | Steps | What each step brings in |
 |---|---|---|
@@ -67,7 +67,7 @@ comes in a piece at a time, each entry with the marks it names, and the first br
 | `09b-numbers-gaps-animated.html` | 5 | the share gap in points, the share gap in dollars, year over year and pace, a card a press in the same way, then the same close |
 | `11-revenue-by-month-animated.html` | 4 | the band over March and April 2026 with each month's net change against 2025, then one note a press beside it: Sunbelt sent nothing, Harbor's AA revenue fell, the other agencies grew in total (the title, the axes and the source line show from the start, and both lines draw in with their dots and their years) |
 | `12-share-vs-fair-animated.html` | 5 | fair share's hollow dots with their name, the note under the chart that says why fair share barely moves (every agency spreads its sales over the same twelve routes in similar proportions) and that the seat shares are made up, AA share's solid dots with their name and connectors, then one callout a press: the agency furthest above fair share (the top row) and the one furthest below (the bottom row), each with its two values (the title, the agencies' names, the axis and the source line show from the start) |
-| `15-at-aa-animated.html` | 7 | what runs today, with the legend's rule, its heading and its first entry; what is built but not deployed, with its entry; what waits on AA's Microsoft account, with its entry; then the AA feed beside each made-up table, hardest first: the agency's sales with the note on why they are the hardest, the seat capacity, the bookings with the agreements, and the CRM with the goals (the five layers at rest as on `01`'s static page, their names, the pieces under them, the headings and the made-up tables show from the start) |
+| `15-at-aa-animated.html` | 7 | presses 1 to 3 bring one kind of piece each under the layers' names, with its entry in the legend: what runs today (seven pieces, with the legend's rule and its heading), what is built but not deployed (one) and what waits on AA's Microsoft account (four); presses 4 to 7 bring the AA feed beside each made-up table, hardest first: the agency's sales with the note on why they are the hardest, the seat capacity, the bookings with the agreements, and the CRM with the goals (on arrival the five layers at rest as on `01`'s static page, their names, the headings and the made-up tables show, and no piece, legend entry or feed does) |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
 reduced motion, or with no JavaScript, the whole figure shows at once. A figure that prints values from the data says

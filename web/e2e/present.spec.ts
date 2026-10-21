@@ -97,6 +97,18 @@ const watchFigure = (page: Page) => page.addInitScript(() => {
 });
 const painted = (page: Page) => page.evaluate(() => (window as unknown as { __painted: Painted[] }).__painted);
 
+/** Holds back the pipeline figure's page, the frame's document and nothing else (in dev the same file is also served as the ?url import
+ * module), until the function this returns is called: a frame that is slow to start, whose time before it is ready a test can then look at. */
+async function holdFrame(context: BrowserContext): Promise<() => void> {
+  let release = () => {};
+  const held = new Promise<void>((done) => (release = done));
+  await context.route(/06-data-pipeline-animated[^/]*\.html/, async (r) => {
+    if (r.request().resourceType() === "document") await held;
+    await r.continue();
+  });
+  return release;
+}
+
 test("a frame that never starts shows the finished figure only after FRAME_FALLBACK_MS from its slide, and the first press moves the deck", async ({ page, context }) => {
   await watchFigure(page);
   // only the frame's page: in dev the same file is also served as the ?url import module
@@ -114,19 +126,13 @@ test("a frame that never starts shows the finished figure only after FRAME_FALLB
   const waited = first!.t - seen[0].t;
   expect(waited, "the finished figure waits for the fallback").toBeGreaterThanOrEqual(FRAME_FALLBACK_MS - 150);
   expect(waited, "and comes when it is due").toBeLessThan(FRAME_FALLBACK_MS + 1000);
-  expect(seen.filter((x) => x.t < first!.t).some((x) => x.thumb), "no frame of it before that").toBe(false);
   await page.keyboard.press("ArrowRight"); // a frame that is not ready counts as zero steps
   await expect(page).not.toHaveURL(/#system$/);
 });
 
 test("a frame that gets ready in time, even a slow one, never paints the finished figure, and its figure shows at its first step", async ({ page, context }) => {
   await watchFigure(page);
-  let release = () => {};
-  const held = new Promise<void>((done) => (release = done));
-  await context.route(/06-data-pipeline-animated[^/]*\.html/, async (r) => {
-    if (r.request().resourceType() === "document") await held;
-    await r.continue();
-  });
+  const release = await holdFrame(context);
   await openSlide(page, "elevator-opener");
   await page.keyboard.press("ArrowRight");
   await expect(slideAt(page, "pipeline")).toBeVisible();
@@ -145,12 +151,7 @@ test("a frame that gets ready in time, even a slow one, never paints the finishe
 
 test("a frame that gets ready after the finished figure has shown in its place arrives whole, with no step of it to come", async ({ page, context }) => {
   await watchFigure(page);
-  let release = () => {};
-  const held = new Promise<void>((done) => (release = done));
-  await context.route(/06-data-pipeline-animated[^/]*\.html/, async (r) => {
-    if (r.request().resourceType() === "document") await held;
-    await r.continue();
-  });
+  const release = await holdFrame(context);
   await openSlide(page, "elevator-opener");
   await page.keyboard.press("ArrowRight");
   const thumb = slideAt(page, "pipeline").locator("img[data-thumb]");
@@ -165,13 +166,7 @@ test("a frame that gets ready after the finished figure has shown in its place a
 });
 
 test("an animated slide shows nothing of its figure before its frame is ready, and once ready no step it has not reached", async ({ page, context }) => {
-  // hold the frame's page back, so the time before the frame is ready can be looked at
-  let release = () => {};
-  const held = new Promise<void>((done) => (release = done));
-  await context.route(/06-data-pipeline-animated[^/]*\.html/, async (r) => {
-    if (r.request().resourceType() === "document") await held;
-    await r.continue();
-  });
+  const release = await holdFrame(context); // the time before the frame is ready can be looked at
   await openSlide(page, "elevator-opener");
   await page.keyboard.press("ArrowRight");
   await expect(slideAt(page, "pipeline")).toBeVisible();
@@ -1134,12 +1129,14 @@ async function loadFaces(page: Page): Promise<boolean> {
   });
 }
 /** Opens a slide in the deck's own faces for a test that measures type. The sizes the deck is held to are the ones it sets in Inter, and a run
- * in the system faces would pass for slides it did not measure, so the test skips when Inter did not arrive (and says so in its annotations). */
+ * in the system faces would pass for slides it did not measure, so the test skips when Inter did not arrive. It says so in its annotations and in
+ * a warning, since the line reporter never prints the reason for a skip. */
 async function inTheDecksFaces(page: Page, context: BrowserContext, id = "welcome") {
   await context.unroute(FONTS);
   await openSlide(page, id);
   const inter = await loadFaces(page);
   test.info().annotations.push({ type: "faces", description: inter ? "measured in Inter" : "Inter did not load" });
+  if (!inter) console.warn(`SKIPPED, Inter did not load, so the type would be measured in the system faces: ${test.info().title}`);
   test.skip(!inter, "Inter did not load, so the type would be measured in the system faces");
 }
 /** The deck shows a slide the way the notes window's outline does, drawn and settled: every layout has fitted its box. */
@@ -1171,9 +1168,10 @@ test("every native slide of the main path sits at full size, and no native backu
   test.info().annotations.push({ type: "lowest backup", description: `${lowest.id} at ${lowest.zoom}` });
 });
 
-// A column's example cell is as wide as its longest word needs (up to a cap), so no word of an example or a column name breaks in the middle,
-// and no example is cut short by its two-line clamp. A character on a line lower than the one before it, with a letter or digit on each side
-// of the break, is a word broken in two. The rows below the box's bottom are not counted: the box clips them.
+// A column's example cell is as wide as its examples need to show whole in two lines (up to a cap that leaves the meanings their room), so no
+// word of an example or a column name breaks in the middle, and no example is cut short by its two-line clamp. A character on a line lower than
+// the one before it, with a letter, a digit or an underscore on each side of the break, is a word broken in two (a full stop does not count as
+// part of a word, since a sentence can end a line). A character below the bottom of its own cell is not counted: the clamp hides it.
 test("no table cell breaks a word in the middle, and no example is cut short by its clamp", async ({ page, context }) => {
   test.setTimeout(90_000);
   await inTheDecksFaces(page, context);
@@ -1193,7 +1191,7 @@ test("no table cell breaks a word in the middle, and no example is cut short by 
           range.setEnd(text, i + 1);
           return range.getBoundingClientRect();
         };
-        const word = (c: string) => /[A-Za-z0-9]/.test(c);
+        const word = (c: string) => /[A-Za-z0-9_]/.test(c);
         for (let i = 0; i + 1 < text.length; i++) {
           if (!word(text.data[i]) || !word(text.data[i + 1])) continue;
           const [a, b] = [rect(i), rect(i + 1)];
@@ -1303,11 +1301,12 @@ for (const height of [600, 400]) {
 // ------------------------------------------------------------------------------------------------------------------------------------
 // The whole talk. A walk presses through every slide of a path and every step of each, going forward and then back, and at every slide checks
 // the hash, the frame (the topic the tracker lights, the marks of its slides, the number in the footer) and the step the slide stands on.
-// The slides and their order are the deck's data; the topic names, the marks and the numbers are worked out here from that order, not read
-// from the code that draws them.
+// The slides and their order are the deck's data (slides.ts, onPath) and the topic names are its TOPICS; the marks of each topic's slides and the
+// numbers in the footer are worked out here from that order, not read from the code that draws them (frameInfo).
 
-/** The steps of each figure's page, from the table in docs/diagrams/README.md: a page that gains or loses one fails the walk until both are
- * changed. A native slide's steps are its layout's (stepCount), a live page has none. */
+/** The steps of each figure's page, copied from the table in docs/diagrams/README.md. The walk checks each page's own step count against this
+ * table, so a page that gains or loses a step fails it until the table here is changed. Nothing checks the README itself, so whoever changes a
+ * page changes the README's table too. A native slide's steps are its layout's (stepCount), a live page has none. */
 const FIGURE_STEPS: Record<string, number> = {
   director: 7, delegate: 6, system: 5, pipeline: 7, revenue: 4, numbers: 4, gaps: 5, "share-fair": 5, moved: 5, checked: 4, "at-aa": 7,
 };
