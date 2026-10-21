@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="12-share-vs-fair-title 12-share-vs-fair-desc" id="d-12-share-vs-fair-root">
         <title id="12-share-vs-fair-title">AA share against fair share, Q3 2026</title>
-        <desc id="12-share-vs-fair-desc">Dumbbell chart of twelve agencies' AA share against fair share in Q3 2026, on all routes together, the rows running from furthest above fair share to furthest below: Lone Star Travel Group at 53.7% against 38.8%, FareHub Online at 18.7% against 38.0%. Fair share stays between 37.9% and 39.9% for every agency, because all twelve sell the same twelve routes and the seat shares are made up, one per route.</desc>
+        <desc id="12-share-vs-fair-desc">Dumbbell chart of twelve agencies' AA share against fair share in Q3 2026, on all routes together, the rows running from furthest above fair share to furthest below: Lone Star Travel Group at 53.7% against 38.8%, FareHub Online at 18.7% against 38.0%. Fair share stays between 37.9% and 39.9% for every agency because each one spreads its sales over the same twelve routes in similar proportions. The seat shares are made up, one base share per route, moved a little each month.</desc>
   <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #d-12-share-vs-fair-root { --color-paper:  #ffffff;
@@ -57,7 +57,8 @@
         <circle data-agency="Golden Coast Travel" data-series="fair" data-value="37.9" cx="724" cy="458" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
         <circle data-agency="Midway Travel Services" data-series="fair" data-value="38.4" cx="731" cy="488" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
         <circle data-agency="FareHub Online" data-series="fair" data-value="38.0" cx="726" cy="518" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <text x="40" y="604" fill="#5a7181" font-size="15" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="seats">Fair share is nearly the same for every agency: all twelve sell the same twelve routes, and the seat shares are made up, one per route.</text>
+        <text x="40" y="596" fill="#5a7181" font-size="15" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="seats">Fair share is nearly the same for every agency because each one spreads its sales over the same twelve routes in similar proportions.</text>
+        <text x="40" y="618" fill="#5a7181" font-size="15" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="seats">The seat shares are made up, one base share per route, moved a little each month.</text>
         <text x="933" y="164" fill="#006cbf" font-size="12" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" data-label="aa">AA share</text>
         <line data-agency="Lone Star Travel Group" x1="742.75" y1="188" x2="933" y2="188" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
         <line data-agency="Summit Travel Partners" x1="738.75" y1="218" x2="918" y2="218" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>

@@ -594,6 +594,10 @@ def test_the_drift_strip_stays_on_the_glossary_and_off_the_two_numbers_pages():
 SHARE = "12-share-vs-fair"
 SHARE_PAGES = [SHARE, f"{SHARE}-animated"]
 SHARE_FACT = re.compile(r"agency_q3_(aa|fair)_share_(\w+)")
+# the note under the chart, as share_fair.py words it: why fair share barely moves (check_claims proves the reason on every build), and that the
+# seat shares are made up, as the seats row's column meaning says it
+SEATS_NOTE = ("Fair share is nearly the same for every agency because each one spreads its sales over the same twelve routes in similar proportions. "
+              "The seat shares are made up, one base share per route, moved a little each month.")
 
 
 def series(fig: Node, name: str) -> list[Node]:
@@ -638,7 +642,8 @@ def test_share_fair_brings_in_fair_share_then_the_made_up_seats_then_aa_share_th
     assert fair_step == {1} and len(solid_step) == 1, "each series comes in whole, fair share first"
     (seats,) = texts(fig, r"(?i)made.up")
     words = [n for n in item_of(seats).walk() if n.tag == "text"]
-    assert words == [seats] and 1 < step_of(seats) < min(solid_step), "the sentence about the made-up seat shares is a step of its own, before AA share"
+    assert all(n.attrs.get("data-note") == "seats" for n in words) and 1 < step_of(seats) < min(solid_step), \
+        "the note about the made-up seat shares is a step of its own, before AA share"
     connectors = [n for n in fig.walk() if n.tag == "line" and "data-agency" in n.attrs]
     assert connectors and {step_of(c) for c in connectors} == solid_step, "the line between the two dots comes in with AA share"
     callouts: dict[str, set] = {}
@@ -672,8 +677,10 @@ def test_share_fair_prints_four_values_at_most_each_one_a_fact(name):
 
 @pytest.mark.parametrize("name", SHARE_PAGES)
 def test_share_fair_keeps_the_made_up_seat_shares_labeled_in_plain_words(name):
-    (seats,) = texts(figure(name), r"(?i)made.up")
-    assert "the seat shares are made up, one per route" in seats.words(), "the finished page says the seat shares are made up"
+    fig = figure(name)
+    note = sorted(marked(fig, "note", "seats"), key=lambda n: float(n.attrs["y"]))
+    assert said(note) == SEATS_NOTE, "the note says why fair share barely moves, and that the seat shares are made up, in share_fair.py's words"
+    assert ":" not in said(note), "no colon used as a connector"
     assert not re.search("[\u2013\u2014]", html(name)), "no em or en dash on the page"
 
 
@@ -700,8 +707,8 @@ def test_share_fair_keeps_one_order_of_weight_title_then_notes_then_the_source(n
     (title,) = texts(fig, r"^AA share against fair share, Q3 2026$")
     assert size(title) == max(size(n) for n in words) and weight(title) == max(weight(n) for n in words), "the title is the strongest text"
     notes = [n for n in words if "data-note" in n.attrs]
-    assert len(notes) == 3 and all(size(n) < size(title) and weight(n) < weight(title) for n in notes), \
-        "the sentence and the two callouts' words are smaller and lighter than the title"
+    assert {n.attrs["data-note"] for n in notes} == {"seats", "above", "below"} and all(size(n) < size(title) and weight(n) < weight(title) for n in notes), \
+        "the note under the chart and the two callouts' words are smaller and lighter than the title"
     (source,) = texts(fig, r"gold\.fact_agency_sales_monthly")
     assert size(source) == min(size(n) for n in words) and source.attrs["fill"] == MUTED, "the source line is the smallest text, and grey"
 

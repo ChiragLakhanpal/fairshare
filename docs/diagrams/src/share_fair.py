@@ -21,15 +21,18 @@ Where this figure leaves the reference, on purpose:
     share at fair share, and check_claims() asserts those rows are within half a point of it.
 
 The animated page is the same figure in steps for the /present deck. The title, the agencies' names and the axis show on arrival; then
-one thing a press: fair share's dots, the sentence about the made-up seat shares, AA share's dots with their connectors, and a callout
-for each agency that carries the story, the top row and then the bottom row, each with its two values and a few words. In the deck the
-newest note leads and the earlier ones recede (aa.EMBED_CSS), while AA share's values keep the accent of AA share's dots (data-keep).
-The static page shows it all at once.
+one thing a press: fair share's dots, the note under the chart (why fair share barely moves, and that the seat shares are made up), AA
+share's dots with their connectors, and a callout for each agency that carries the story, the top row and then the bottom row, each with
+its two values and a few words. In the deck the newest note leads and the earlier ones recede (aa.EMBED_CSS), while AA share's values keep
+the accent of AA share's dots (data-keep). The static page shows it all at once.
 
 Every number comes from deck_facts.py: the four values printed are agency_q3_* facts (the metric view's definitions written out in SQL),
 and this file's own query orders the rows by the same definitions. check_claims() asserts on every build what the figure says about the
-data: every agency sells the same routes, every seat share is made up and there is one per route, fair share moves less than a tenth as
-much as AA share, and the callouts' agencies are the furthest above and below fair share.
+data. The note's reason is proved, not assumed: every agency sells the same twelve routes and puts a part of its sales on each that stays
+inside one band for every agency (BANDS), and any split inside those bands keeps fair share within a fifth of AA share's spread, so the
+similar proportions are enough to keep fair share nearly the same; it is, moving less than a tenth as much as AA share. Every seat share
+is the synthetic one, one a route and month, and each route's three stay within MOVE points of each other. The callouts' agencies are the
+furthest above and below fair share.
 """
 from __future__ import annotations
 
@@ -46,7 +49,12 @@ CONNECTOR = 0.60              # ink opacity of the hairline between the two dots
 INK_A = lambda a: f"rgba(54,73,90,{a})"  # noqa: E731
 NAME_SIZE, LABEL_SIZE, TICK_SIZE, VALUE_SIZE, NOTE_SIZE, SEATS_SIZE, SOURCE_SIZE = 14, 12, 12, 13, 14, 15, 11
 EM, EM_MONO = 0.5, 0.6        # Inter's advance per character, a little over what a browser measures, and Geist Mono's
-SEATS_Y, SOURCE_Y = 604, 662  # the sentence about the made-up seat shares, and the source line, the last on the stage
+SEATS_Y, SEATS_LEADING = 596, 22  # the note under the chart, two lines: why fair share barely moves, and that the seat shares are made up
+SOURCE_Y = 662                # the source line, the last on the stage
+# The part of an agency's Q3 sales each route takes, in percent, for a route that starts at an AA hub (True) and for one that does not: one
+# band for every agency, which is what "in similar proportions" means here. check_claims() holds every agency to it.
+BANDS = {True: (7, 14), False: (2.5, 5.5)}
+MOVE = 2                      # at most this many points between a route's made-up seat shares in the three months of Q3: "moved a little"
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve")
 SLUG = {name: slug for slug, name in AGENCIES}
 dumbbell = aa.load("verify_dumbbell", "verify-dumbbell.py")  # the plugin's own domain and contrast functions
@@ -73,18 +81,25 @@ def x_of(v: float) -> int:
     return round(L + (v - FLOOR) / (CEIL - FLOOR) * (R - L))
 
 
-def seats_sentence() -> str:
-    """Why fair share barely moves from agency to agency, and that the seat shares are made up: one step of its own."""
-    return (f"Fair share is nearly the same for every agency: all {NUMBER_WORDS[fact('agencies')]} sell the same "
-            f"{NUMBER_WORDS[fact('routes')]} routes, and the seat shares are made up, one per route.")
+def because() -> str:
+    """Why fair share barely moves from agency to agency, which check_claims() proves on every build."""
+    return f"because each one spreads its sales over the same {NUMBER_WORDS[fact('routes')]} routes in similar proportions"
+
+
+MADE_UP = "The seat shares are made up, one base share per route, moved a little each month."  # as the seats row's column meaning says it
+
+
+def seats_note() -> tuple[str, str]:
+    """The note under the chart, one step of its own, a sentence a line: why fair share barely moves, and that the seat shares are made up."""
+    return f"Fair share is nearly the same for every agency {because()}.", MADE_UP
 
 
 # ---------------------------------------------------------------- the data
 
 def load():
     """Every agency's AA share and fair share in Q3 2026, all routes together (the metric view's definitions written out), and the routes it
-    sold, sorted by the gap, biggest first; then where the seat shares on those routes come from. These exact values order the rows; the
-    facts print them."""
+    sold, sorted by the gap, biggest first; each route's made-up seat shares in Q3, lowest and highest; and the part of each agency's Q3
+    sales each route takes. These exact values order the rows; the facts print them."""
     rows = query("""
         SELECT a.agency_name AS name, COUNT(DISTINCT s.market_id) AS routes,
                100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0) AS aa,
@@ -94,23 +109,62 @@ def load():
         JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
         WHERE s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'
         GROUP BY a.agency_name""")
-    (seats,) = query("""
-        SELECT COUNT(*) AS n, COUNT(DISTINCT market_id) AS routes, COUNT(DISTINCT sales_month) AS months,
-               COUNT(*) FILTER (WHERE source = 'synthetic') AS made_up
-        FROM aa_demo.gold.fact_market_capacity
-        WHERE sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'""")
+    seats = query("""
+        SELECT c.market_id, m.aa_hub_origin AS hub, COUNT(*) AS months, COUNT(*) FILTER (WHERE c.source = 'synthetic') AS made_up,
+               100 * MIN(c.aa_seat_share) AS lo, 100 * MAX(c.aa_seat_share) AS hi
+        FROM aa_demo.gold.fact_market_capacity c
+        JOIN aa_demo.gold.dim_market m ON m.market_id = c.market_id
+        WHERE c.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'
+        GROUP BY c.market_id, m.aa_hub_origin""")
+    mix = query("""
+        SELECT a.agency_name AS name, s.market_id, m.aa_hub_origin AS hub,
+               100 * SUM(s.market_revenue) / SUM(SUM(s.market_revenue)) OVER (PARTITION BY a.agency_name) AS pct
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        JOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id
+        WHERE s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'
+        GROUP BY a.agency_name, s.market_id, m.aa_hub_origin""")
     for r in rows:
         r["aa_printed"], r["fair_printed"] = fact(f"agency_q3_aa_share_{SLUG[r['name']]}"), fact(f"agency_q3_fair_share_{SLUG[r['name']]}")
-    return sorted(rows, key=lambda r: r["aa"] - r["fair"], reverse=True), seats
+    return sorted(rows, key=lambda r: r["aa"] - r["fair"], reverse=True), seats, mix
 
 
-def check_claims(rows, seats) -> None:
+def fair_window(seats) -> tuple[float, float]:
+    """The lowest and the highest fair share any agency could have with its Q3 sales split inside BANDS: the most room the bands leave fair
+    share. Fair share is the seat shares weighted by the split, so the low end takes every route at its lowest month and fills the routes with
+    the lowest seat shares to the top of their bands first, and the high end the other way round; for limits like these that is exact."""
+    ends = []
+    for side, highest_first in (("lo", False), ("hi", True)):
+        part = {s["market_id"]: BANDS[s["hub"]][0] for s in seats}
+        left = 100 - sum(part.values())
+        for s in sorted(seats, key=lambda s: s[side], reverse=highest_first):
+            more = min(BANDS[s["hub"]][1] - part[s["market_id"]], left)
+            part[s["market_id"]] += more
+            left -= more
+        assert abs(left) < 1e-9, "the bands must hold all of an agency's sales"
+        ends.append(sum(part[s["market_id"]] * s[side] for s in seats) / 100)
+    return ends[0], ends[1]
+
+
+def check_claims(rows, seats, mix) -> None:
     """What the figure says about the data, checked on every build so a rebuilt lakehouse cannot quietly change the story."""
     assert len(rows) == fact("agencies") and {r["name"] for r in rows} == set(SLUG), "one row for each of the agencies deck_facts names"
-    # the sentence: "all twelve sell the same twelve routes, and the seat shares are made up, one per route"
-    assert {r["routes"] for r in rows} == {fact("routes")}, "every agency should sell all the routes in Q3: 'the same routes'"
-    assert seats["made_up"] == seats["n"] > 0, "every seat share in Q3 should be the synthetic one: 'made up'"
-    assert seats["routes"] == fact("routes") and seats["n"] == seats["routes"] * seats["months"], "one seat share per route and month: 'one per route'"
+    # the note's first line: "nearly the same for every agency because each one spreads its sales over the same twelve routes in similar proportions"
+    assert {r["routes"] for r in rows} == {fact("routes")}, "every agency should sell all the routes in Q3: 'the same twelve routes'"
+    for m in mix:
+        lo, hi = BANDS[m["hub"]]
+        assert lo <= m["pct"] <= hi, (f"{m['name']} puts {m['pct']:.2f}% of its Q3 sales on route {m['market_id']}, outside the {lo}% to {hi}% every agency "
+                                      f"should stay inside on a route that {'starts' if m['hub'] else 'does not start'} at an AA hub: 'in similar proportions'")
+    fair, aa_share = [r["fair_printed"] for r in rows], [r["aa_printed"] for r in rows]
+    low, high = fair_window(seats)
+    assert high - low < (max(aa_share) - min(aa_share)) / 5 and low <= min(fair) and max(fair) <= high, \
+        (f"any split of Q3 sales inside the bands should keep fair share within a fifth of AA share's spread, and it allows {low:.2f} to {high:.2f}: "
+         f"'because', the similar proportions are enough")
+    assert max(fair) - min(fair) < (max(aa_share) - min(aa_share)) / 10, "fair share should move less than a tenth as much as AA share: 'nearly the same'"
+    # the note's second line: "the seat shares are made up, one base share per route, moved a little each month"
+    assert len(seats) == fact("routes") and all(s["made_up"] == s["months"] == 3 for s in seats), \
+        "every route should have a seat share for each of Q3's three months, and every one of them should be the synthetic one: 'made up'"
+    assert all(s["hi"] - s["lo"] <= MOVE for s in seats), f"each route's three seat shares in Q3 should sit within {MOVE} points of each other: 'one base share per route, moved a little each month'"
     for r in rows:  # the facts and this file's own query are two statements of one definition
         assert abs(r["aa_printed"] - r["aa"]) <= 0.05 + 1e-9 and abs(r["fair_printed"] - r["fair"]) <= 0.05 + 1e-9, f"{r['name']}: a fact differs from the query"
     assert abs(sum(r["aa"] for r in rows) / len(rows) - fact("avg_of_shares_q3")) <= 0.05 + 1e-9, "the twelve AA shares should average to the Q3 fact the deck already says"
@@ -118,9 +172,6 @@ def check_claims(rows, seats) -> None:
     assert order == [r["name"] for r in rows], "the printed numbers should give the same row order as the exact ones"
     # the callouts: the top row is the furthest above fair share and the bottom row the furthest below it
     assert rows[0]["aa"] - rows[0]["fair"] > 0 > rows[-1]["aa"] - rows[-1]["fair"], "the top row is above fair share and the bottom row below it"
-    # the sentence again: "fair share is nearly the same for every agency"
-    fair, aa_share = [r["fair_printed"] for r in rows], [r["aa_printed"] for r in rows]
-    assert max(fair) - min(fair) < (max(aa_share) - min(aa_share)) / 10, "fair share should move less than a tenth as much as AA share"
     # the axis and the marks
     values = fair + aa_share
     assert FLOOR == dumbbell.resolve_domain(values)[0], "positive data anchors the axis at zero"
@@ -164,9 +215,12 @@ def build(rows, motion=False) -> str:
     low, high = (display(f"agency_q3_fair_share_{SLUG[r['name']]}") for r in (min(rows, key=lambda r: r["fair_printed"]), max(rows, key=lambda r: r["fair_printed"])))
     out.append(step(1, f"Fair share for each agency, the hollow dots, all between {low} and {high}.", fair))
     # step 2: why fair share barely moves, and that the seat shares are made up; under the chart, a note that leads on its press
-    seats = seats_sentence()
-    assert 40 + width(seats, SEATS_SIZE) <= VW - 40 and SEATS_Y - SEATS_SIZE > base + 22 + aa.TEXT_DESCENT * TICK_SIZE + 16, "the sentence runs off the page or into the ticks"
-    out.append(step(2, seats, [text(40, SEATS_Y, seats, size=SEATS_SIZE, fill=aa.MUTED, attrs=' data-note="seats"')], recede=True))
+    note = seats_note()
+    assert all(40 + width(line, SEATS_SIZE) <= VW - 40 for line in note), "the note runs off the page"
+    assert SEATS_Y - SEATS_SIZE > base + 22 + aa.TEXT_DESCENT * TICK_SIZE + 16 \
+        and SEATS_Y + (len(note) - 1) * SEATS_LEADING + aa.TEXT_DESCENT * SEATS_SIZE < SOURCE_Y - SOURCE_SIZE - 16, "the note runs into the ticks or the source line"
+    out.append(step(2, " ".join(note), [text(40, SEATS_Y + k * SEATS_LEADING, line, size=SEATS_SIZE, fill=aa.MUTED, attrs=' data-note="seats"')
+                                        for k, line in enumerate(note)], recede=True))
     # step 3: AA share for every agency, the solid dots in the accent, each joined to its ring by the connector, which stops at the ring
     # because the ring is already drawn; a pair that overlaps gets no connector
     solid = [text(x_of(rows[0]["aa_printed"]), label_y, "AA share", size=LABEL_SIZE, weight=600, fill=aa.ACCENT, mono=True, anchor="middle", attrs=' data-label="aa"')]
@@ -201,8 +255,8 @@ def build(rows, motion=False) -> str:
         assert vx + vw <= VW - 40, f"{name}: the callout's words run off the page"
         marks.append(f'<rect x="{vx - 6}" y="{y - 10}" width="{vw + 12:g}" height="20" fill="{aa.PAPER}"/>')
         marks.append(text(vx, y + 5, verdict, size=NOTE_SIZE, fill=aa.MUTED, attrs=f' data-note="{"above" if k == 0 else "below"}" data-callout="{name}"'))
-        out.append(step(4 + k, f"{name}: AA share {display('agency_q3_aa_share_' + slug)} against a fair share of {display('agency_q3_fair_share_' + slug)}. "
-                               f"{verdict}.", marks, recede=True))
+        out.append(step(4 + k, f"{name}, AA share {display('agency_q3_aa_share_' + slug)} against a fair share of {display('agency_q3_fair_share_' + slug)}, "
+                               f"{verdict[0].lower() + verdict[1:]}.", marks, recede=True))
     # where the numbers come from: the smallest text, in grey, last
     assert SOURCE_Y + aa.TEXT_DESCENT * SOURCE_SIZE <= aa.STAGE_BOTTOM and 60 + width(SOURCE, SOURCE_SIZE, mono=True) <= VW - 40, "the source line leaves the stage"
     out.append(aa.icon("databricks", 40, SOURCE_Y - 11, 14, aa.MUTED))
@@ -217,13 +271,12 @@ def desc(rows) -> str:
     pair = lambda r: f"{display('agency_q3_aa_share_' + SLUG[r['name']])} against {display('agency_q3_fair_share_' + SLUG[r['name']])}"  # noqa: E731
     return (f"Dumbbell chart of {NUMBER_WORDS[fact('agencies')]} agencies' AA share against fair share in Q3 2026, on all routes together, the rows "
             f"running from furthest above fair share to furthest below: {top['name']} at {pair(top)}, {bottom['name']} at {pair(bottom)}. Fair share stays "
-            f"between {display(low)} and {display(high)} for every agency, because all {NUMBER_WORDS[fact('agencies')]} sell the same "
-            f"{NUMBER_WORDS[fact('routes')]} routes and the seat shares are made up, one per route.")
+            f"between {display(low)} and {display(high)} for every agency {because()}. {MADE_UP}")
 
 
 if __name__ == "__main__":
-    data, seat_rows = load()
-    check_claims(data, seat_rows)
+    data, seat_rows, mix_rows = load()
+    check_claims(data, seat_rows, mix_rows)
     common = dict(title=TITLE, desc=desc(data), eyebrow=EYEBROW, vw=VW, vh=VH)
     (aa.OUT / "12-share-vs-fair.html").write_text(aa.page(slug="12-share-vs-fair", body=build(data), **common), encoding="utf-8")
     html = aa.animated(slug="12-share-vs-fair-animated", body=build(data, motion=True), steps=5, css=aa.FADE_ONLY, **common)
