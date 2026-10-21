@@ -507,15 +507,15 @@ NUMBERS = {
         ("share_gap_usd", "Share gap in dollars", "The share gap in dollars is AA revenue minus what fair share would have brought in.",
          "harbor_gap_usd_sep26"),
         ("yoy_revenue_pct", "Year over year", "Year over year compares AA revenue with the same month last year.", "harbor_yoy_sep26"),
-        ("pace_pct", "Pace", "Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported.",
-         "harbor_pace_sep26"),
+        ("pace_pct", "Pace", "Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported. "
+                             "The goals are made up.", "harbor_pace_sep26"),
     ],
 }
 NUMBER_PAGES = [n for page in NUMBERS for n in (page, f"{page}-animated")]
 # where the seven numbers live and why that matters, as the same spec words it; each page closes on it
 WHERE = ("Six of the seven numbers are measures in the metric view gold.sales_metrics, worked out from the gold tables when a query runs, "
-         "so any grouping gives the right ratio. Pace is stored in gold.agency_pace, because its goal is set per agency and year. "
-         "Genie, the dashboard and Ask read them from that one metric view, so their numbers agree.")
+         "so a share comes out right at any grouping. Pace is stored in gold.agency_pace, because its goal is set per agency and year. "
+         "Genie, the dashboard and Ask read the six from that one metric view, so their numbers agree.")
 
 
 def marked(fig: Node, part: str, key=None) -> list[Node]:

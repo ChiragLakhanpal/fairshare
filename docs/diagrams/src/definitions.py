@@ -245,13 +245,13 @@ NUMBERS = [  # (key in ops.kpi_definitions, name, how it is calculated in the sp
     ("share_gap_usd", "Share gap in dollars", "The share gap in dollars is AA revenue minus what fair share would have brought in.",
      "harbor_gap_usd_sep26", ""),
     ("yoy_revenue_pct", "Year over year", "Year over year compares AA revenue with the same month last year.", "harbor_yoy_sep26", ""),
-    ("pace_pct", "Pace", "Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported.",
-     "harbor_pace_sep26", "%"),  # pace_pct is a percent of the goal so far; the fact shows it bare, as the notes say it
+    ("pace_pct", "Pace", "Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported. "
+                         "The goals are made up.", "harbor_pace_sep26", "%"),  # pace_pct is a percent of the goal so far; the fact shows it bare
 ]
 EXAMPLE = "Harbor, Sep 2026"  # whose values the cards print: the agency and month the Ask demo and figure 08 are about
 WHERE = ("Six of the seven numbers are measures in the metric view gold.sales_metrics, worked out from the gold tables when a query runs, "
-         "so any grouping gives the right ratio. Pace is stored in gold.agency_pace, because its goal is set per agency and year.",
-         "Genie, the dashboard and Ask read them from that one metric view, so their numbers agree.")
+         "so a share comes out right at any grouping. Pace is stored in gold.agency_pace, because its goal is set per agency and year.",
+         "Genie, the dashboard and Ask read the six from that one metric view, so their numbers agree.")
 PAGES = [  # slug, title, the numbers on the page
     ("09a-numbers-share", "Three of the seven numbers, and what goes into each", NUMBERS[:3]),
     ("09b-numbers-gaps", "The other four numbers, and what goes into each", NUMBERS[3:]),

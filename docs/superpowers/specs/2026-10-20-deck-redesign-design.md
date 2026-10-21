@@ -232,12 +232,13 @@ The evals take two slides, because each eval carries four parts. The short path 
   - The share gap in points is AA share minus fair share.
   - The share gap in dollars is AA revenue minus what fair share would have brought in.
   - Year over year compares AA revenue with the same month last year.
-  - Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported.
+  - Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported. The pace
+    card also says the goals are made up, so the label travels with the value it affects.
 
   The slide says where they live: six are measures in the metric view `gold.sales_metrics`, worked out from the gold
-  tables when a query runs, so any grouping gives the right ratio; pace is stored in `gold.agency_pace`, because its goal
-  is set per agency and year. It also says why they matter: Genie, the dashboard and Ask read them from that one metric
-  view, so their numbers agree.
+  tables when a query runs, so a share comes out right at any grouping; pace is stored in `gold.agency_pace`, because its
+  goal is set per agency and year. It also says why they matter: Genie, the dashboard and Ask read the six from that one
+  metric view, so their numbers agree.
 - `share-fair`: fewer things at once, stepped. The builder picks which agencies carry the story.
 - `moved`: route mix in plain words, the change from selling more on some routes and less on others, valued at last
   year's AA share on each route. For Harbor in September it barely moved, and the slide says so.
