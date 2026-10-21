@@ -404,12 +404,13 @@ def test_a_journey_shows_its_payoff_only_on_its_last_step(name):
 
 DELEGATE = "03-delegate"
 DELEGATE_PAGES = [DELEGATE, f"{DELEGATE}-animated"]
-# the lanes top to bottom, each with its name: who does a step, and where it runs
-LANES = ["Nightly job", "Agent runtime", "AI Foundry", "Account manager", "CRM + mail"]
+# the lanes top to bottom, each with its name: who does a step, and where it runs. The CRM lane says it is a stand-in from arrival, since its
+# Dynamics 365 mark shows from arrival too
+LANES = ["Nightly job", "Agent runtime", "AI Foundry", "Account manager", "CRM stand-in + mail"]
 # the flow in the order it runs, one stage a press: the nightly job, the fixed queries, the writer, the verifier, the person who approves, and then the
 # CRM and Outlook together; each key is a data-node, and what its box says shows the stage is the one named
 FLOW = ["job", "queries", "writer", "verifier", "decide", "crm"]
-SAYS = {"job": r"^Runs the agents", "queries": r"fixed SQL", "writer": r"fairshare-precall-pack", "verifier": r"Checks every number", "waits": r"Waits for a decision",
+SAYS = {"job": r"^Runs the agents\s*fairshare nightly \u00b7 6 am$", "queries": r"fixed SQL", "writer": r"fairshare-precall-pack", "verifier": r"Checks every number", "waits": r"Waits for a decision",
         "review": r"Reviews the page", "decide": r"Approves or rejects", "crm": r"Dynamics 365 \(stand-in\)", "mail": r"Outlook"}
 CAPTION = "Nothing reaches the CRM or Outlook until a person approves."
 

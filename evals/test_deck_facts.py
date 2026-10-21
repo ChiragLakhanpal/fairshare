@@ -232,7 +232,7 @@ def test_check_values_carry_their_units():
     value as the query returned it beside the string the slide prints: dollars with cents, months by name, counts as whole numbers."""
     shown = {c["key"]: c["display"] for c in STORED["checks"]}
     assert shown["duplicates_removed"] == {"expected": "$4,920.87", "actual": "$4,920.87"}
-    assert shown["last_month"] == {"expected": "Sep 2026 and Sep 2026", "actual": "Sep 2026 and Sep 2026"}
+    assert shown["latest_month"] == {"expected": "Sep 2026 and Sep 2026", "actual": "Sep 2026 and Sep 2026"}
     assert shown["sales_row_count"] == {"expected": "3,000", "actual": "3,000"}
     for key in ("no_repeated_rows", "sales_have_seats", "no_empty_sales", "aa_within_market", "pace_month_count"):
         assert shown[key] == {"expected": "0", "actual": "0"}, key

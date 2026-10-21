@@ -322,7 +322,8 @@ def build(d: dict) -> str:
     assert sy + 17 + aa.TEXT_DESCENT * 11 <= aa.STAGE_BOTTOM, "the sources run under the deck's footer"
     out.append(aa.icon("databricks", 40, sy - 13, 16))
     out.append(note(64, sy, "bronze, silver and gold tables in aa_demo: corporate bookings, agency sales, pace and corporates", size=11))
-    out.append(note(64, sy + 17, "Harbor's fair share uses made-up seat shares, one per route; the T-100 loader (data/t100.py) has never run", size=11))
+    out.append(note(64, sy + 17, "Harbor's fair share uses made-up seat shares, one base share per route, moved a little each month. The T-100 loader "
+                                 "in data/t100.py has never run.", size=11))
     return "\n        ".join(out)
 
 

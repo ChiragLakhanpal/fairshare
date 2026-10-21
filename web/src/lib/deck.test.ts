@@ -111,6 +111,88 @@ describe("slides.ts", () => {
   });
 });
 
+// The copy rules a test can see, from the unslop skill and the deck's own rules. Every string the room reads or the speaker says passes them:
+// a slide's title, byline, layout and note, the check names and their whys and the column meanings that the native slides print from
+// facts.json, the topics, and the deck's strings in copy.ts. What a test cannot see (one idea a sentence, the active voice with its actor, no
+// group of three for its own sake, a title that could not sit in someone else's deck) is for a person to read.
+const COPY_RULES: [rule: string, re: RegExp][] = [
+  ["a stock AI word", /\b(?:additionally|crucial|delve|enduring|enhance|fostering|garner|interplay|intricate|landscape|pivotal|showcase|tapestry|testament|underscore|vibrant)/i],
+  ["a fancy way to say is or has", /\b(?:serves as|stands as|boasts?|boasting|features?)\b/i],
+  ["not just, or not X but Y", /\bnot (?:just|only)\b|\bnot\b[^.?!]*,\s*but\b/i],
+  ["an em or en dash, or a hyphen or two standing in for one", /[–—]|\s-\s|--/],
+  ["a curly quote or an ellipsis character", /[‘’“”…]/],
+  ["filler", /\b(?:in order to|due to the fact that|it is (?:important|worth) (?:to note|noting)|in the event that|needless to say)\b/i],
+  ["a fancy word for a plain one", /\b(?:utiliz|utilis|leverag|facilitat|numerous|commence)/i],
+  ["a stacked hedge", /\b(?:could|might|may) (?:potentially|possibly|perhaps)\b|\bpotentially\b/i],
+  ["a generic closer or a chatbot phrase", /\b(?:the future looks bright|game.?changer|in conclusion|to sum up|i hope this helps|let me know|great question)\b/i],
+  ["an abstract metaphor noun", /\b(?:substrate|wedge|vector|locus|vantage|nexus|bedrock|paradigm|modality|north star|flywheel|harness|scaffolding|endgame|ratchet)\b|\b(?:API|attack) surface\b/i],
+  ["an -ing tail that fakes depth", /,\s+(?:highlighting|underscoring|emphasizing|ensuring|reflecting|showcasing|fostering|signaling|symbolizing|demonstrating|illustrating|contributing|cementing|solidifying|paving|marking|making|leaving|allowing|enabling|providing|creating|resulting)\b/i],
+  ["an arrow or shorthand in place of words", /->|=>|→|←|\bw\/|\be\.g\.|\bi\.e\.|\betc\./i],
+  ["a semicolon, where one idea a sentence wants a period", /;/],
+];
+/** Words a title may capitalize after its first: the names of people, places, products and things in this talk. An all-caps word (AA, SQL,
+ * DFW-ORD, Q3, T-100, AI/BI) passes as it is, and a possessive is read without its 's. */
+const PROPER = new Set(["Fairshare", "Ask", "Delegate", "Genie", "Foundry", "Harbor", "Summit", "Travel", "Partners", "Sep", "September", "Azure", "Power",
+  "Databricks", "Free", "Edition", "English", "Monday", "March", "April", "Microsoft", "Teams", "Copilot", "Studio", "Entra", "Dataverse", "OneLake", "Fabric", "Dynamics",
+  "Lone", "Star", "FareHub", "Online", "Sunbelt", "Northstar", "App", "I", "I'd", "I'm", "Outlook", "Unity", "Catalog"]);
+
+/** What a string breaks of the copy rules. A colon must come before a list, so what follows it to the end of its sentence joins its items with
+ * "and" or "or"; the talk's own title, the product's name and then what it is, is the one exception. A title also keeps to sentence case. */
+function copyProblems(text: string, opts: { title?: boolean } = {}): string[] {
+  const out = COPY_RULES.filter(([, re]) => re.test(text)).map(([rule]) => rule);
+  if (text !== copy.deckFooter) for (const m of text.matchAll(/:([^.?!]*)/g)) if (!/\b(?:and|or)\b/.test(m[1])) out.push("a colon that is not before a list");
+  if (opts.title) {
+    const capitalized = text.replace(/\{[^{}]*\}/g, " ").split(/\s+/).filter(Boolean).slice(1).map((w) => w.replace(/[.,:?!]+$/, "").replace(/'s$/, ""))
+      .filter((w) => /^[A-Z]/.test(w) && !PROPER.has(w) && !/^[A-Z0-9][A-Z0-9/-]*$/.test(w));
+    if (capitalized.length) out.push(`title case (${capitalized.join(", ")})`);
+  }
+  return out;
+}
+
+describe("the copy rules", () => {
+  it("catch each rule they name, and pass plain copy (fixtures, not the deck)", () => {
+    const caught: [text: string, rule: string][] = [
+      ["The verifier is crucial.", "a stock AI word"], ["It showcases the share.", "a stock AI word"], ["The app serves as a check.", "a fancy way to say is or has"],
+      ["It is not just fast, it is right.", "not just, or not X but Y"], ["It is not a dashboard, but a tool.", "not just, or not X but Y"],
+      ["Ask — then check.", "an em or en dash, or a hyphen or two standing in for one"], ["Ask - then check.", "an em or en dash, or a hyphen or two standing in for one"],
+      ["The “share” moved.", "a curly quote or an ellipsis character"], ["It runs in order to check.", "filler"],
+      ["We leverage Genie.", "a fancy word for a plain one"], ["It could potentially help.", "a stacked hedge"], ["In conclusion, it works.", "a generic closer or a chatbot phrase"],
+      ["The harness adds the verifier.", "an abstract metaphor noun"], ["Share fell, highlighting the gap.", "an -ing tail that fakes depth"],
+      ["Bronze -> silver.", "an arrow or shorthand in place of words"], ["It checks; it cuts.", "a semicolon, where one idea a sentence wants a period"],
+      ["Back: sidebar.", "a colon that is not before a list"],
+    ];
+    for (const [text, rule] of caught) expect(copyProblems(text), text).toContain(rule);
+    expect(copyProblems("Sales director: a question", { title: true })).toContain("a colon that is not before a list");
+    expect(copyProblems("Where The Numbers Come From", { title: true })).toEqual(["title case (The, Numbers, Come, From)"]);
+    for (const fine of ["Time today's work first: how long a pack takes, and how many questions become tickets.", "Volume added {harbor_volume_usd}.",
+      "The pre-call pack the 6 am job wrote", "Lone Star is on top, and FareHub is last, starting from the left.", "A press each, counting only reported months."])
+      expect(copyProblems(fine, { title: true }), fine).toEqual([]);
+    expect(copyProblems(copy.deckFooter, { title: true }), "the talk's title").toEqual([]);
+  });
+  it("hold for every title, line and note of every slide", () => {
+    const broken = slides.flatMap((s) => texts(s).flatMap((t, i) => copyProblems(t, { title: i === 0 }).map((p) => `${s.id}: ${p}: ${t}`)));
+    expect(broken).toEqual([]);
+  });
+  it("hold for the checks, the column meanings and the topics the native slides print", () => {
+    const strings = [
+      ...facts.checks.flatMap((c) => [c.name, c.why]),
+      ...Object.values(facts.columns as Record<string, { meaning: string }[]>).flatMap((cols) => cols.map((c) => c.meaning)),
+      ...Object.values(TOPICS).flatMap((t) => [t.name, t.line]),
+    ];
+    expect(strings.flatMap((t) => copyProblems(t).map((p) => `${p}: ${t}`))).toEqual([]);
+    expect(Object.values(TOPICS).flatMap((t) => copyProblems(t.name, { title: true }))).toEqual([]);
+  });
+  it("hold for the deck's own strings in copy.ts", () => {
+    const deck = [copy.askLive, copy.openPrecall, copy.present, copy.backToDeck, copy.deckFooter, copy.deckFooterData, copy.deckTopics, ...Object.values(copy.deckHead),
+      copy.deckPass, copy.deckFail, copy.deckReport, copy.notesTitle, copy.notesWaiting, copy.notesNow, copy.notesPoint(2, 3), copy.notesNext, copy.notesLast,
+      copy.notesClock, copy.notesNotStarted, copy.notesBehind("1:20"), copy.notesAhead("0:45"), copy.notesOnTime, copy.notesNoPlan, copy.notesCheckpoints,
+      copy.notesBy("12:00"), copy.notesReached, copy.notesPath, copy.notesFull, copy.notesShort, copy.notesReset, copy.notesDemos, copy.notesWarmWaking,
+      copy.notesWarm("9:41 AM"), copy.notesWarmMissed("9:41 AM"), copy.notesWarmMissed(null), copy.notesOutline, copy.notesOffPath];
+    // a clock time is a number and a colon, not a colon in a sentence
+    expect(deck.flatMap((t) => copyProblems(t.replace(/\d{1,2}:\d{2}/g, "now")).map((p) => `${p}: ${t}`))).toEqual([]);
+  });
+});
+
 // The talk as the spec's table tells it: the main path in order, each slide with its part, its minutes and, on the short path, its minutes
 // there. row is split in two, row and seats, a minute each, and the seven numbers take two slides, numbers and gaps, a minute each.
 const TALK: [id: string, part: Slide["part"], min: number, short?: number][] = [

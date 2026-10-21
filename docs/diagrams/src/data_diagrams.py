@@ -104,7 +104,7 @@ def pipeline(motion=False) -> str:
         put(3 + i, text(mid, run_y - 13, label, size=12, weight=400, color=stroke, anchor="middle", mono=True, spacing="0.08em"))
 
     # sources into the first tier, and the readers out of the last, on straight runs at the shared ports
-    sources = [("csv", None, "Seat shares", "made up, one per route"), ("users", None, "Agency sales", "synthetic"),
+    sources = [("csv", None, "Seat shares", "made up, per route and month"), ("users", None, "Agency sales", "synthetic"),
                ("file", None, f"{fact('agreements')} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
     readers = [("desktop", "The app"), ("monitoring", "Dashboard"), ("search", "Genie"), ("robot", "Agents")]
     put(None, eyebrow(40, ATTACH[0] - 44, "Sources"))

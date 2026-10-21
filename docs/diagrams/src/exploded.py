@@ -288,7 +288,7 @@ FEEDS = [
      ("AA's own agency sales from ARC and BSP;", "the agency's sales on other airlines from MIDT bookings,", "or ticketed sales with fares such as IATA DDS."),
      ("The hardest, because AA sees its own sales and not the", "agency's sales elsewhere, and MIDT carries no fares.")),
     (("fact_market_capacity",),
-     ("One schedule source for every carrier (such as OAG or", "Cirium), then T-100 for every carrier once DOT publishes it,", "because the agreements define fair share by DOT data."), ()),
+     ("One schedule source for every carrier (such as OAG or", "Cirium), then T-100 for every carrier once DOT publishes it,", "since Summit's agreement defines fair share by DOT data."), ()),
     (("fact_corporate_bookings",), ("AA ticketing, by corporate account.",), ()),
     (("contract_clauses",), ("The agency agreements, read the same way.",), ()),
     (("crm_contacts", "crm_opportunities", "crm_activities"), ("Dynamics 365 Sales, through the Dataverse mirror.",), ()),

@@ -30,13 +30,14 @@ USER = ('<svg x="{x}" y="{y}" width="22" height="22" viewBox="0 0 24 24" fill="n
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/>'
         '<path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>')
 
-# lanes, top to bottom: (key, marks, short name, top, bottom); a mark says where the step runs, the name says who does it
+# lanes, top to bottom: (key, marks, short name, top, bottom); a mark says where the step runs, the name says who does it. A name with a
+# line break is set on two lines: the CRM lane says it is a stand-in from arrival, beside the Dynamics 365 mark it shows from arrival
 LANES = [
     ("job", ("databricks",), "Nightly job", 72, 168),
     ("runtime", ("databricks",), "Agent runtime", 168, 272),
     ("foundry", ("azure",), "AI Foundry", 272, 380),
     ("manager", ("user",), "Account manager", 380, 476),
-    ("crm", ("dynamics365", "outlook"), "CRM + mail", 476, 600),
+    ("crm", ("dynamics365", "outlook"), "CRM stand-in\n+ mail", 476, 600),
 ]
 
 # the steps of the flow in the order it runs: key -> (x, y, w, h, name, one mono line or None)
@@ -78,7 +79,7 @@ MONO_ADVANCE = 0.62 + 0.06  # em per character at 0.06em tracking, the style gui
 
 # the motion steps, one stage of the flow a press: what the controller announces, and the steps each one brings in
 STEPS = [
-    ("Every night at 6 am the job runs the agents", ["job"]),
+    ("Every morning at 6 am the job runs the agents", ["job"]),
     ("The agent runtime pulls the facts with fixed SQL", ["queries"]),
     ("A writer agent in AI Foundry drafts the page from those facts only", ["writer"]),
     ("The verifier checks every number in the draft, and the page waits in ops.agent_runs for a decision", ["verifier", "waits"]),
@@ -119,7 +120,13 @@ def lanes() -> str:
         for m in marks:
             lane.append(USER.format(x=x, y=mid - 11) if m == "user" else aa.icon(m, x, mid - 11, 22))
             x += 28
-        lane.append(f'<text x="{x + 2}" y="{mid + 5:g}" fill="{aa.INK}" font-size="14" font-weight="600" font-family="{aa.SANS}">{aa.esc(name)}</text>')
+        lines = name.split("\n")
+        if len(lines) == 1:
+            words = aa.esc(name)
+        else:  # two lines, 18px apart, centred on the lane as one line is; the first ends in a space, so the name reads as one phrase
+            words = "".join(f'<tspan x="{x + 2}" y="{mid + 5 - 9 + 18 * i:g}">{aa.esc(line)}{" " if i < len(lines) - 1 else ""}</tspan>'
+                            for i, line in enumerate(lines))
+        lane.append(f'<text x="{x + 2}" y="{mid + 5:g}" fill="{aa.INK}" font-size="14" font-weight="600" font-family="{aa.SANS}">{words}</text>')
         out.append(f'<g data-lane="{key}">' + "".join(lane) + "</g>")
     return '<g data-role="lanes">\n          ' + "\n          ".join(out) + "\n        </g>"
 

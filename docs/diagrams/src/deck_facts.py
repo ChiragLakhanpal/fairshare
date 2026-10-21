@@ -108,7 +108,7 @@ def _share(v):
 
 
 def _month_pair(v, key):
-    """Two months joined by ' and ', each the first of its month, as the last_month check returns them: 2026-09-01 and 2026-09-01."""
+    """Two months joined by ' and ', each the first of its month, as the latest_month check returns them: 2026-09-01 and 2026-09-01."""
     parts = _text(v, key).split(" and ")
     if len(parts) != 2:
         raise ValueError(f"{key}: {v!r} is not two dates joined by ' and '")
@@ -135,7 +135,8 @@ FORMATS = {  # name: (read the value from the query, show it)
 
 def _summit_q3(expr: str) -> str:
     """Summit Travel Partners on DFW-ORD in Q3 2026, one number. The metric view's definitions are written out here: AA share is
-    AA revenue over everything the agency sold; fair share is AA's seat share (made up, one per route) weighted by that revenue."""
+    AA revenue over everything the agency sold; fair share is AA's seat share (made up, one base share per route, moved a little each month)
+    weighted by that revenue."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -215,7 +216,7 @@ AGENCIES = (("summit", "Summit Travel Partners"), ("bluesky", "BlueSky Corporate
 def _agency_q3(agency: str, expr: str) -> str:
     """One agency's number for Q3 2026 over all routes together, one number. Like _summit_q3 for one route, the metric view's
     definitions are written out: AA share is AA revenue over everything the agency sold; fair share is AA's seat share (made up,
-    one per route) weighted by that revenue."""
+    one base share per route, moved a little each month) weighted by that revenue."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -233,13 +234,15 @@ def _agency_q3_facts() -> list[tuple[str, str, str, str]]:
                     f"{name}, Q3 2026, all routes together: AA revenue over everything the agency sold."))
         out.append((f"agency_q3_fair_share_{slug}",
                     _agency_q3(name, "ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
-                    f"{name}, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold."))
+                    f"{name}, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) "
+                    "weighted by what the agency sold."))
     return out
 
 
 def _harbor_sep26(expr: str) -> str:
     """Harbor Business Travel in Sep 2026 over all routes together, one number. Like _agency_q3, the metric view's definitions are
-    written out: fair share is AA's seat share (made up, one per route) weighted by what the agency sold on each route."""
+    written out: fair share is AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency
+    sold on each route."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -410,7 +413,8 @@ FACTS: list[tuple[str, str, str, str]] = [
     # --- Harbor in Sep 2026, the example beside each definition on the numbers and gaps slides; harbor_revenue_sep26_usd, harbor_share_sep26
     # and harbor_pace_sep26 are the other three
     ("harbor_fair_share_sep26", _harbor_sep26("ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
-     "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one per route) weighted by what Harbor sold."),
+     "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) "
+     "weighted by what Harbor sold."),
     ("harbor_gap_pts_sep26",
      _harbor_sep26("ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pts",
      "Harbor Business Travel, Sep 2026, all routes together: AA share minus fair share, in points. Fair share comes from made-up seat shares."),
@@ -528,11 +532,18 @@ DATED: dict[str, dict] = {
     "foundry_clean_page_s": _dated(38, "38", _LIMITS + "Foundry guardrails", "2026-10-15", "Seconds for a clean page on the pre-call agent."),
     "foundry_refusal_s": _dated(3, "3", _LIMITS + "Foundry guardrails", "2026-10-15", "Seconds until a jailbreak was refused at the prompt."),
     "foundry_nightly_pages": _dated(20, "20", _LIMITS + "Databricks serverless jobs", "2026-10-15",
-                                    "Pages the nightly agents task wrote through the four Foundry agents, every sentence verified."),
+                                    "Pages one run of the nightly agents task wrote through three of the four Foundry agents, every sentence "
+                                    "verified. The task runs the pre-call pack, the agreement watch and CRM versus reality (lakehouse/job_tasks.py, "
+                                    "agents_task); prospect research runs only when a person picks a market."),
     "foundry_quality_pages": _dated(23, "23", _EVAL, "2026-10-15", "Real pages the quality evaluators graded in that run."),
     "foundry_groundedness_misses": _dated(1, "1", _EVAL, "2026-10-15",
                                           "Of those pages, the ones whose groundedness grade failed. Relevance, coherence, fluency and the four "
                                           "content harms passed on every page."),
+    # the commit check: the hook runs the SQL behind each known answer, then the Python tests, and a failure stops the commit
+    "commit_tests": _dated(338, "338", ".githooks/pre-commit on the commit 'deck: every slide and note rewritten to the unslop rules': "
+                           "evals/run_benchmark.py --check, then pytest evals -q", "2026-10-21",
+                           "Python tests that passed in the hook, after the SQL behind all twenty known answers ran. The web tests, vitest and "
+                           "Playwright, are not in the hook."),
     # a rule a note quotes: a constant in the SQL that applies it, so a note says it without typing the number
     "tier_watch_band_pts": _dated(3, "three", "lakehouse/07_agreement_watch.sql line 88: a tier row is Watch when it is within 3 points of its line",
                                   "2026-10-20", "A tier row closer than this to its line is Watch; at this distance or more it is Fine."),
@@ -568,7 +579,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "sales_month": "The month of the seats, stored as the first day of that month.",
             "aa_seats": "Seats AA flies on this route in this month. Made up.",
             "total_seats": "Seats all airlines fly on this route in this month. Made up.",
-            "aa_seat_share": "AA's seats divided by all seats on the route, which is the route's fair share. Made up: one base share per route, moved a little each month.",
+            "aa_seat_share": "AA's seats divided by all seats on the route, which is the route's fair share. The seat shares are made up, one base share per route, moved a little each month.",
             "is_projected": "True when this month's seat numbers are borrowed from last year because the seat file for the month is not in yet. It is never true for the made-up seat shares.",
             "source": "Where the seat numbers came from. Here it always says synthetic, which means made up.",
         },
@@ -611,7 +622,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "aa_revenue": "Dollars of AA revenue the agency sold in this month, all routes together.",
             "ytd_revenue": "AA revenue the agency sold from the start of the year through this month.",
             "revenue_goal_usd": "The agency's AA revenue goal for the whole year, in dollars.",
-            "ytd_goal": "The part of the yearly goal that counts so far: one twelfth for every month the agency reported.",
+            "ytd_goal": "The part of the yearly goal that counts so far, one twelfth for every month the agency reported.",
             "pace_pct": "Revenue so far divided by the goal so far, as a percent. One hundred means on pace.",
             "attainment_pct": "Revenue so far divided by the goal for the whole year, as a percent.",
             "months_reported": "How many months this year the agency has sales rows for, up to this month. A missing month is not counted.",
@@ -676,7 +687,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
         "booking_id = 500001",
         {
             "booking_id": "The booking's number.",
-            "ticket_number": "The ticket's number, kept as text so leading zeros stay. Each ticket appears once here; the delivered file had a few twice.",
+            "ticket_number": "The ticket's number, kept as text so leading zeros stay. Each ticket appears once.",
             "corp_id": "The company that booked the trip. It matches corp_id in dim_corporate.",
             "booking_date": "The day the ticket was booked.",
             "travel_date": "The day of the trip.",
@@ -708,14 +719,14 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "sales_month": "The month being compared with the same month one year earlier.",
             "revenue_now": "AA revenue the agency sold in this month, in dollars.",
             "revenue_prior": "AA revenue the agency sold in the same month one year earlier.",
-            "delta_revenue": "The change in AA revenue: this month minus the same month a year earlier, in dollars.",
+            "delta_revenue": "The change in AA revenue in dollars, this month minus the same month a year earlier.",
             "delta_pct": "The same change as a percent of the year-earlier revenue.",
             "market_now": "Dollars the agency sold on all airlines in this month.",
             "market_prior": "Dollars the agency sold on all airlines in the same month one year earlier.",
             "market_delta_pct": "The change in the agency's all-airline sales, as a percent.",
             "aa_share_now": "AA's share of the agency's sales this month, kept as a number between zero and one.",
             "aa_share_prior": "AA's share of the agency's sales a year earlier, kept as a number between zero and one.",
-            "fair_share_now": "Fair share this month: AA's seat share on the agency's routes, kept as a number between zero and one. The seat shares are made up.",
+            "fair_share_now": "Fair share this month, which is AA's seat share on the agency's routes, kept as a number between zero and one. The seat shares are made up.",
             "fair_share_prior": "Fair share a year earlier. The seat shares are made up.",
             "volume_effect": "The part of the change that comes from the agency selling more or less travel overall.",
             "mix_effect": "The part of the change that comes from the agency moving sales between routes.",
@@ -732,9 +743,9 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "definition_en": "The definition in plain English.",
             "owner": "The team that owns the definition.",
             "source_columns": "The table columns the number is built from.",
-            "metric_view_expr": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers; pace lives in gold.agency_pace.",
+            "metric_view_expr": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers. Pace is stored in gold.agency_pace.",
             "dax_twin": "The same definition written the way a Power BI measure would be, in DAX.",
-            "twin_sql": "A SQL copy of the Power BI measure, compared with the metric view every night, for six of the seven numbers; pace lives in gold.agency_pace.",
+            "twin_sql": "A SQL copy of the Power BI measure. The 6 am job compares it with the metric view for six of the seven numbers, since pace has no measure there.",
             "twin_version": "Which version of the SQL copy is live. It moves up when a definition changes.",
             "twin_sql_retired": "The old SQL copy that the comparison with the metric view caught being wrong. Empty for numbers that never changed.",
             "retired_note": "Why the old copy was retired. Empty for numbers that never changed.",
@@ -795,7 +806,7 @@ CHECKS: list[tuple[str, str, str, str, object, str]] = [  # (key, sentence, why,
      "Catches swapped columns, because the market includes AA and so can never be smaller than AA.", """
         SELECT COUNT(*) AS value FROM aa_demo.gold.fact_agency_sales_monthly
         WHERE aa_revenue > market_revenue OR aa_pax > market_pax""", 0, "int"),
-    ("last_month", "Both facts end in September 2026",
+    ("latest_month", "Sales and seats both run through September 2026",
      "Catches a table that stops early, because fair share needs sales and seats for the same month.", """
         SELECT CONCAT(CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_agency_sales_monthly) AS STRING), ' and ',
                       CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_market_capacity) AS STRING)) AS value""", "2026-09-01 and 2026-09-01", "months"),

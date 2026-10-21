@@ -67,8 +67,8 @@
     "expected": "Sep 2026 and Sep 2026"
    },
    "expected": "2026-09-01 and 2026-09-01",
-   "key": "last_month",
-   "name": "Both facts end in September 2026",
+   "key": "latest_month",
+   "name": "Sales and seats both run through September 2026",
    "ok": true,
    "why": "Catches a table that stops early, because fair share needs sales and seats for the same month."
   },
@@ -163,7 +163,7 @@
    },
    {
     "example": "$327,600",
-    "meaning": "The part of the yearly goal that counts so far: one twelfth for every month the agency reported.",
+    "meaning": "The part of the yearly goal that counts so far, one twelfth for every month the agency reported.",
     "name": "ytd_goal",
     "type": "DOUBLE"
    },
@@ -565,7 +565,7 @@
    },
    {
     "example": "0010000500001",
-    "meaning": "The ticket's number, kept as text so leading zeros stay. Each ticket appears once here; the delivered file had a few twice.",
+    "meaning": "The ticket's number, kept as text so leading zeros stay. Each ticket appears once.",
     "name": "ticket_number",
     "type": "STRING"
    },
@@ -657,7 +657,7 @@
    },
    {
     "example": "38.05%",
-    "meaning": "AA's seats divided by all seats on the route, which is the route's fair share. Made up: one base share per route, moved a little each month.",
+    "meaning": "AA's seats divided by all seats on the route, which is the route's fair share. The seat shares are made up, one base share per route, moved a little each month.",
     "name": "aa_seat_share",
     "type": "DOUBLE"
    },
@@ -701,7 +701,7 @@
    },
    {
     "example": "-$64,794.93",
-    "meaning": "The change in AA revenue: this month minus the same month a year earlier, in dollars.",
+    "meaning": "The change in AA revenue in dollars, this month minus the same month a year earlier.",
     "name": "delta_revenue",
     "type": "DOUBLE"
    },
@@ -743,7 +743,7 @@
    },
    {
     "example": "40.12%",
-    "meaning": "Fair share this month: AA's seat share on the agency's routes, kept as a number between zero and one. The seat shares are made up.",
+    "meaning": "Fair share this month, which is AA's seat share on the agency's routes, kept as a number between zero and one. The seat shares are made up.",
     "name": "fair_share_now",
     "type": "DOUBLE"
    },
@@ -817,7 +817,7 @@
    },
    {
     "example": "SUM(source.aa_revenue) / NULLIF(SUM(source.market_revenue),…",
-    "meaning": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers; pace lives in gold.agency_pace.",
+    "meaning": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers. Pace is stored in gold.agency_pace.",
     "name": "metric_view_expr",
     "type": "STRING"
    },
@@ -829,7 +829,7 @@
    },
    {
     "example": "SELECT a.agency_name AS agency, s.sales_month, SUM(s.aa_rev…",
-    "meaning": "A SQL copy of the Power BI measure, compared with the metric view every night, for six of the seven numbers; pace lives in gold.agency_pace.",
+    "meaning": "A SQL copy of the Power BI measure. The 6 am job compares it with the metric view for six of the seven numbers, since pace has no measure there.",
     "name": "twin_sql",
     "type": "STRING"
    },
@@ -907,6 +907,13 @@
    "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
    "value": 2
   },
+  "commit_tests": {
+   "date": "2026-10-21",
+   "display": "338",
+   "note": "Python tests that passed in the hook, after the SQL behind all twenty known answers ran. The web tests, vitest and Playwright, are not in the hook.",
+   "source": ".githooks/pre-commit on the commit 'deck: every slide and note rewritten to the unslop rules': evals/run_benchmark.py --check, then pytest evals -q",
+   "value": 338
+  },
   "foundry_attack_false_flags": {
    "date": "2026-10-15",
    "display": "2",
@@ -945,7 +952,7 @@
   "foundry_nightly_pages": {
    "date": "2026-10-15",
    "display": "20",
-   "note": "Pages the nightly agents task wrote through the four Foundry agents, every sentence verified.",
+   "note": "Pages one run of the nightly agents task wrote through three of the four Foundry agents, every sentence verified. The task runs the pre-call pack, the agreement watch and CRM versus reality (lakehouse/job_tasks.py, agents_task); prospect research runs only when a person picks a market.",
    "source": "docs/limits.md, row dated 2026-10-15, Databricks serverless jobs",
    "value": 20
   },
@@ -1176,73 +1183,73 @@
   },
   "agency_q3_fair_share_atlantic": {
    "display": "39.9%",
-   "grain": "Atlantic Premier Travel, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Atlantic Premier Travel, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Atlantic Premier Travel'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 39.9
   },
   "agency_q3_fair_share_bluesky": {
    "display": "39.9%",
-   "grain": "BlueSky Corporate Travel, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "BlueSky Corporate Travel, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'BlueSky Corporate Travel'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 39.9
   },
   "agency_q3_fair_share_capitol": {
    "display": "39.8%",
-   "grain": "Capitol Corporate Travel, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Capitol Corporate Travel, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Capitol Corporate Travel'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 39.8
   },
   "agency_q3_fair_share_farehub": {
    "display": "38.0%",
-   "grain": "FareHub Online, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "FareHub Online, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'FareHub Online'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 38.0
   },
   "agency_q3_fair_share_golden": {
    "display": "37.9%",
-   "grain": "Golden Coast Travel, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Golden Coast Travel, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Golden Coast Travel'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 37.9
   },
   "agency_q3_fair_share_harbor": {
    "display": "39.8%",
-   "grain": "Harbor Business Travel, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Harbor Business Travel, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Harbor Business Travel'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 39.8
   },
   "agency_q3_fair_share_lonestar": {
    "display": "38.8%",
-   "grain": "Lone Star Travel Group, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Lone Star Travel Group, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Lone Star Travel Group'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 38.8
   },
   "agency_q3_fair_share_midway": {
    "display": "38.4%",
-   "grain": "Midway Travel Services, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Midway Travel Services, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Midway Travel Services'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 38.4
   },
   "agency_q3_fair_share_northstar": {
    "display": "38.7%",
-   "grain": "Northstar Leisure, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Northstar Leisure, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Northstar Leisure'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 38.7
   },
   "agency_q3_fair_share_pacific": {
    "display": "37.9%",
-   "grain": "Pacific Gateway Travel, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Pacific Gateway Travel, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Pacific Gateway Travel'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 37.9
   },
   "agency_q3_fair_share_summit": {
    "display": "38.5%",
-   "grain": "Summit Travel Partners, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Summit Travel Partners, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Summit Travel Partners'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 38.5
   },
   "agency_q3_fair_share_sunbelt": {
    "display": "38.7%",
-   "grain": "Sunbelt Vacations, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold.",
+   "grain": "Sunbelt Vacations, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Sunbelt Vacations'\n  AND s.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'",
    "value": 38.7
   },
@@ -1350,7 +1357,7 @@
   },
   "harbor_fair_share_sep26": {
    "display": "40.1%",
-   "grain": "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one per route) weighted by what Harbor sold.",
+   "grain": "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) weighted by what Harbor sold.",
    "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-09-01'",
    "value": 40.1
   },
