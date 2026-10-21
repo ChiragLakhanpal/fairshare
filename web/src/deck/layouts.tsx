@@ -12,7 +12,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { Check, ChevronRight, Close, External } from "../components/Icons";
 import { copy } from "../copy";
 import { api } from "../lib/api";
-import { fill, knownTables, stepCount, TOPIC_ORDER, TOPICS, type DeckFacts, type Demo, type Jump, type Result, type Slide, type Tile } from "../lib/deck";
+import { fill, knownTables, stepCount, TOPIC_ORDER, TOPICS, twoLines, type DeckFacts, type Demo, type Jump, type Result, type Slide, type Tile } from "../lib/deck";
 import { ACTION, ASK, BLUE_TEXT, BODY, DISPLAY, HEAD, LABEL, MARKER, MISS, MONO_FACE, NOTE, NUMBER, SHOWN, STEP, TABLE, TITLE, UNREACHED } from "./ramp";
 import { REPORT_URL } from "./slides";
 
@@ -65,7 +65,9 @@ const ZOOM_STEP = 0.025;
  * whole, a step at a time, until it fits, so nothing runs under the footer; a layout that fits stays on the ramp. Items that have not
  * arrived keep their places, so the zoom holds while the slide steps. It starts again from full size once the fonts arrive. The height
  * test compares the two boxes, not scrollHeight: an item waiting 8px low reaches past the box, and scrollHeight counts that. The box says
- * its zoom in data-fit-zoom, so a test can hold the talk's slides at full size. */
+ * its zoom in data-fit-zoom, so a test can hold the talk's slides at full size. The box clips (it has to, to zoom), and a focus ring is
+ * drawn outside the button it rings, so the box is padded by 8px on every side and pulled back out by the same margin: the layout stays
+ * where it was, and a button at its edge keeps its ring. The room for the layout is the box less that padding. */
 function Fit({ children }: { children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
@@ -86,12 +88,15 @@ function Fit({ children }: { children: ReactNode }) {
     const el = box.current;
     const content = inner.current;
     if (!el || !content || zoom <= MIN_ZOOM) return;
-    const tall = content.getBoundingClientRect().height > el.getBoundingClientRect().height + 1;
+    const layout = content.getBoundingClientRect();
+    const clip = el.getBoundingClientRect();
+    const pad = layout.top - clip.top; // the padding, as the stage shows it
+    const tall = layout.height > clip.height - 2 * pad + 1;
     // rounded to the step, so the zoom reads 0.9 and not 0.8999999999999999 after four steps
     if (tall || el.scrollWidth > el.clientWidth) setZoom((z) => Math.max(MIN_ZOOM, Math.round((z - ZOOM_STEP) * 1000) / 1000));
   }, [zoom, fonts]);
   return (
-    <div ref={box} data-fit-zoom={zoom} className="mt-12 min-h-0 overflow-hidden">
+    <div ref={box} data-fit-zoom={zoom} className="-mx-2 -mb-2 mt-10 min-h-0 overflow-hidden p-2">
       <div ref={inner} style={zoom < 1 ? { zoom } : undefined}>
         {children}
       </div>
@@ -198,7 +203,11 @@ function Tables({ keys: named, only, facts, step }: { keys: string[]; only?: str
   const two = all.length > 16;
   const longest = (pick: (c: (typeof all)[number]) => string) => Math.max(0, ...all.map((c) => pick(c).length));
   const mono = (chars: number) => chars * 0.56 + 0.6; // em for that many mono characters at 0.9em, and a little air
-  const template = `${Math.max(7, mono(longest((c) => c.name)))}em minmax(0,1fr) ${Math.min(two ? 8.5 : 16, Math.max(6, mono(longest((c) => c.example))))}em`;
+  // the example column is as wide as the longest example, up to a cap that leaves the meanings their room; past the cap, a table in one column
+  // grows it as far as an example needs to show whole in two lines (no word broken in the middle, nothing cut by the clamp), up to 25em
+  const example = Math.min(two ? 8.5 : 16, Math.max(6, mono(longest((c) => c.example))));
+  const whole = Math.min(25, mono(Math.max(0, ...all.map((c) => twoLines(c.example)))));
+  const template = `${Math.max(7, mono(longest((c) => c.name)))}em minmax(0,1fr) ${two ? example : Math.max(example, whole)}em`;
   return (
     <div className={TABLE} style={{ columnCount: two ? 2 : 1, columnGap: 48 }}>
       {tables.map((t, i) => (
@@ -224,9 +233,9 @@ function Columns({ table, columns, template }: { table: string; columns: DeckFac
       </div>
       {columns.map((c) => (
         <div key={c.name} className="grid gap-x-4 border-t border-line-2 py-2" style={{ gridTemplateColumns: template, breakInside: "avoid" }}>
-          <span className={`${MONO_CELL} font-medium [overflow-wrap:anywhere]`}>{c.name}</span>
-          <span>{c.meaning}</span>
-          <span className={`${MONO_CELL} line-clamp-2 self-start [overflow-wrap:anywhere]`}>{c.example}</span>
+          <span data-cell="name" className={`${MONO_CELL} font-medium [overflow-wrap:anywhere]`}>{c.name}</span>
+          <span data-cell="meaning">{c.meaning}</span>
+          <span data-cell="example" className={`${MONO_CELL} line-clamp-2 self-start [overflow-wrap:anywhere]`}>{c.example}</span>
         </div>
       ))}
     </>

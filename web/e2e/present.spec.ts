@@ -1,6 +1,7 @@
 import { chromium, expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { slides } from "../src/deck/slides";
-import { FRAME_FALLBACK_MS, onPath } from "../src/lib/deck";
+import { copy } from "../src/copy";
+import { FRAME_FALLBACK_MS, isTopic, KEYS, onPath, stepCount, TOPIC_ORDER, TOPICS, type PathName, type Slide } from "../src/lib/deck";
 
 const FONTS = /fonts\.(googleapis|gstatic)\.com/;
 test.beforeEach(async ({ context }) => {
@@ -70,18 +71,97 @@ test("an animated slide takes as many presses as it has steps, then the deck mov
   await expect(root(page)).toHaveAttribute("data-step-current", String(count - 1));
 });
 
-test("a frame that never starts shows the finished figure only after FRAME_FALLBACK_MS, and the first press moves the deck", async ({ page, context }) => {
+// What an animated slide paints, a frame at a time from the page's first one: whether its thumb (the finished figure) is visible, and where the
+// frame's figure stands once the frame shows (its step of its count). A flash that lasts a frame is a sample, which one look at one moment
+// would miss. The first sample is the slide's mount, the clock the fallback is measured from.
+type Painted = { t: number; thumb: boolean; frame: string | null };
+const watchFigure = (page: Page) => page.addInitScript(() => {
+  const painted: Painted[] = [];
+  (window as unknown as { __painted: Painted[] }).__painted = painted;
+  const tick = () => {
+    const iframe = document.querySelector<HTMLIFrameElement>("iframe[data-slide-frame]");
+    if (iframe) {
+      const thumb = iframe.parentElement?.querySelector<HTMLElement>("img[data-thumb]");
+      let place: string | null = null;
+      try {
+        const root = iframe.contentDocument?.querySelector<HTMLElement>("[data-motion-root]");
+        if (root && getComputedStyle(iframe).visibility === "visible") place = `${root.dataset.stepCurrent}/${root.dataset.stepCount}`;
+      } catch {
+        place = null;
+      }
+      painted.push({ t: performance.now(), thumb: !!thumb && getComputedStyle(thumb).visibility === "visible", frame: place });
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
+const painted = (page: Page) => page.evaluate(() => (window as unknown as { __painted: Painted[] }).__painted);
+
+test("a frame that never starts shows the finished figure only after FRAME_FALLBACK_MS from its slide, and the first press moves the deck", async ({ page, context }) => {
+  await watchFigure(page);
   // only the frame's page: in dev the same file is also served as the ?url import module
   await context.route(/-animated[^/]*\.html/, (r) => (r.request().resourceType() === "document" ? r.abort() : r.continue()));
-  const before = Date.now();
   await page.goto("/present#system");
   await expect(slideAt(page, "system")).toBeVisible();
   const thumb = slideAt(page, "system").locator("img[data-thumb]");
   await expect(thumb, "nothing of the figure before the fallback").toBeHidden();
   await expect(thumb).toBeVisible({ timeout: FRAME_FALLBACK_MS + 5000 });
-  expect(Date.now() - before, "the finished figure waits for the fallback").toBeGreaterThanOrEqual(FRAME_FALLBACK_MS);
+  const seen = await painted(page);
+  const first = seen.find((x) => x.thumb);
+  expect(first, "the finished figure showed").toBeTruthy();
+  // from the slide's first painted frame, on the page's own clock: not a frame before the fallback, and not long after it (it comes 20 to 30ms
+  // after FRAME_FALLBACK_MS here; the margin below is for a slow machine, and still tells the fallback from a thumb that shows early)
+  const waited = first!.t - seen[0].t;
+  expect(waited, "the finished figure waits for the fallback").toBeGreaterThanOrEqual(FRAME_FALLBACK_MS - 150);
+  expect(waited, "and comes when it is due").toBeLessThan(FRAME_FALLBACK_MS + 1000);
+  expect(seen.filter((x) => x.t < first!.t).some((x) => x.thumb), "no frame of it before that").toBe(false);
   await page.keyboard.press("ArrowRight"); // a frame that is not ready counts as zero steps
   await expect(page).not.toHaveURL(/#system$/);
+});
+
+test("a frame that gets ready in time, even a slow one, never paints the finished figure, and its figure shows at its first step", async ({ page, context }) => {
+  await watchFigure(page);
+  let release = () => {};
+  const held = new Promise<void>((done) => (release = done));
+  await context.route(/06-data-pipeline-animated[^/]*\.html/, async (r) => {
+    if (r.request().resourceType() === "document") await held;
+    await r.continue();
+  });
+  await openSlide(page, "elevator-opener");
+  await page.keyboard.press("ArrowRight");
+  await expect(slideAt(page, "pipeline")).toBeVisible();
+  await page.waitForTimeout(FRAME_FALLBACK_MS / 2); // slow, but inside the time it is given
+  release();
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", "0");
+  await page.waitForTimeout(300); // and a little of the frame showing, to sample
+  const seen = await painted(page);
+  expect(seen.length, "frames were sampled through the wait").toBeGreaterThan(30);
+  expect(seen.filter((x) => x.thumb), "no frame painted the finished figure").toEqual([]);
+  const shown = seen.filter((x) => x.frame !== null);
+  expect(shown.length, "the frame was painted").toBeGreaterThan(5);
+  expect(new Set(shown.map((x) => x.frame!.split("/")[0])), "and every frame of it painted the first step, never a later one").toEqual(new Set(["0"]));
+});
+
+test("a frame that gets ready after the finished figure has shown in its place arrives whole, with no step of it to come", async ({ page, context }) => {
+  await watchFigure(page);
+  let release = () => {};
+  const held = new Promise<void>((done) => (release = done));
+  await context.route(/06-data-pipeline-animated[^/]*\.html/, async (r) => {
+    if (r.request().resourceType() === "document") await held;
+    await r.continue();
+  });
+  await openSlide(page, "elevator-opener");
+  await page.keyboard.press("ArrowRight");
+  const thumb = slideAt(page, "pipeline").locator("img[data-thumb]");
+  await expect(thumb, "the finished figure stands in for a frame that is late").toBeVisible({ timeout: FRAME_FALLBACK_MS + 5000 });
+  release(); // the room has been looking at the whole figure, so the frame does not start it over at its first step
+  await expect(ready(page)).toBeVisible();
+  const count = (await root(page).getAttribute("data-step-count"))!;
+  await expect(root(page)).toHaveAttribute("data-step-current", count); // the slide came going forward, and the frame is whole all the same
+  await expect(thumb, "the frame has taken the thumb's place").toBeHidden();
+  const seen = await painted(page);
+  expect(new Set(seen.filter((x) => x.frame !== null).map((x) => x.frame)), "every frame of it painted the whole figure").toEqual(new Set([`${count}/${count}`]));
 });
 
 test("an animated slide shows nothing of its figure before its frame is ready, and once ready no step it has not reached", async ({ page, context }) => {
@@ -108,7 +188,7 @@ test("an animated slide shows nothing of its figure before its frame is ready, a
   for (const item of await itemStates(page)) if (item.step > 1) expect(item.opacity, `step ${item.step} before its press`).toBe("0");
 });
 
-test("arriving back on an animated slide shows its whole figure, on its last step", async ({ page }) => {
+test("arriving back on an animated slide shows its whole figure, on its last step, and a press forward from there moves on", async ({ page }) => {
   await openSlide(page, "sieve-opener");
   await page.keyboard.press("ArrowLeft");
   await expect(page).toHaveURL(/#moved$/);
@@ -116,6 +196,44 @@ test("arriving back on an animated slide shows its whole figure, on its last ste
   const count = (await root(page).getAttribute("data-step-count"))!;
   await expect(root(page)).toHaveAttribute("data-step-current", count);
   expect((await itemStates(page)).map((i) => i.opacity).every((o) => o === "1"), "every step shows").toBe(true);
+  await page.keyboard.press("ArrowRight"); // nothing is left to say here, so the press moves the deck
+  await expect(page).toHaveURL(/#sieve-opener$/);
+  await page.keyboard.press("ArrowLeft"); // and back again: whole, with a press back taking one step off
+  await expect(page).toHaveURL(/#moved$/);
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", count);
+  await page.keyboard.press("ArrowLeft");
+  await expect(root(page)).toHaveAttribute("data-step-current", String(Number(count) - 1));
+});
+
+// revenue's notes recede as the next one comes, and the last one leads when the figure arrives whole: going back, and after a load. Its lines
+// are drawn and its dots and years are in at once: the arrival finishes the page's animations (arrive in lib/deck.ts), which a figure that draws
+// itself would otherwise play out in front of the room.
+test("revenue arrives whole going back and after a load: its lines drawn at once, every note shown, and the last note leading in ink", async ({ page }) => {
+  const [INK, MUTED] = ["rgb(54, 73, 90)", "rgb(90, 113, 129)"];
+  const whole = async () => {
+    await expect(ready(page)).toBeVisible();
+    const figure = page.frameLocator("iframe[data-slide-frame]");
+    const count = Number(await root(page).getAttribute("data-step-count"));
+    await expect(root(page)).toHaveAttribute("data-step-current", String(count));
+    const notes = figure.locator("[data-note]");
+    await expect(notes).toHaveCount(count - 1);
+    // all of it at the moment the frame shows, with no wait for a transition or a draw to end
+    expect(await notes.evaluateAll((els) => els.map((el) => getComputedStyle(el).fill)), "the last note leads in ink, the others recede").toEqual(
+      Array.from({ length: count - 1 }, (_, i) => (i === count - 2 ? INK : MUTED)),
+    );
+    expect((await itemStates(page)).every((i) => i.opacity === "1"), "every step shows").toBe(true);
+    expect(await figure.locator("path.draw-line").evaluateAll((els) => els.map((el) => getComputedStyle(el).strokeDashoffset)), "both lines are drawn").toEqual(["0px", "0px"]);
+    expect(await figure.locator(".draw-dot").evaluateAll((els) => els.map((el) => getComputedStyle(el).opacity === "1")).then((all) => all.length > 2 && all.every(Boolean)), "the dots and the years are in").toBe(true);
+    expect(await figure.locator("*").evaluateAll((els) => els.flatMap((el) => el.getAnimations()).filter((a) => a.playState !== "finished" && Number.isFinite(a.effect?.getComputedTiming().endTime as number)).length), "nothing is left to play").toBe(0);
+  };
+  await openSlide(page, "checks"); // a load shows it complete, so a press for each point takes it back to its title, and one more goes back
+  const points = await stepsOf(page, "checks");
+  for (let i = 0; i <= points; i++) await page.keyboard.press("ArrowLeft");
+  await expect(page).toHaveURL(/#revenue$/);
+  await whole();
+  await openSlide(page, "revenue"); // a load
+  await whole();
 });
 
 test("revenue draws its two lines on arrival, then brings in the band and one note per press", async ({ page }) => {
@@ -132,6 +250,15 @@ test("revenue draws its two lines on arrival, then brings in the band and one no
   expect(names, "the deck's embed mode plays the draw-in").toEqual([["aa-draw-line"], ["aa-draw-line"]]);
   await expect.poll(() => lines.evaluateAll((els) => els.map((el) => getComputedStyle(el).strokeDashoffset))).toEqual(["0px", "0px"]);
   await expect.poll(() => figure.locator("circle.draw-dot").evaluateAll((els) => els.length > 0 && els.every((el) => getComputedStyle(el).opacity === "1"))).toBe(true);
+  // the dots and the two years come in after the lines: each waits out the lines' draw (900ms), then fades in over 300ms
+  await expect(figure.locator("text.draw-dot"), "each line ends in its year").toHaveText(["2025", "2026"]);
+  const timing = (sel: string) => figure.locator(sel).evaluateAll((els) => els.map((el) => {
+    const a = el.getAnimations()[0] as CSSAnimation;
+    const t = a.effect!.getTiming();
+    return `${a.animationName} ${t.delay}ms then ${t.duration}ms`;
+  }));
+  expect(new Set(await timing("path.draw-line")), "the lines draw over 900ms").toEqual(new Set(["aa-draw-line 0ms then 900ms"]));
+  expect(new Set(await timing("circle.draw-dot, text.draw-dot")), "the dots and the years follow the lines").toEqual(new Set(["aa-draw-dot 900ms then 300ms"]));
   for (const item of await itemStates(page)) expect(item.opacity, `step ${item.step} before its press`).toBe("0");
   const count = Number(await root(page).getAttribute("data-step-count"));
   // the note on the current press leads in ink, and an earlier one recedes to the muted text
@@ -329,48 +456,60 @@ test("the notes window follows the deck, drives it, keeps the warehouse awake, a
   expect(pings).toBeGreaterThan(0);
 });
 
-test("keys the notes window sends in a burst are applied in order, through a slide's points and on, as the same keys one at a time are", async ({ page, context }) => {
+const pointsOf = (id: string) => stepCount(slides.find((s) => s.id === id)!);
+
+// A burst lands mid-slide, where a key skipped or doubled shows as a step short or a step over: through guardrails (four points), into evals
+// (two) and on into evals-more (three), and back.
+test("keys the notes window sends in a burst are applied in order, through one slide's points and into the next, and land mid-slide where the same keys one at a time do", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
   await openSlide(page, "agenda");
   const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
   await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "agenda");
-  await page.keyboard.press("ArrowRight");
-  await expectAt(page, "problem", 0);
-  const points = await stepsOf(page, "problem");
-  for (let i = 0; i <= points; i++) await page.keyboard.press("ArrowRight"); // a press for each point, and one to move on
-  await expectAt(page, "what", 0);
+  const [guardrails, evals, more] = [pointsOf("guardrails"), pointsOf("evals"), pointsOf("evals-more")];
+  expect(guardrails, "guardrails has more points than evals").toBeGreaterThan(evals);
+  expect(evals, "evals has a point to land on in the middle").toBeGreaterThan(1);
+  expect(more, "so does evals-more").toBeGreaterThan(2);
+  const point = (k: number, n: number) => notes.getByText(`Point ${k} of ${n}`, { exact: true });
+  await goTo(page, "guardrails"); // an outline jump lands a slide of the path on its first step
+  await expectAt(page, "guardrails", 0);
+  for (let i = 0; i < guardrails + 2; i++) await page.keyboard.press("ArrowRight"); // every point, the move, and the first point of evals
+  await expectAt(page, "evals", 1);
   const single = await where(page);
   // the same keys from the same start, all at once: none skipped, none doubled, and the notes window shows the same place
-  await openSlide(page, "agenda");
-  await page.keyboard.press("ArrowRight");
-  await expectAt(page, "problem", 0);
-  await burst(notes, "next", points + 1);
-  await expectAt(page, "what", 0);
+  await goTo(page, "guardrails");
+  await expectAt(page, "guardrails", 0);
+  await burst(notes, "next", guardrails + 2);
+  await expectAt(page, "evals", 1);
   expect(await where(page)).toEqual(single);
-  const tiles = await stepsOf(page, "what");
-  await expect(notes.getByText(`Point 0 of ${tiles}`, { exact: true })).toBeVisible();
-  // on through the next slide's tiles and off it, and back: into it on its last tile, and one tile back
-  await burst(notes, "next", tiles + 1);
-  await expect(page).toHaveURL(/#query-opener$/);
-  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "query-opener");
-  await burst(notes, "prev", 2);
-  await expectAt(page, "what", tiles - 1);
-  await expect(notes.getByText(`Point ${tiles - 1} of ${tiles}`, { exact: true })).toBeVisible();
+  await expect(point(1, evals)).toBeVisible();
+  await expect(notes.locator("main [data-step-current]")).toHaveAttribute("data-step-current", "1");
+  // on from the middle of evals, through its last point and into evals-more's second
+  await burst(notes, "next", evals - 1 + 1 + 2);
+  await expectAt(page, "evals-more", 2);
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "evals-more");
+  await expect(point(2, more)).toBeVisible();
+  // and back: two points down to its title, the move back onto evals, complete, and one point down from there
+  await burst(notes, "prev", 2 + 1 + 1);
+  await expectAt(page, "evals", evals - 1);
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "evals");
+  await expect(point(evals - 1, evals)).toBeVisible();
 });
 
-test("a burst that goes through a diagram's steps and into the next slide's points applies each key once", async ({ page, context }) => {
+test("a burst that goes through a diagram's steps and into the next slide's points lands mid-slide and applies each key once", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
-  await openSlide(page, "elevator-opener");
-  await page.keyboard.press("ArrowRight"); // onto the diagram, on its first step
+  await openSlide(page, "seats");
+  await page.keyboard.press("ArrowRight"); // onto revenue, on its first step
   await expect(ready(page)).toBeVisible();
   await expect(root(page)).toHaveAttribute("data-step-current", "0");
   const steps = Number(await root(page).getAttribute("data-step-count"));
+  const checks = pointsOf("checks");
+  expect(checks, "checks has a point to land on in the middle").toBeGreaterThan(2);
   const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
-  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "pipeline");
-  await burst(notes, "next", steps + 2); // every step of the diagram, the move to the next slide, and its first point
-  await expectAt(page, "row", 1);
-  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "row");
-  await expect(notes.getByText(`Point 1 of ${await stepsOf(page, "row")}`, { exact: true })).toBeVisible();
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "revenue");
+  await burst(notes, "next", steps + 1 + 2); // every step of the diagram, the move to the next slide, and two of its points
+  await expectAt(page, "checks", 2);
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "checks");
+  await expect(notes.getByText(`Point 2 of ${checks}`, { exact: true })).toBeVisible();
 });
 
 // A frame gets ready some time after its slide arrives, so a burst that has only just reached a diagram finds no steps there and goes on to
@@ -577,7 +716,7 @@ test("a deck the browser restores from its cache spends the way back too, and sh
   const browser = await chromium.launch({ channel: "chromium", ignoreDefaultArgs: ["--disable-back-forward-cache"], args: ["--enable-features=BackForwardCache"] });
   try {
     const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 } });
-    await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+    await context.route(FONTS, (r) => r.abort());
     await mockApp(context);
     const page = await context.newPage();
     await page.goto("/present#query-opener");
@@ -629,6 +768,12 @@ test("an animated slide the browser restores from its cache shows its whole figu
       return r ? `${r.dataset.stepCurrent} of ${r.dataset.stepCount}` : null;
     });
     await expect.poll(place).toBe(`${count} of ${count}`);
+    // the whole figure shows at once: no animation or transition of it is left to play out in front of the room
+    const playing = () => page.evaluate(() => {
+      const doc = document.querySelector<HTMLIFrameElement>("iframe[data-slide-frame]")?.contentDocument;
+      return (doc?.getAnimations() ?? []).filter((a) => a.playState !== "finished" && Number.isFinite(a.effect?.getComputedTiming().endTime as number)).length;
+    });
+    expect(await playing(), "the restore finishes the figure's transitions").toBe(0);
   } finally {
     await browser.close();
   }
@@ -645,21 +790,63 @@ test("the tracker lights the slide's topic and marks the slide, and the footer n
   await expect(slideAt(page, "ask").locator('[data-frame="footer"]')).toContainText(/^Fairshare: sales answers you can check\s*\d+ \/ \d+$/i);
 });
 
-// One slide from each topic, so each name is drawn lit (heavier, so wider) once; the longest, Where the numbers come from, is the one at risk.
+// The frame at a small window and a big one (the deck scales its 1280 by 720 stage to the window), measured in the deck's own faces: the header
+// and the footer span the stage, the logo sits where the frame puts it, and each of the five topic names is drawn whole inside its own column,
+// clear of its neighbours. A name is measured where its text is drawn (a Range's rectangle), not by the box that holds it, which a long name
+// would overflow. One slide from each topic, so each name is lit (heavier, so wider) once; the longest, Where the numbers come from, is the
+// one at risk.
 for (const size of [{ width: 1024, height: 768 }, { width: 1920, height: 1080 }]) {
-  test(`at ${size.width} by ${size.height} no two topic names overlap and none is cut off, whichever topic is lit`, async ({ page }) => {
+  test(`at ${size.width} by ${size.height} the logo, the five topic names and the footer sit inside the stage, whole and clear of each other, whichever topic is lit`, async ({ page, context }) => {
+    test.setTimeout(90_000);
     await page.setViewportSize(size);
+    await inTheDecksFaces(page, context, "problem");
+    const scale = Math.min(size.width / 1280, size.height / 720);
+    const near = (got: number, want: number, what: string) => expect.soft(Math.abs(got - want), `${what}: ${got} for ${want}`).toBeLessThanOrEqual(0.75);
     for (const id of ["problem", "ask", "row", "guardrails", "know"]) {
       await openSlide(page, id);
-      const names = slideAt(page, id).locator("[data-topic-name]");
-      await expect(names).toHaveCount(5);
-      await expect(slideAt(page, id).locator('[data-tracker] [aria-current="step"]')).toHaveCount(1);
-      const got = await names.evaluateAll((els) => els.map((el) => {
-        const r = el.getBoundingClientRect();
-        return { text: el.textContent ?? "", x: r.x, y: r.y, width: r.width, height: r.height, scroll: el.scrollWidth, client: el.clientWidth };
-      }));
-      for (const n of got) expect(n.scroll, `on ${id}, ${n.text} is cut off: ${n.scroll} > ${n.client}`).toBeLessThanOrEqual(n.client);
-      got.forEach((a, i) => got.slice(i + 1).forEach((b) => expect(touches(a, b), `on ${id}, ${a.text} overlaps ${b.text}`).toBe(false)));
+      await loadFaces(page);
+      const slide = slideAt(page, id);
+      const stage = (await slide.boundingBox())!;
+      expect.soft(stage.x >= 0 && stage.y >= 0 && stage.x + stage.width <= size.width + 0.5 && stage.y + stage.height <= size.height + 0.5, `${id}: the stage is in the window`).toBe(true);
+      near(stage.width / scale, 1280, `${id}: the stage's width`);
+      near(stage.height / scale, 720, `${id}: the stage's height`);
+      // every box in stage pixels (1280 by 720), whatever the window's scale
+      const [header, footer, logo] = await Promise.all(['[data-frame="header"]', '[data-frame="footer"]', '[data-frame="header"] img'].map((sel) => slide.locator(sel).boundingBox()));
+      const inStage = (b: { x: number; y: number; width: number; height: number }) => ({ x: (b.x - stage.x) / scale, y: (b.y - stage.y) / scale, r: (b.x + b.width - stage.x) / scale, b: (b.y + b.height - stage.y) / scale });
+      const h = inStage(header!);
+      const f = inStage(footer!);
+      const l = inStage(logo!);
+      [h.x, h.y, h.r, h.b].forEach((got, i) => near(got, [0, 0, 1280, 64][i], `${id}: the header's ${["left", "top", "right", "bottom"][i]}`));
+      [f.x, f.r, f.b, f.y].forEach((got, i) => near(got, [0, 1280, 720, 690][i], `${id}: the footer's ${["left", "right", "bottom", "top"][i]}`));
+      [l.x, l.y, l.b].forEach((got, i) => near(got, [40, 22, 44][i], `${id}: the logo's ${["left", "top", "bottom"][i]}`));
+      expect.soft(l.r, `${id}: the logo ends before the tracker begins`).toBeLessThanOrEqual(300);
+      const text = await slide.evaluate((root, [x, y, unit]) => {
+        const at = (r: DOMRect) => ({ x: (r.x - x) / unit, y: (r.y - y) / unit, r: (r.right - x) / unit, b: (r.bottom - y) / unit });
+        const ink = (el: Element) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          return at(range.getBoundingClientRect());
+        };
+        return {
+          names: [...root.querySelectorAll("[data-topic-name]")].map((el) => ({ name: el.textContent ?? "", ink: ink(el), column: at(el.closest("li")!.getBoundingClientRect()), cut: el.scrollWidth > el.clientWidth })),
+          footer: [...root.querySelectorAll('[data-frame="footer"] span')].map((el) => ({ text: el.textContent ?? "", ink: ink(el) })),
+        };
+      }, [stage.x, stage.y, scale]);
+      expect(text.names.map((n) => n.name), `${id}: the five topics, in order`).toEqual(TOPIC_ORDER.map((t) => TOPICS[t].name));
+      text.names.forEach((n, i) => {
+        expect.soft(n.cut, `${id}: ${n.name} is cut off by its box`).toBe(false);
+        expect.soft(n.ink.x >= n.column.x - 0.5 && n.ink.r <= n.column.r + 0.5, `${id}: ${n.name} (${n.ink.x} to ${n.ink.r}) is drawn inside its column (${n.column.x} to ${n.column.r})`).toBe(true);
+        expect.soft(n.ink.y >= h.y && n.ink.b <= h.b, `${id}: ${n.name} is drawn inside the header`).toBe(true);
+        if (i > 0) expect.soft(n.ink.x - text.names[i - 1].ink.r, `${id}: ${text.names[i - 1].name} and ${n.name} are clear of each other`).toBeGreaterThanOrEqual(8);
+      });
+      expect.soft(text.names[0].ink.x - l.r, `${id}: the first name is clear of the logo`).toBeGreaterThan(8);
+      expect.soft(text.names[4].ink.r, `${id}: the last name ends inside the right margin`).toBeLessThanOrEqual(1240);
+      // the footer's two texts: the label at the left margin, the number ending at the right one (its trailing letter-space hangs past 1240), and a gap between
+      const [label, number] = text.footer;
+      expect.soft(label.ink.x, `${id}: the label starts at the left margin`).toBeGreaterThanOrEqual(39.5);
+      expect.soft(number.ink.r, `${id}: the number ends at the right margin`).toBeLessThanOrEqual(1242);
+      expect.soft(number.ink.x - label.ink.r, `${id}: the label and the number are clear of each other`).toBeGreaterThanOrEqual(16);
+      for (const t of text.footer) expect.soft(t.ink.y >= f.y && t.ink.b <= f.b, `${id}: "${t.text}" is drawn inside the footer, which is inside the stage`).toBe(true);
     }
   });
 }
@@ -830,6 +1017,52 @@ test("returning from the Ask demo lands on ask complete, with the clock kept", a
   expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt")), "the move after the way back keeps the clock").toBe(started);
 });
 
+test("returning from the pre-call demo lands on precall complete, with the clock kept", async ({ page, context }) => {
+  await mockApp(context);
+  await page.goto("/present#precall");
+  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  await page.keyboard.press("ArrowRight"); // the first move starts the clock
+  await expect(page).toHaveURL(/#stack-opener$/);
+  await page.keyboard.press("ArrowLeft"); // and the way back is complete
+  const count = await stepsOf(page, "precall");
+  expect(count, "more than two lines, so a slide left two lines back is not already complete").toBeGreaterThan(2);
+  await expectAt(page, "precall", count);
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expectAt(page, "precall", count - 2);
+  const started = await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt"));
+  expect(started).not.toBeNull();
+  await page.getByRole("button", { name: "Open the pre-call pack" }).click();
+  await expect(page).toHaveURL(/\/(\?.*)?$/);
+  await back(page).click();
+  await expectAt(page, "precall", count);
+  await expect(stepRoot(page, "precall").locator("[data-step]:visible")).toHaveCount(count);
+  expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt"))).toBe(started);
+  await page.keyboard.press("ArrowRight"); // from complete, one press moves on
+  await expect(page).toHaveURL(/#stack-opener$/);
+  expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt")), "the move after the way back keeps the clock").toBe(started);
+});
+
+test("reloading on a figure mid-talk lands on it whole, with the clock kept, and the first press moves on", async ({ page }) => {
+  await openSlide(page, "stack-opener");
+  await page.keyboard.press("ArrowRight"); // system arrives on its first step, and the first move starts the clock
+  await expect(ready(page)).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(root(page)).toHaveAttribute("data-step-current", "1");
+  const count = (await root(page).getAttribute("data-step-count"))!;
+  expect(Number(count), "more than one step, so a figure left on its first is not already whole").toBeGreaterThan(1);
+  const started = await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt"));
+  expect(started).not.toBeNull();
+  await page.reload();
+  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", count);
+  expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt"))).toBe(started);
+  await page.keyboard.press("ArrowRight"); // from whole, one press moves on
+  await expect(page).toHaveURL(/#elevator-opener$/);
+  expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt")), "the move after the reload keeps the clock").toBe(started);
+});
+
 test("the notes window says which point the deck is on, and draws the slide at that point", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
   await openSlide(page, "welcome");
@@ -890,30 +1123,103 @@ test("the notes window's outline groups every slide under its part, in the order
   await expect(notes.locator("nav [data-outline]")).toHaveCount(slides.length);
 });
 
-// The layout under a native slide's title zooms out when it holds too much for the box (data-fit-zoom). A slide of the talk holds no more than
-// its box, so none may shrink; a backup is read in the questions, so none may shrink below 0.8. The test lets the deck's own fonts load where
-// the network has them, since Inter sets wider than the system faces the other tests fall back to.
-test("every native slide of the main path sits at full size, and no native backup slide below 0.8", async ({ page, context }) => {
-  test.setTimeout(90_000);
-  await context.unroute(FONTS);
-  await openSlide(page, "welcome");
-  const inter = await page.evaluate(async () => {
-    for (const face of ["400 20px Inter", "600 28px Inter", "400 28px Inter", "600 40px Inter", "500 20px 'Geist Mono'", "600 20px 'Geist Mono'"]) await document.fonts.load(face);
+/** The deck's own faces, where the network has them: the font stylesheet is let through (the other tests hold it back, since it holds the
+ * controller back) and the faces the deck is set in are asked for. True when Inter, the widest face of the deck's stack, arrived. */
+async function loadFaces(page: Page): Promise<boolean> {
+  return page.evaluate(async () => {
+    for (const face of ["400 20px Inter", "600 28px Inter", "400 28px Inter", "600 40px Inter", "500 12px Inter", "600 12px Inter", "500 20px 'Geist Mono'", "600 20px 'Geist Mono'"]) await document.fonts.load(face);
     await document.fonts.ready;
     // check() also says true when no face is named Inter at all, so look for a loaded one
     return [...document.fonts].some((f) => f.family.replace(/["']/g, "") === "Inter" && f.status === "loaded");
   });
-  test.info().annotations.push({ type: "faces", description: inter ? "measured in Inter" : "Inter did not load, so measured in the system faces" });
+}
+/** Opens a slide in the deck's own faces for a test that measures type. The sizes the deck is held to are the ones it sets in Inter, and a run
+ * in the system faces would pass for slides it did not measure, so the test skips when Inter did not arrive (and says so in its annotations). */
+async function inTheDecksFaces(page: Page, context: BrowserContext, id = "welcome") {
+  await context.unroute(FONTS);
+  await openSlide(page, id);
+  const inter = await loadFaces(page);
+  test.info().annotations.push({ type: "faces", description: inter ? "measured in Inter" : "Inter did not load" });
+  test.skip(!inter, "Inter did not load, so the type would be measured in the system faces");
+}
+/** The deck shows a slide the way the notes window's outline does, drawn and settled: every layout has fitted its box. */
+async function showAt(page: Page, id: string) {
+  await goTo(page, id);
+  await expect(slideAt(page, id)).toBeVisible();
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+}
+
+// The layout under a native slide's title zooms out when it holds too much for the box (data-fit-zoom). A slide of the talk holds no more than
+// its box, so none may shrink; a backup is read in the questions, so none may shrink below 0.8. Every slide is measured before the test
+// judges, so a slide of the talk that shrinks does not hide a backup that does too.
+test("every native slide of the main path sits at full size, and no native backup slide below 0.8", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await inTheDecksFaces(page, context);
   const zoomOn = async (id: string) => {
-    await goTo(page, id);
-    await expect(slideAt(page, id)).toBeVisible();
-    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await showAt(page, id);
     return Number(await slideAt(page, id).locator("[data-fit-zoom]").getAttribute("data-fit-zoom"));
   };
   const main = onPath(slides, "full").filter((s) => s.native);
   expect(main.length).toBeGreaterThan(10);
-  for (const s of main) expect(await zoomOn(s.id), s.id).toBe(1);
-  for (const s of slides.filter((x) => x.part === "backup" && x.native)) expect(await zoomOn(s.id), s.id).toBeGreaterThanOrEqual(0.8);
+  for (const s of main) expect.soft(await zoomOn(s.id), s.id).toBe(1);
+  const lowest = { id: "", zoom: 1 };
+  for (const s of slides.filter((x) => x.part === "backup" && x.native)) {
+    const zoom = await zoomOn(s.id);
+    expect.soft(zoom, s.id).toBeGreaterThanOrEqual(0.8);
+    if (zoom < lowest.zoom) Object.assign(lowest, { id: s.id, zoom });
+  }
+  test.info().annotations.push({ type: "lowest backup", description: `${lowest.id} at ${lowest.zoom}` });
+});
+
+// A column's example cell is as wide as its longest word needs (up to a cap), so no word of an example or a column name breaks in the middle,
+// and no example is cut short by its two-line clamp. A character on a line lower than the one before it, with a letter or digit on each side
+// of the break, is a word broken in two. The rows below the box's bottom are not counted: the box clips them.
+test("no table cell breaks a word in the middle, and no example is cut short by its clamp", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await inTheDecksFaces(page, context);
+  const tables = slides.filter((s) => s.native?.layout === "table");
+  expect(tables.length).toBeGreaterThan(10);
+  for (const s of tables) {
+    await showAt(page, s.id);
+    const found = await slideAt(page, s.id).evaluate((root) => {
+      const out: { broken: string[]; clamped: string[] } = { broken: [], clamped: [] };
+      for (const cell of root.querySelectorAll<HTMLElement>('[data-cell="name"], [data-cell="example"]')) {
+        const clip = cell.getBoundingClientRect();
+        const text = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT).nextNode() as Text | null;
+        if (!text) continue;
+        const rect = (i: number) => {
+          const range = document.createRange();
+          range.setStart(text, i);
+          range.setEnd(text, i + 1);
+          return range.getBoundingClientRect();
+        };
+        const word = (c: string) => /[A-Za-z0-9]/.test(c);
+        for (let i = 0; i + 1 < text.length; i++) {
+          if (!word(text.data[i]) || !word(text.data[i + 1])) continue;
+          const [a, b] = [rect(i), rect(i + 1)];
+          if (b.bottom <= clip.bottom + 1 && b.top > a.top + a.height / 2) out.broken.push(text.data.slice(Math.max(0, i - 8), i + 9));
+        }
+        if (cell.dataset.cell === "example" && cell.scrollHeight > cell.clientHeight + 1) out.clamped.push(text.data);
+      }
+      return out;
+    });
+    expect.soft(found.broken, `${s.id}: a word broken in the middle`).toEqual([]);
+    expect.soft(found.clamped, `${s.id}: an example cut short`).toEqual([]);
+  }
+});
+
+// The box under a native slide's title clips what reaches past it (overflow hidden, which the zoom to fit needs), and a focus ring is drawn
+// outside the button it rings. A demo button with no question stands first in that box, so the box keeps 8px clear around its layout.
+test("the demo button that stands alone keeps room around it for its focus ring, and still lines up with the title", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 }); // the stage at its own size, so a box's pixels are the deck's
+  await openSlide(page, "precall");
+  const slide = slideAt(page, "precall");
+  const box = (await slide.locator("[data-fit-zoom]").boundingBox())!;
+  const button = (await slide.getByRole("button", { name: "Open the pre-call pack" }).boundingBox())!;
+  const title = (await slide.getByRole("heading", { level: 1 }).boundingBox())!;
+  expect(button.x - box.x, "room to the left of the button inside the clip").toBeGreaterThanOrEqual(8);
+  expect(button.y - box.y, "room above the button inside the clip").toBeGreaterThanOrEqual(8);
+  expect(button.x, "the button lines up with the title, as before").toBeCloseTo(title.x, 0);
 });
 
 test("a checkpoint's time stays on one line in the notes window, and its name wraps instead", async ({ context }) => {
@@ -992,4 +1298,113 @@ for (const height of [600, 400]) {
       expect(l.y >= p.y - 0.5 && l.y + l.height <= p.y + p.height + 0.5, `the last agent ${JSON.stringify(l)} is inside the pane ${JSON.stringify(p)}`).toBe(true);
     });
   }
+}
+
+// ------------------------------------------------------------------------------------------------------------------------------------
+// The whole talk. A walk presses through every slide of a path and every step of each, going forward and then back, and at every slide checks
+// the hash, the frame (the topic the tracker lights, the marks of its slides, the number in the footer) and the step the slide stands on.
+// The slides and their order are the deck's data; the topic names, the marks and the numbers are worked out here from that order, not read
+// from the code that draws them.
+
+/** The steps of each figure's page, from the table in docs/diagrams/README.md: a page that gains or loses one fails the walk until both are
+ * changed. A native slide's steps are its layout's (stepCount), a live page has none. */
+const FIGURE_STEPS: Record<string, number> = {
+  director: 7, delegate: 6, system: 5, pipeline: 7, revenue: 4, numbers: 4, gaps: 5, "share-fair": 5, moved: 5, checked: 4, "at-aa": 7,
+};
+
+/** What the frame draws around the slide at line[i], on the path the line is: the logo; the tracker lighting the slide's topic (the welcome, the
+ * agenda and the thanks light none) with a mark for each of every topic's slides on the path, passed, this one or to come; and the footer, which
+ * numbers the slide on the path and is left off the welcome and the thanks. */
+async function expectFrame(page: Page, line: Slide[], i: number) {
+  const s = line[i];
+  const slide = slideAt(page, s.id);
+  await expect(slide.locator('[data-frame="header"] img[src="/aa-logo.svg"]'), `${s.id}: the logo`).toBeVisible();
+  const footer = slide.locator('[data-frame="footer"]');
+  if (i === 0 || i === line.length - 1) await expect(footer, `${s.id}: the ends of the path show the logo alone`).toHaveCount(0);
+  else {
+    await expect(footer.locator("span").last(), `${s.id}: its number on the path`).toHaveText(`${i + 1} / ${line.length}`);
+    await expect(footer.locator("span").first(), `${s.id}: the label`).toHaveText(new RegExp(`^(${copy.deckFooter}|${copy.deckFooterData})$`, "i"));
+  }
+  const tracker = slide.locator("[data-tracker]");
+  if (!isTopic(s.part)) return void (await expect(tracker, `${s.id}: no tracker`).toHaveCount(0));
+  await expect(tracker.locator("[aria-current]"), `${s.id}: one topic lit`).toHaveCount(1);
+  await expect(tracker.locator('[aria-current="step"]'), `${s.id}: its topic`).toHaveText(TOPICS[s.part].name);
+  for (const topic of TOPIC_ORDER) {
+    const marks = line.filter((x) => x.part === topic).map((x) => (x === s ? "current" : line.indexOf(x) < i ? "passed" : "later"));
+    const got = await tracker.locator(`[data-topic="${topic}"] [data-segment]`).evaluateAll((els) => els.map((el) => el.getAttribute("data-segment")));
+    expect(got, `${s.id}: the marks of ${topic}`).toEqual(marks);
+  }
+}
+
+/** How many steps the slide on the screen takes. A figure's frame is ready by now; a live page has none. */
+async function stepsOn(page: Page, s: Slide) {
+  if (s.kind === "animated") return Number(await root(page).getAttribute("data-step-count"));
+  return s.kind === "native" ? stepsOf(page, s.id) : 0;
+}
+/** The slide stands on its k-th step: its own root says so on a native slide, the frame's on a figure. */
+async function expectStep(page: Page, s: Slide, k: number) {
+  if (s.kind === "animated") await expect(root(page), `${s.id}: step ${k}`).toHaveAttribute("data-step-current", String(k));
+  else if (s.kind === "native") await expect(stepRoot(page, s.id), `${s.id}: step ${k}`).toHaveAttribute("data-step-current", String(k));
+}
+/** The deck is on a slide of the line: its hash, its frame, and, on a figure, its frame ready. */
+async function arriveAt(page: Page, line: Slide[], i: number) {
+  const s = line[i];
+  await expect(page, `slide ${i + 1} of ${line.length}`).toHaveURL(new RegExp(`#${s.id}$`));
+  await expect(slideAt(page, s.id)).toBeVisible();
+  await expectFrame(page, line, i);
+  if (s.kind === "animated") await expect(ready(page)).toBeVisible();
+  const count = await stepsOn(page, s);
+  if (s.kind === "native") expect(count, `${s.id}: the steps its layout holds`).toBe(stepCount(s));
+  if (s.kind === "animated") expect(count, `${s.id}: the steps of its page`).toBe(FIGURE_STEPS[s.id]);
+  return count;
+}
+const onShortPath = (page: Page) => page.addInitScript((key) => { try { localStorage.setItem(key, "short"); } catch { /* about:blank has no storage */ } }, KEYS.path);
+
+for (const path of ["full", "short"] as const satisfies PathName[]) {
+  const line = onPath(slides, path);
+  test.describe(`the ${path} path`, () => {
+    test.beforeEach(async ({ page }) => {
+      if (path === "short") await onShortPath(page);
+    });
+
+    test(`pressing forward through every slide and step of the ${path} path lands each on its first step, lights its topic and numbers it`, async ({ page }) => {
+      test.setTimeout(240_000);
+      await openSlide(page, line[0].id);
+      let presses = 0;
+      for (let i = 0; i < line.length; i++) {
+        const s = line[i];
+        const count = await arriveAt(page, line, i);
+        if (i > 0) await expectStep(page, s, 0); // a slide pressed onto shows its title alone, or its figure at its first step
+        for (let k = 1; k <= count; k++) {
+          await page.keyboard.press("ArrowRight");
+          presses += 1;
+          await expectStep(page, s, k);
+        }
+        if (i < line.length - 1) {
+          await page.keyboard.press("ArrowRight"); // the press after the last step moves the deck
+          presses += 1;
+        }
+      }
+      await page.keyboard.press("ArrowRight"); // the path stops at its end
+      await expect(page).toHaveURL(new RegExp(`#${line.at(-1)!.id}$`));
+      expect(presses, "a press for each step, and one for each move").toBeGreaterThan(line.length * 2);
+      test.info().annotations.push({ type: "presses", description: `${presses} presses through ${line.length} slides` });
+    });
+
+    test(`pressing back through every slide of the ${path} path lands each complete, steps it down to its title, and then moves back`, async ({ page }) => {
+      test.setTimeout(240_000);
+      await openSlide(page, line.at(-1)!.id);
+      for (let i = line.length - 1; i >= 0; i--) {
+        const s = line[i];
+        const count = await arriveAt(page, line, i);
+        await expectStep(page, s, count); // a slide that is gone back to, or loaded, shows complete
+        for (let k = count - 1; k >= 0; k--) {
+          await page.keyboard.press("ArrowLeft");
+          await expectStep(page, s, k);
+        }
+        await page.keyboard.press("ArrowLeft"); // from the title alone the deck moves back
+      }
+      await expect(page).toHaveURL(new RegExp(`#${line[0].id}$`)); // the path stops at its start
+    });
+  });
 }

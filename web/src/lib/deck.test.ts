@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrivalKey, FRAME_FALLBACK_MS, fromHash, move, pressTarget, type Slide } from "./deck";
+import { arrivalKey, arrive, FRAME_FALLBACK_MS, fromHash, move, pressTarget, twoLines, type Slide } from "./deck";
 
 const s = (id: string, part: Slide["part"], min: number, short?: number): Slide => ({ id, part, kind: "native", title: id, min, short, note: "" });
 export const S: Slide[] = [s("title", "open", 0.5, 0.5), s("ask", "modes", 3.5, 2.5), s("pipeline", "numbers", 1.5), s("system", "numbers", 2.25, 1.5),
@@ -61,6 +61,42 @@ describe("the animated handoff", () => {
   });
 });
 
+describe("a frame's arrival", () => {
+  // a stand-in for the frame: its motion root takes the key, and its page holds animations (a transition, one that cannot end, a transition)
+  const frame = (animations: { finish: () => void }[]) => {
+    const keys: string[] = [];
+    const root = { dispatchEvent: (e: { key: string }) => void keys.push(e.key) };
+    class KeyboardEvent {
+      constructor(readonly type: string, init: { key: string }) {
+        this.key = init.key;
+      }
+      readonly key: string;
+    }
+    const page = { querySelector: () => root, getAnimations: () => animations };
+    return { f: { contentDocument: page, contentWindow: { KeyboardEvent } } as unknown as HTMLIFrameElement, keys };
+  };
+  it("sends End and finishes every animation of the page, so the whole figure shows at once and does not play out in front of the room", () => {
+    let finished = 0;
+    const endless = { finish: () => { throw new DOMException("an endless animation cannot finish", "InvalidStateError"); } };
+    const { f, keys } = frame([{ finish: () => finished++ }, endless, { finish: () => finished++ }]);
+    arrive(f, "End");
+    expect(keys).toEqual(["End"]);
+    expect(finished, "the animations after the one that cannot finish are finished too").toBe(2);
+  });
+  it("sends Home and leaves the animations to play", () => {
+    let finished = 0;
+    const { f, keys } = frame([{ finish: () => finished++ }]);
+    arrive(f, "Home");
+    expect(keys).toEqual(["Home"]);
+    expect(finished).toBe(0);
+  });
+  it("goes on when the frame cannot be read", () => {
+    const blocked = { get contentDocument(): Document { throw new DOMException("blocked", "SecurityError"); } } as unknown as HTMLIFrameElement;
+    expect(() => arrive(blocked, "End")).not.toThrow();
+    expect(() => arrive({ contentDocument: null } as unknown as HTMLIFrameElement, "End")).not.toThrow();
+  });
+});
+
 import facts from "../deck/facts.json";
 import { images, pages } from "../deck/assets";
 import { BUILT, slides } from "../deck/slides";
@@ -75,6 +111,15 @@ describe("text helpers", () => {
     expect(bareNumbers("Summit sent 53.5% to AA")).toEqual(["53.5"]);
   });
   it("counts words", () => expect(words("one two  three")).toBe(3));
+  it("finds the fewest characters a line needs to hold a text in two lines, breaking only at spaces", () => {
+    expect(twoLines("")).toBe(0);
+    expect(twoLines("aa_share")).toBe(8); // one word is as wide as it is
+    expect(twoLines("two words")).toBe(5); // a line for each word
+    expect(twoLines("one two three four")).toBe(10); // "one two" over "three four"; nine would take a third line
+    expect(twoLines("AA share is AA revenue divided by everything the agency sol…")).toBe(30);
+    // a word wider than half the text sets the width, and the rest rides on a second line
+    expect(twoLines("gold.fact_agency_sales_monthly.aa_revenue, market_revenue")).toBe("gold.fact_agency_sales_monthly.aa_revenue,".length);
+  });
 });
 
 // the names come from .env and never from a list in the repo; a clone without .env skips the check
@@ -130,8 +175,9 @@ const COPY_RULES: [rule: string, re: RegExp][] = [
   ["an arrow or shorthand in place of words", /->|=>|→|←|\bw\/|\be\.g\.|\bi\.e\.|\betc\./i],
   ["a semicolon, where one idea a sentence wants a period", /;/],
 ];
-// the hairline pages' builder, whose captions are the openers' on-screen titles
+// the hairline pages' builder, whose captions are the openers' on-screen titles, and the pages it built, which are what the deck loads
 const HAIRLINE_PAGES = Object.values(import.meta.glob("../../../docs/diagrams/hairline/src/pages.mjs", { query: "?raw", import: "default", eager: true }))[0] as string;
+const BUILT_OPENERS = import.meta.glob<string>("../../../docs/diagrams/hairline/{stack,opener-*}.html", { query: "?raw", import: "default", eager: true });
 /** Words a title may capitalize after its first: the names of people, places, products and things in this talk. An all-caps word (AA, SQL,
  * DFW-ORD, Q3, T-100, AI/BI) passes as it is, and a possessive is read without its 's. */
 const PROPER = new Set(["Fairshare", "Ask", "Delegate", "Genie", "Foundry", "Harbor", "Summit", "Travel", "Partners", "Sep", "September", "Azure", "Power",
@@ -193,11 +239,17 @@ describe("the copy rules", () => {
     for (const [, name, caption] of openers.matchAll(/(\w+): "([^"]*)"/g)) captions.set(`opener-${name}.html`, caption);
     const live = slides.filter((s) => s.kind === "live" && !s.byline);
     expect(live.map((s) => s.id)).toEqual(["query-opener", "riffle-opener", "stack-opener", "elevator-opener", "sieve-opener"]);
+    // the builder's words are not the room's until the pages are rebuilt, so the five built pages are read too: a stale build fails here
+    const built = (asset: string) => Object.entries(BUILT_OPENERS).find(([path]) => path.endsWith(`/${asset}`))?.[1];
     for (const s of live) {
       const caption = captions.get(s.asset!.replace(/^hairline\//, ""));
       expect(caption, s.id).toBe(s.title);
       expect(copyProblems(caption!, { title: true }), s.id).toEqual([]);
+      const page = built(s.asset!);
+      expect(page, `${s.id}: the built page`).toBeTruthy();
+      expect(page!.match(/<p class="caption">([^<]*)<\/p>/)?.[1], `${s.id}: the caption of the built page`).toBe(s.title);
     }
+    expect(Object.keys(BUILT_OPENERS).length, "the four openers and the stack").toBe(live.length);
   });
   it("hold for the deck's own strings in copy.ts", () => {
     const deck = [copy.askLive, copy.openPrecall, copy.present, copy.backToDeck, copy.deckFooter, copy.deckFooterData, copy.deckTopics, ...Object.values(copy.deckHead),

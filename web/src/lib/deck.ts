@@ -1,7 +1,7 @@
 // The /present deck's rules: which slide a press reaches on the full or the short path, which slide a URL hash names, what
 // the frame draws around a slide (the topic tracker and the slide number), and the handoff on a stepped slide, where a press
-// steps the framed diagram, or the native slide's own steps, until the last one and then moves the deck. frameState and
-// sendKey are the only two that touch a frame, and both read it inside try and catch, because an aborted or blocked frame
+// steps the framed diagram, or the native slide's own steps, until the last one and then moves the deck. frameState, sendKey
+// and arrive are the only three that touch a frame, and all read it inside try and catch, because an aborted or blocked frame
 // cannot be read. The text helpers fill a slide's {placeholders} from facts.json and read its words for the content rules.
 // The topics and the parts are at the top; the keys, the clock and the messages between the deck and its notes window are
 // at the end. The pure parts are tested in deck.test.ts.
@@ -241,6 +241,25 @@ export function sendKey(f: HTMLIFrameElement, key: "Home" | "End" | "ArrowRight"
   }
 }
 
+/** What a slide's arrival sends its framed diagram (arrivalKey). End shows the whole figure, so with it every animation and transition of the
+ * frame's page is finished too: its parts' assembly ends at once and does not play out in front of the room. The first arrival and a page the
+ * browser restores from its cache both come through here. An animation that cannot end (an endless one) keeps running, and the rest still finish. */
+export function arrive(f: HTMLIFrameElement, key: "Home" | "End"): void {
+  sendKey(f, key);
+  if (key !== "End") return;
+  try {
+    f.contentDocument?.getAnimations().forEach((a) => {
+      try {
+        a.finish();
+      } catch {
+        // an endless animation cannot finish
+      }
+    });
+  } catch {
+    // a frame that went away or cannot be read: the figure under it stays
+  }
+}
+
 /** A {placeholder}: anything between braces, so a typo cannot pass for plain text. */
 const PLACEHOLDER = /\{([^{}]*)\}/g;
 
@@ -310,6 +329,26 @@ export function knownTables(keys: string[], columns: DeckFacts["columns"]): stri
 /** How many words a text has, split on runs of white space. */
 export function words(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
+}
+
+/** The fewest monospaced characters a line needs to hold a text in two lines, breaking only at its spaces: the longest word, or more when the
+ * words do not share two lines evenly. A table slide sizes its example column by it. */
+export function twoLines(text: string): number {
+  const words = text.split(/\s+/).filter(Boolean);
+  for (let width = Math.max(0, ...words.map((w) => w.length)); width < text.length; width++) {
+    let lines = 1;
+    let used = 0;
+    for (const w of words) {
+      if (used === 0) used = w.length;
+      else if (used + 1 + w.length <= width) used += 1 + w.length;
+      else {
+        lines += 1;
+        used = w.length;
+      }
+    }
+    if (lines <= 2) return width;
+  }
+  return text.length;
 }
 
 /** What a key does, in the deck or in the notes window. Clickers send Page Up and Page Down. A key held with Command,

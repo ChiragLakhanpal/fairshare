@@ -15,7 +15,7 @@ import { useReducedMotion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
 import { copy } from "../copy";
 import {
-  arrivalKey, fill, FRAME_FALLBACK_MS, sendKey, showsData, type Arrival, type DeckFacts, type FrameInfo, type Jump, type Slide,
+  arrivalKey, arrive, fill, FRAME_FALLBACK_MS, showsData, type Arrival, type DeckFacts, type FrameInfo, type Jump, type Slide,
 } from "../lib/deck";
 import { images, pages } from "./assets";
 import { DeckFrame } from "./Frame";
@@ -57,6 +57,7 @@ export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, step
   const [shown, setShown] = useState(false); // the live frame's page has loaded
   const title = fill(slide.title, facts);
   const hasByline = slide.kind === "live" && !!slide.byline?.length;
+  const finishedFigure = fallback && !ready; // the frame missed FRAME_FALLBACK_MS and is still not ready: its thumb stands in
 
   // Once per slide (Present keys SlideView by slide id, so a new slide is a new mount): poll the frame for as long as the
   // slide is up, until its controller has run, and let the finished figure stand in once FRAME_FALLBACK_MS has passed
@@ -73,20 +74,9 @@ export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, step
         if (!doc?.querySelector("[data-motion-root]")?.classList.contains("motion-ready")) return;
         clearInterval(poll);
         doc.documentElement.setAttribute("data-embed", "");
-        const key = arrivalKey(arrival, performance.now() - mounted, !!reduced);
-        sendKey(iframe, key);
-        // End shows the whole figure: finish its parts' assembly, so the end state shows at once instead of replaying
-        if (key === "End") {
-          doc.getAnimations().forEach((a) => {
-            try {
-              a.finish();
-            } catch {
-              // an endless animation cannot finish; it keeps running
-            }
-          });
-        }
+        arrive(iframe, arrivalKey(arrival, performance.now() - mounted, !!reduced));
       } catch {
-        return; // a blocked frame cannot be read, or the frame went away: the thumb stays
+        return; // a blocked frame cannot be read, or the frame went away: it never gets ready, and after FRAME_FALLBACK_MS the finished figure stands in
       }
       setReady(true);
     }, POLL_MS);
@@ -110,8 +100,8 @@ export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, step
             alt={title}
             className={`${cover} object-contain`}
             draggable={false}
-            // an animated slide's thumb is its finished figure: out of sight until the frame has missed FRAME_FALLBACK_MS
-            style={slide.kind === "animated" && !(fallback && !ready) ? { visibility: "hidden" } : undefined}
+            // an animated slide's thumb is its finished figure: out of sight unless it stands in for a frame that is late
+            style={slide.kind === "animated" && !finishedFigure ? { visibility: "hidden" } : undefined}
           />
         )}
         {slide.kind === "animated" && (

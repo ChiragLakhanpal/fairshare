@@ -6,29 +6,53 @@ animated page that steps forward one idea at a time. The deck at `/present` (the
 `web/src/deck/`) shows the figures as slides and steps the animated pages with its arrow keys. Two other PNGs sit in
 `export/`: the stills, which are screenshots of the running app, not figures (see "The two stills").
 
-## In the order they could be shown
+## The figures in the order of the talk
 
-| Section | Opener (hairline) | Diagram |
-|---|---|---|
-| Title | `hairline/title-b-airliner.html` (the chosen one; A and C stay as alternates) | |
-| The system | `hairline/stack.html` | `01-system-exploded.html`: five layers and where each one lives (Databricks, AI Foundry, Microsoft). `01-system-exploded-animated.html` lifts one layer per arrow key. |
-| The data | `hairline/opener-elevator.html` | `06-data-pipeline.html` where the numbers come from, `10-coverage.html` every agency by every month, `11-revenue-by-month.html` AA revenue by month, `14-what-was-planted.html` what was planted in the data and what cleaning did, `09-definitions.html` the seven numbers on one page, `09a-numbers-share.html` and `09b-numbers-gaps.html` the same seven over two slides, each with how it is calculated, `07-fair-share.html` what fair share means, `12-share-vs-fair.html` AA share against fair share for each agency, `08-why-it-moved.html` why a number moved |
-| Trust | `hairline/opener-sieve.html` | `02-answer-checked.html`: what the account manager sees, and the checks behind the screen |
-| Delegate | `hairline/opener-riffle.html` | `03-delegate.html`: agents draft, a person decides, then the CRM stand-in and Outlook; `03-delegate-animated.html` runs the flow one stage a press |
-| The value | `hairline/opener-query.html` | `04-journey-sales-director.html` and `05-journey-account-manager.html`: each step of the process as a sequence, with the real tools and tables |
-| Proof | | `15-at-aa.html`: the five layers of `01`, each piece marked by what runs today, what is built but not deployed, and what waits on AA's Microsoft account, with every table beside the AA feed that would replace it; `15-at-aa-animated.html` brings in a kind of mark a press, then the feeds hardest first |
+The talk is five topics between a welcome and a thanks, and this is the order the deck shows the figures in. `web/src/deck/slides.ts`
+has the slide ids and what the speaker says on each. An opener is a hairline page that plays on its own. A figure with an animated
+page takes one press for each of its steps (the table under "The animated pages" says what each press brings in). The slides in
+between, the live demos and the text slides, are native to the deck and not drawn here.
 
-There is no figure 13. `hairline/png/title-b.png` is the title slide image, and its caption is the talk title, set in
-`hairline/src/pages.mjs`; `hairline/png/titles-abc.png` shows the three that were compared.
+| Topic | Slide | Opener or figure | Steps |
+|---|---|---|---|
+| Welcome | `welcome` | `hairline/title-b-airliner.html`, the chosen title (A and C stay as alternates) | |
+| Ask and Delegate | `query-opener` | `hairline/opener-query.html` | |
+| | `director` | `04-journey-sales-director.html`: what ran behind the Harbor answer, from the sales director's side | 7 |
+| | `riffle-opener` | `hairline/opener-riffle.html` | |
+| | `delegate` | `03-delegate.html`: agents draft and a person decides, then the CRM stand-in and Outlook | 6 |
+| Where the numbers come from | `stack-opener` | `hairline/stack.html` | |
+| | `system` | `01-system-exploded.html`: five layers and where each one lives (Databricks, AI Foundry, Microsoft) | 5 |
+| | `elevator-opener` | `hairline/opener-elevator.html` | |
+| | `pipeline` | `06-data-pipeline.html`: where the numbers come from | 7 |
+| | `revenue` | `11-revenue-by-month.html`: AA revenue by month | 4 |
+| | `numbers` | `09a-numbers-share.html`: AA revenue, AA share and fair share, each with how it is calculated | 4 |
+| | `gaps` | `09b-numbers-gaps.html`: the other four numbers, the same way | 5 |
+| | `share-fair` | `12-share-vs-fair.html`: AA share against fair share for each agency | 5 |
+| | `moved` | `08-why-it-moved.html`: why a number moved | 5 |
+| Checks and misses | `sieve-opener` | `hairline/opener-sieve.html` | |
+| | `checked` | `02-answer-checked.html`: what the account manager sees, and the checks behind the screen | 4 |
+| Starting at AA | `at-aa` | `15-at-aa.html`: the five layers of `01`, each piece marked by what runs today, what is built but not deployed, and what waits on AA's Microsoft account, with every table beside the AA feed that would replace it | 7 |
+| Backup | `manager` | `05-journey-account-manager.html`: an account manager's Monday before agency calls | 7 |
+| | `fair` | `07-fair-share.html`: what fair share means (its PNG) | |
+| | `planted` | `14-what-was-planted.html`: what was planted in the data and what cleaning did (its PNG) | |
+| | `ask-still`, `precall-still` | the two stills | |
+
+`09-definitions.html` (the seven numbers on one page) and `10-coverage.html` (every agency by every month) are on no slide now: the
+first became `09a` and `09b`, and the second left the deck. There is no figure 13. `hairline/png/title-b.png` is the title slide
+image, and its caption is the talk title, set in `hairline/src/pages.mjs`; `hairline/png/titles-abc.png` shows the three that were
+compared. Each opener's caption in `pages.mjs` is the title of its slide, and `web/src/lib/deck.test.ts` keeps the two equal, in the
+pages the builder wrote as well as in `pages.mjs`.
 
 ## The animated pages
 
 `01`, `02`, `03`, `04`, `05`, `06`, `08`, `09a`, `09b`, `11`, `12` and `15` also come as `<name>-animated.html`: the same figure as its
-static page, in diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays
-complete. Each step brings in one idea. On `01` each layer lifts clear; on the other eleven the marks only fade in, and nothing
-moves. The logo band, the headers, lane labels or actors, the lifelines, axes or tier cards, a chart's lines, and the legend
-stay in place, except what gives the point away: the legend key that names the focal item or the check, a caption, a payoff
-line and a chart's notes come in with the step they belong to, and so does each entry of `15`'s legend, with the marks it names.
+static page, in diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). On its own a page plays once when it opens and then
+stays complete. Each step brings in one idea: on `01` each layer lifts clear, and on the other eleven the marks only fade in.
+
+A page's structure shows from the start, so the room knows what kind of picture it is looking at: the headers, the lane labels or
+actors, the lifelines, the axes, the tier cards, a chart's lines and the legend. What gives the point away waits for its step: the
+legend key that names the focal item or the check, a caption, a payoff line and a chart's notes. `15`'s legend is the one that
+comes in a piece at a time, each entry with the marks it names, and the first brings the legend's rule and its heading too.
 
 | Page | Steps | What each step brings in |
 |---|---|---|
@@ -41,36 +65,52 @@ line and a chart's notes come in with the step they belong to, and so does each 
 | `08-why-it-moved-animated.html` | 5 | September 2025, volume, the shift between routes (mix) with its note, share with the callout and its legend key, September 2026 with the sum, each with the line that carries the total into it |
 | `09a-numbers-share-animated.html` | 4 | AA revenue, AA share and fair share, a card a press, each with how it is calculated and its value for Harbor in Sep 2026, then where the seven numbers live and why that matters (the title, the heading over the values, and each card's frame and name show from the start) |
 | `09b-numbers-gaps-animated.html` | 5 | the share gap in points, the share gap in dollars, year over year and pace, a card a press in the same way, then the same close |
-| `11-revenue-by-month-animated.html` | 4 | the band over March and April 2026 with each month's net change against 2025, then one note a press beside it: Sunbelt sent nothing, Harbor's AA revenue fell, the other agencies grew (the title, the axes, both lines with their years and the source line show from the start) |
-| `12-share-vs-fair-animated.html` | 5 | fair share's hollow dots with their name, the note under the chart that says why fair share barely moves (every agency spreads its sales over the same routes in similar proportions) and that the seat shares are made up, AA share's solid dots with their name and connectors, then one callout a press: the agency furthest above fair share (the top row) and the one furthest below (the bottom row), each with its two values (the title, the agencies' names, the axis and the source line show from the start) |
-| `15-at-aa-animated.html` | 7 | what runs today, with the legend's rule, its heading and its first entry; what is built but not deployed; what waits on AA's Microsoft account; each kind of mark a press with its legend entry, every piece under its layer's name. Then the AA feed beside each made-up table, hardest first: the agency's sales with the note on why they are the hardest, the seat capacity, then two a press (the five layers at rest as on `01`'s static page, their names, the headings and the made-up tables show from the start) |
+| `11-revenue-by-month-animated.html` | 4 | the band over March and April 2026 with each month's net change against 2025, then one note a press beside it: Sunbelt sent nothing, Harbor's AA revenue fell, the other agencies grew in total (the title, the axes and the source line show from the start, and both lines draw in with their dots and their years) |
+| `12-share-vs-fair-animated.html` | 5 | fair share's hollow dots with their name, the note under the chart that says why fair share barely moves (every agency spreads its sales over the same twelve routes in similar proportions) and that the seat shares are made up, AA share's solid dots with their name and connectors, then one callout a press: the agency furthest above fair share (the top row) and the one furthest below (the bottom row), each with its two values (the title, the agencies' names, the axis and the source line show from the start) |
+| `15-at-aa-animated.html` | 7 | what runs today, with the legend's rule, its heading and its first entry; what is built but not deployed, with its entry; what waits on AA's Microsoft account, with its entry; then the AA feed beside each made-up table, hardest first: the agency's sales with the note on why they are the hardest, the seat capacity, the bookings with the agreements, and the CRM with the goals (the five layers at rest as on `01`'s static page, their names, the pieces under them, the headings and the made-up tables show from the start) |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
 reduced motion, or with no JavaScript, the whole figure shows at once. A figure that prints values from the data says
 "synthetic data" in its logo band, and its animated page says it too.
 
-**Embed mode.** The deck at `/present` loads an animated page in a frame and steps it with its own arrow keys. The page
-carries no script of its own for that, because the plugin allows only its own controller. The deck waits until the
-controller is ready, sets `data-embed` on the frame's `html` element, which hides the title, the note, the buttons and
-the logo band, hides every step the controller has not reached (on its own a page keeps the plugin's faded look), and
-fits the figure to the frame (`EMBED_CSS` in `src/aa.py`), then sends Home or End and the arrow keys to the figure. A
-chart draws in once, when the frame shows: on `11` each line traces itself left to right over 900ms, and its dots and
-its year come in after it; under reduced motion, and on a backward arrival or a load, it shows drawn. The newest item
-leads: an item marked `data-recede` (the notes on `11`, the cards on `09a` and `09b`, the note under the chart and the
-two callouts on `12`, every step on `15`) has its words in ink while its press is the current one, and on `09a` and `09b` its card is
-outlined in blue, as a native slide's newest tile is; when the next press comes, its words recede to the muted text and
-the outline goes. A text in it marked `data-keep` keeps the color it is drawn in, so AA share's values on `12` stay
-blue. Which slide uses which page is in `web/src/deck/slides.ts`. An animated page has no PNG of its own: the static
-page's export is its thumbnail, which the deck shows only when the frame is still not ready after `FRAME_FALLBACK_MS`
-(`web/src/lib/deck.ts`); until then the slide shows nothing of the figure. In the deck a figure keeps its content
-between y 64 and y 680, clear of the frame's header and footer, and `evals/test_figures_in_deck.py` holds every figure
-the deck shows to that.
+### In the deck: embed mode
+
+The deck at `/present` loads an animated page in a frame and steps it with its own arrow keys. The page carries no script of its own
+for that, because the plugin allows only its own controller. The deck waits until the controller is ready, sets `data-embed` on the
+frame's `html` element, then sends Home or End and the arrow keys to the figure. `data-embed` switches on `EMBED_CSS` (`src/aa.py`),
+which every animated page carries, so a change to it means rebuilding all twelve. What it does:
+
+- **A step that has not come is invisible.** An item the controller has not reached is at opacity 0, not at the plugin's faded
+  look, which would still give the end away. `01`'s five layers are the exception: they stay in place, assembled, and lift on each
+  press. A slide arrives on its first step with no fade. Until the frame is ready the slide shows nothing of the figure, and the
+  static page's PNG (the animated page's thumbnail) stands in only if the frame is still not ready after `FRAME_FALLBACK_MS`
+  (`web/src/lib/deck.ts`).
+- **The logo band is hidden**, with the eyebrow, the title and the buttons. The deck's frame draws the one logo, so no figure
+  shows a band of its own in the deck. The standalone pages and exports keep theirs.
+- **The figure fills the frame, between y 64 and y 680.** The page fits the figure to the frame at its width. The frame's header
+  covers y 0 to 64 of the figure's 1280 by 720 view box, where its band sat, and its footer y 690 to 720, so every figure the deck
+  shows keeps its content between y 64 and y 680, in both the animated page and the static one. `evals/test_figures_in_deck.py`
+  holds it to that.
+- **Charts draw in once,** when the frame shows, through three classes. `draw-line`, on a path with `pathLength="1"`, traces it left
+  to right over 900ms. `draw-dot` fades a mark in over 300ms, after a 900ms delay, so it follows the line. `draw-bar` grows a bar
+  from its baseline over 600ms. `11` uses the first two: each line traces itself, and its dots and its years come in after it. No
+  figure uses `draw-bar` yet. Under reduced motion, on a backward arrival, after a load and after the browser restores the deck from
+  its cache, a chart shows drawn: the deck sends End and finishes every animation and transition in the page (`arrive` in
+  `web/src/lib/deck.ts`), so nothing plays out in front of the room.
+- **The newest item leads.** An item marked `data-recede` (the notes on `11`, the cards on `09a` and `09b`, the note under the chart
+  and the two callouts on `12`, every step on `15`) has its words in ink while its press is the current one, and in the muted text
+  once the next press comes. A mark in it marked `data-lead` (a card's outline on `09a` and `09b`) is outlined in blue only while its
+  item is current, as a native slide's newest tile is. A text marked `data-keep` keeps the color it is drawn in, so AA share's
+  values on `12` stay blue.
+
+Which slide uses which page is in `web/src/deck/slides.ts`.
 
 ## The two stills
 
 `export/ask-still.png` and `export/precall-still.png` are not built from HTML. They are screenshots of a good run on the
 Databricks App, kept for the two backup slides `ask-still` and `precall-still` (flagged `still: true` in
-`web/src/deck/slides.ts`, which draws no part label over them), for when a live demo stalls:
+`web/src/deck/slides.ts`, which the deck draws full bleed with no frame, since each already carries the app's own top bar), for
+when a live demo stalls:
 
 - `ask-still.png`: the Harbor question answered in Ask, with every number checked.
 - `precall-still.png`: a pre-call page that the nightly job wrote, with the pack's list beside it.
@@ -112,7 +152,8 @@ better run turns up:
   Databricks or in a results file; they sit in that file as dated facts, each with its source and date.
 - `deck_facts.py --print` lists every number next to its query, and a test fails when `facts.json` is stale.
 - The seat shares behind fair share are made up, and the agency sales are synthetic. Every figure that prints values from
-  the data says "synthetic data" in its logo band, through `aa.brand(tag=...)`, and `evals/test_labels.py` keeps the list.
+  the data says "synthetic data" in its logo band, through `aa.brand(tag=...)`, and `evals/test_labels.py` keeps the list. In the
+  deck the band is hidden, and the frame's footer says "Synthetic data" on every slide that shows numbers from the data.
 - The Flight Symbol in title figure A is American Airlines' own mark.
 
 ## Rebuilding

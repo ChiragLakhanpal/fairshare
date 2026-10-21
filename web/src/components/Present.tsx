@@ -23,7 +23,7 @@ import facts from "../deck/facts.json";
 import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
 import {
-  arrivalStep, askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameInfo, frameState, fromHash, keyAction, KEYS,
+  arrive, arrivalStep, askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameInfo, frameState, fromHash, keyAction, KEYS,
   outlineArrival, pressTarget, sendKey, stepCount, type Action, type Arrival, type Jump, type Msg, type PathName,
 } from "../lib/deck";
 import { store } from "../lib/store";
@@ -194,7 +194,7 @@ function Deck() {
       if (!e.persisted) return;
       write(session, KEYS.ret, null);
       stand({ id: here.current.id, step: arrivalStep(slideOf(here.current.id), "load") });
-      if (frameRef.current) sendKey(frameRef.current, "End");
+      if (frameRef.current) arrive(frameRef.current, "End");
     };
     addEventListener("pageshow", onShow);
     return () => removeEventListener("pageshow", onShow);

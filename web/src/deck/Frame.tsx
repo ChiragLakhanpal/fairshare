@@ -3,8 +3,8 @@
 // 3px segment for each of its slides on the path that is on, navy for the slides already shown, blue for this one and light for the ones to
 // come. Along the bottom, a white strip (y 690 to 720) with the label at the left, the talk's title or "Synthetic data", and at the right the
 // slide's number on the path, or Backup. frameInfo (lib/deck.ts) says which parts a slide gets: the first and last slides of the path the logo
-// alone, the agenda no tracker, a still nothing. The strips are drawn over the slide, so a figure, which fills the stage, keeps its own logo
-// band under the top strip.
+// alone, the agenda no tracker, a still nothing. The strips are drawn over the slide, and a figure fills the stage: an animated one has its own
+// logo band hidden in the deck (embed mode), and a static one has it under the top strip, so the frame draws the one logo.
 import type { ReactNode } from "react";
 import { copy } from "../copy";
 import { PARTS, TOPIC_ORDER, TOPICS, type FrameInfo, type Segment } from "../lib/deck";
