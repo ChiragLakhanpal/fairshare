@@ -35,8 +35,9 @@ def text(x, y, s, size=16, weight=600, color=aa.INK, anchor="start", mono=False,
             f'text-anchor="{anchor}"{extra}>{aa.esc(s)}</text>')
 
 
-def eyebrow(x, y, s, anchor="start", color=aa.MUTED):
-    return text(x, y, s.upper(), size=8, weight=500, color=color, anchor=anchor, mono=True, spacing="0.18em")
+def eyebrow(x, y, s, anchor="start", color=aa.MUTED, size=8):
+    """A small mono heading; 06's two headings over its sources and its readers are structure, so they take the ramp's 12px label."""
+    return text(x, y, s.upper(), size=size, weight=500, color=color, anchor=anchor, mono=True, spacing="0.18em")
 
 
 def markers():
@@ -76,7 +77,7 @@ def pipeline(motion=False) -> str:
         ("As delivered", "bronze", fmt(fact("bookings_delivered")), "booking rows", [f"{fact('bronze_tables')} tables, as sent"]),
         ("Cleaned", "silver", fmt(fact("bookings_cleaned")), "booking rows",
          [f"−{fact('duplicate_tickets')} tickets loaded twice",
-          f"{fact('channel_spellings_delivered')} channel spellings → {fact('channel_spellings_cleaned')}"]),
+          f"{fact('channel_spellings_delivered')} channel spellings to {fact('channel_spellings_cleaned')}"]),
         ("Ready to use", "gold", fmt(fact("sales_rows")), "rows", ["per agency, route, month"]),
         ("Defined once", "gold.sales_metrics", str(fact("kpis")), "numbers", [f"{DATED['twins_checked']['value']} checked each night", "pace in gold.agency_pace"]),
     ]
@@ -107,8 +108,8 @@ def pipeline(motion=False) -> str:
     sources = [("csv", None, "Seat shares", "made up, per route and month"), ("users", None, "Agency sales", "synthetic"),
                ("file", None, f"{fact('agreements')} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
     readers = [("desktop", "The app"), ("monitoring", "Dashboard"), ("search", "Genie"), ("robot", "Agents")]
-    put(None, eyebrow(40, ATTACH[0] - 44, "Sources"))
-    put(None, eyebrow(tier_x(3) + TIER_W + 52, ATTACH[0] - 44, "Read by"))
+    put(None, eyebrow(40, ATTACH[0] - 44, "Sources", size=12))
+    put(None, eyebrow(tier_x(3) + TIER_W + 52, ATTACH[0] - 44, "Read by", size=12))
     for y, (tab, brand, name, tag) in zip(ATTACH, sources):
         put(2, f'<line x1="260" y1="{y}" x2="{TIER_X0 - 2}" y2="{y}" stroke="{aa.MUTED}" stroke-width="1.4" marker-end="url(#arrow)"/>')  # into bronze
         put(1, tabler(tab, 40, y - 14, 28) if tab else aa.icon(brand, 42, y - 12, 24))

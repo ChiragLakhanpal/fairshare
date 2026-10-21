@@ -60,7 +60,9 @@ SLUG = {name: slug for slug, name in AGENCIES}
 dumbbell = aa.load("verify_dumbbell", "verify-dumbbell.py")  # the plugin's own domain and contrast functions
 
 TITLE, EYEBROW = "AA share against fair share, Q3 2026", "fairshare · the data"
-SUBTITLE = "One row per agency, all its routes together. The rows run from furthest above fair share to furthest below."
+SUBTITLE = "One row per agency, all its routes together."  # on arrival
+# the subtitle's second sentence, which comes in with AA share's dots: on arrival it would name the two agencies the callouts are about
+ORDER = "The rows run from furthest above fair share to furthest below."
 VERDICT = ("Furthest above fair share", "Furthest below fair share")  # the callouts' words, for the top row and the bottom row
 SOURCE = "AA share and fair share for each agency, Jul to Sep 2026 · gold.fact_agency_sales_monthly, gold.fact_market_capacity"
 
@@ -192,9 +194,11 @@ def build(rows, motion=False) -> str:
     ys = [ROW0 + i * PITCH for i in range(len(rows))]
     top, base = ROW0 - 16, ys[-1] + 16  # the gridlines run from just over the first row to just under the last
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
-    # what the chart is about and how its rows run, inside the image because a slide takes the SVG alone
-    out.append(text(40, 100, TITLE, size=16, weight=600))
+    # what the chart is about, inside the image because a slide takes the SVG alone; how its rows run comes in with AA share, on the same line
+    out.append(text(40, 100, TITLE, size=16, weight=600, attrs=" data-title"))  # the slide's title, since the deck draws none over a figure
     out.append(text(40, 120, SUBTITLE, mono=True, fill=aa.MUTED))
+    order = text(40 + width(SUBTITLE + " ", 12, mono=True), 120, ORDER, mono=True, fill=aa.MUTED)
+    assert 40 + width(f"{SUBTITLE} {ORDER}", 12, mono=True) <= VW - 40, "the subtitle runs off the page"
     # the axis: a gridline at every step, the axis line in place of the one at the floor, and each tick with its unit
     for v in range(FLOOR, CEIL + 1, STEP):
         if v == FLOOR:
@@ -222,8 +226,9 @@ def build(rows, motion=False) -> str:
     out.append(step(2, " ".join(note), [text(40, SEATS_Y + k * SEATS_LEADING, line, size=SEATS_SIZE, fill=aa.MUTED, attrs=' data-note="seats"')
                                         for k, line in enumerate(note)], recede=True))
     # step 3: AA share for every agency, the solid dots in the accent, each joined to its ring by the connector, which stops at the ring
-    # because the ring is already drawn; a pair that overlaps gets no connector
-    solid = [text(x_of(rows[0]["aa_printed"]), label_y, "AA share", size=LABEL_SIZE, weight=600, fill=aa.ACCENT, mono=True, anchor="middle", attrs=' data-label="aa"')]
+    # because the ring is already drawn; a pair that overlaps gets no connector. The subtitle's line on how the rows run comes in with them.
+    solid = [text(x_of(rows[0]["aa_printed"]), label_y, "AA share", size=LABEL_SIZE, weight=600, fill=aa.ACCENT, mono=True, anchor="middle", attrs=' data-label="aa"'),
+             order]
     for y, r in zip(ys, rows):
         xs, x0 = x_of(r["aa_printed"]), x_of(r["fair_printed"])
         sign = 1 if xs > x0 else -1
@@ -233,7 +238,7 @@ def build(rows, motion=False) -> str:
               f'fill="{aa.ACCENT}" stroke="{aa.INK}" stroke-width="1"/>' for y, r in zip(ys, rows)]
     lo, hi = min(rows, key=lambda r: r["aa_printed"]), max(rows, key=lambda r: r["aa_printed"])
     out.append(step(3, f"AA share for each agency, the solid dots, from {display('agency_q3_aa_share_' + SLUG[lo['name']])} to "
-                       f"{display('agency_q3_aa_share_' + SLUG[hi['name']])}.", solid))
+                       f"{display('agency_q3_aa_share_' + SLUG[hi['name']])}. {ORDER}", solid))
     # steps 4 and 5: the two agencies that carry the story, the top row and then the bottom row. Each callout prints the row's two values
     # outside the pair, placed by geometry as the reference places them, and says where the row stands after the right-hand one, on a
     # paper patch so the gridline under the words does not show through. AA share's value keeps the accent in the deck (data-keep); the

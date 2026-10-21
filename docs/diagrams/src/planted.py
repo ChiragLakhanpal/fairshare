@@ -204,7 +204,7 @@ def p1(d: dict) -> list[str]:
     most, least = d["spellings"][0], d["spellings"][-1]
     out = frame(1, "Channel names", "the channel on each corporate booking", "Cleaned in silver.", ["Letter case and extra spaces are ignored."])
     out += [big(x + PAD, y + 104, display("channel_spellings_delivered")), note(x + PAD, y + 122, "spellings delivered"),
-            text(x + 176, y + 102, "→", size=28, fill=aa.MUTED, anchor="middle"),
+            text(x + 176, y + 104, "to", size=16, fill=aa.MUTED, anchor="middle"),
             big(x + 204, y + 104, display("channel_spellings_cleaned")), note(x + 204, y + 122, "labels after cleaning"),
             note(x + PAD, y + 146, "the most common spelling, and the rarest", size=11)]
     for i, (spelling, rows) in enumerate(((most["channel"], display("channel_direct_rows")), (least["channel"], display("channel_ndc_rows")))):
@@ -240,7 +240,7 @@ def p3(d: dict) -> list[str]:
                 note(x + PAD + i * step + 16, y + 96, MONTHS[m.month - 1], anchor="middle", size=11)]
     out += [note(x + PAD, y + 118, f"pace in May {year}, as a percent of the goal so far", size=11),
             big(x + PAD, y + 154, display("sunbelt_pace_may26_before"), fill=aa.MUTED), note(x + PAD, y + 172, "old rule", size=11),
-            text(x + 120, y + 152, "→", size=28, fill=aa.MUTED, anchor="middle"),
+            text(x + 120, y + 154, "to", size=16, fill=aa.MUTED, anchor="middle"),
             big(x + 148, y + 154, display("sunbelt_pace_may26")), note(x + 148, y + 172, "new rule", size=11)]
     return out + ["</g>"]
 

@@ -2,10 +2,11 @@
 with three marks for what runs today, what is built but not deployed and what waits on AA's Microsoft account, and each table beside the AA feed that
 would replace it; its animated page brings in a kind of mark a press, then the feeds hardest first.
 
-    python3 docs/diagrams/src/exploded.py   # writes docs/diagrams/01-system-exploded.html, 01-system-exploded-animated.html, 15-at-aa.html and 15-at-aa-animated.html
+    .venv/bin/python docs/diagrams/src/exploded.py   # writes docs/diagrams/01-system-exploded.html, 01-system-exploded-animated.html, 15-at-aa.html and 15-at-aa-animated.html
 
 Every point comes from iso(x, y, z) through diagram-design's axonometry helpers; scripts/verify-exploded.py in the plugin
-reprojects each part from the data-* attributes written here. 01 and 15 draw their slabs through the same stack_svg().
+reprojects each part from the data-* attributes written here. 01 and 15 draw their slabs through the same stack_svg(). The counts
+under 01's layers come from deck_facts.py, as 06's do.
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ import re
 from html import unescape
 
 import aa
+from deck_facts import DATED, fact
 
 import axonometry as ax  # noqa: E402  (aa put the plugin scripts on sys.path)
 ex = aa.load("exploded_examples", "build-exploded-examples.py")
@@ -104,12 +106,13 @@ def app_detail(P, r, z, sk, focal):
 
 DETAIL = {"data": data_detail, "defs": defs_detail, "agents": agents_detail, "checks": checks_detail, "app": app_detail}
 
-PARTS = [  # bottom to top: (key, name, two sublabel lines, thickness, closed z)
-    ("data", "Data", ("made-up seats · Dynamics 365 Sales (stand-in)", "4 agreements · Unity Catalog aa_demo"), 24, 0),
-    ("defs", "Definitions", ("metric view gold.sales_metrics · 7 numbers", "6 of 7 checked nightly vs a SQL twin"), 12, 24),
-    ("agents", "Agents", ("Genie space “fairshare sales metrics”", "Agent Framework · Qwen3-Next · Foundry writers"), 16, 36),
+PARTS = [  # bottom to top: (key, name, two sublabel lines, thickness, closed z); the counts read deck_facts.py, as 06 does
+    ("data", "Data", ("made-up seats · Dynamics 365 Sales (stand-in)", f"{fact('agreements')} agreements · Unity Catalog aa_demo"), 24, 0),
+    ("defs", "Definitions", (f"metric view gold.sales_metrics · {fact('kpis')} numbers",
+                             f"{DATED['twins_checked']['value']} of {fact('kpis')} checked nightly vs a SQL twin"), 12, 24),
+    ("agents", "Agents", ('Genie space "fairshare sales metrics"', "Agent Framework · Qwen3-Next · Foundry writers"), 16, 36),
     ("checks", "Checks", ("verifier on every sentence · a person approves", "MLflow traces on laptop runs · Foundry content filter"), 12, 52),
-    ("app", "The app", ("Databricks App “fairshare”", "AI/BI dashboard · Outlook drafts"), 10, 64),
+    ("app", "The app", ('Databricks App "fairshare"', "AI/BI dashboard · Outlook drafts"), 10, 64),
 ]
 FOCUS = "checks"
 PLATFORMS = [("databricks", "Databricks"), ("azure", "AI Foundry"), ("microsoft", "Microsoft")]
@@ -277,7 +280,7 @@ AT_AA_FOCUS = "data"
 AT_AA = {  # layer -> (mark, piece), in the order they print, which is the order their presses come
     "app": [(RUN, "Databricks App and dashboard"), (WAIT, "Teams through Copilot Studio"), (WAIT, "Entra ID sign-in")],
     "checks": [(RUN, "Verifier in the Databricks App"), (RUN, "MLflow traces on laptop runs")],
-    "agents": [(RUN, "Databricks Genie and the harness"), (RUN, "Foundry writers"), (BUILT, "Harness as a Foundry hosted agent")],
+    "agents": [(RUN, "Databricks Genie and the agent runtime"), (RUN, "Foundry writers"), (BUILT, "Ask as a Foundry hosted agent")],
     "defs": [(RUN, "Databricks metric view")],
     "data": [(RUN, "Databricks Unity Catalog"), (WAIT, "Fabric and OneLake"), (WAIT, "Dataverse mirror")],
 }
@@ -285,7 +288,7 @@ AT_AA = {  # layer -> (mark, piece), in the order they print, which is the order
 # The lines are broken by hand to fit the 404px feed column at 14px Inter, and measured in a browser.
 FEEDS = [
     (("fact_agency_sales_monthly",),
-     ("AA's own agency sales from ARC and BSP;", "the agency's sales on other airlines from MIDT bookings,", "or ticketed sales with fares such as IATA DDS."),
+     ("AA's own agency sales from ARC and BSP, and", "the agency's sales on other airlines from MIDT bookings", "or ticketed sales with fares such as IATA DDS."),
      ("The hardest, because AA sees its own sales and not the", "agency's sales elsewhere, and MIDT carries no fares.")),
     (("fact_market_capacity",),
      ("One schedule source for every carrier (such as OAG or", "Cirium), then T-100 for every carrier once DOT publishes it,", "since Summit's agreement defines fair share by DOT data."), ()),
@@ -309,10 +312,15 @@ def text(x, y, s, *, size=14, fill=None, mono=False, weight=400, attrs=""):
             f'font-family="{aa.MONO if mono else aa.SANS}">{aa.esc(s)}</text>')
 
 
-def eyebrow(x, y, s, anchor="start", keep=False):
-    """A small mono heading. One marked keep holds the muted color it is drawn in when the step it sits in leads (aa.EMBED_CSS)."""
+# The four headings on one baseline over the two halves. At 12px, the native ramp's label, the right half's three come within 7 and 11px of
+# each other and read as one line, so all four are 11px, which the rule allows where 12px does not fit. The legend's eyebrow stays small.
+HEADING, LEGEND = 11, 8
+
+
+def eyebrow(x, y, s, anchor="start", keep=False, size=HEADING):
+    """A mono heading. One marked keep holds the muted color it is drawn in when the step it sits in leads (aa.EMBED_CSS)."""
     end = ' text-anchor="end"' if anchor == "end" else ""
-    return (f'<text{" data-keep" if keep else ""} x="{f(x)}" y="{f(y)}" fill="{SK["muted"]}" font-size="8" font-weight="500" font-family="{aa.MONO}" '
+    return (f'<text{" data-keep" if keep else ""} x="{f(x)}" y="{f(y)}" fill="{SK["muted"]}" font-size="{size}" font-weight="500" font-family="{aa.MONO}" '
             f'letter-spacing="0.18em"{end}>{aa.esc(s.upper())}</text>')
 
 
@@ -376,7 +384,7 @@ def feed(row):
 
 def key_head():
     """The legend strip's rule and its heading, which arrive with the first marks."""
-    return [f'<line x1="40" y1="{KEY_RULE_Y}" x2="1240" y2="{KEY_RULE_Y}" stroke="{aa.RULE}" stroke-width="0.8"/>', eyebrow(40, KEY_BASE_Y, "Legend", keep=True)]
+    return [f'<line x1="40" y1="{KEY_RULE_Y}" x2="1240" y2="{KEY_RULE_Y}" stroke="{aa.RULE}" stroke-width="0.8"/>', eyebrow(40, KEY_BASE_Y, "Legend", keep=True, size=LEGEND)]
 
 
 def key_entry(kind):

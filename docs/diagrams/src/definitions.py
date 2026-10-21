@@ -279,7 +279,7 @@ def numbers_page(title: str, cards, motion: bool = False) -> str:
     With motion, each card's words and value are one press, marked to recede once the next comes, and where the numbers live is the
     last press; without it, every mark at once."""
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
-    out.append(text(40, 100, title, 16, aa.INK, 600))
+    out.append(text(40, 100, title, 16, aa.INK, 600, attrs=" data-title"))  # the slide's title, since the deck draws none over a figure
     # the heading over the values, as the deck's native slides set a label: 12px mono, upper case, tracked
     out.append(text(VALUE_X, CARDS_TOP - 16, EXAMPLE.upper(), 12, aa.MUTED, 500, aa.MONO, "end").replace("<text ", '<text letter-spacing="0.14em" ', 1))
     gap = 14 if len(cards) < 4 else 10

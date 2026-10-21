@@ -2,15 +2,17 @@
 of visibility; the work that stays hidden sits below it. The one focal cell is the verifier. A platform mark in a cell's
 corner says where that work runs.
 
-    python3 docs/diagrams/src/blueprint.py   # writes docs/diagrams/02-answer-checked.html and 02-answer-checked-animated.html
+    .venv/bin/python docs/diagrams/src/blueprint.py   # writes docs/diagrams/02-answer-checked.html and 02-answer-checked-animated.html
 
 The data-* contract is diagram-design's; scripts/verify-service-blueprint.py in the plugin reads it back. The animated page steps
 one layer at a time: the stage headers, the lane labels, the three lines and the legend stay put, and each row of cells comes in as
-one group. The caption and the legend entry that name the verifier give the point away, so they come in with its row.
+one group. The caption and the legend entry that name the verifier give the point away, so they come in with its row. The count of
+questions the app was tested on comes from deck_facts.py.
 """
 from __future__ import annotations
 
 import aa
+from deck_facts import DATED
 
 VW, VH = 1280, 720
 LEFT, COL, GUT = 112, 212, 16           # plot starts after the layer labels; five equal columns
@@ -36,7 +38,8 @@ ROWS = [
         ("Trace on laptop runs", "MLflow fairshare", (DBX,))]),
     ("support", ("FOUNDATIONS",), 392, [
         ("Runs as the viewer", "Unity Catalog aa_demo", (DBX,)), ("Defined once", "gold.sales_metrics", (DBX,)),
-        ("Clauses cite the page", None, ()), ("Numbers only from tools", None, ()), ("Tested on 20 questions", None, ())]),
+        ("Clauses cite the page", None, ()), ("Numbers only from tools", None, ()),
+        (f"Tested on {DATED['app_model_questions']['value']} questions", None, ())]),
 ]
 FOCAL = ("backstage", "check")
 LINES = [("interaction", 212, "rgba(54,73,90,0.18)", 1), ("visibility", 300, "rgba(54,73,90,0.65)", 2),
@@ -92,7 +95,7 @@ def body(motion=False):
            f'<rect x="{LEFT}" y="304" width="{RIGHT - LEFT}" height="168" fill="rgba(54,73,90,0.03)"/>']
     for i, ((sid, sname), x) in enumerate(zip(STAGES, X)):
         out.append(f'<rect x="{x}" y="72" width="{COL}" height="40" fill="none" data-stage="{sid}"/>')
-        out.append(text(x + COL // 2, 86, f"STEP {i + 1}", size=8, fill=aa.MUTED, family=aa.MONO, spacing="0.14em"))
+        out.append(text(x + COL // 2, 86, f"STEP {i + 1}", size=12, fill=aa.MUTED, family=aa.MONO, spacing="0.14em"))  # the ramp's label
         out.append(text(x + COL // 2, 108, sname, size=16, fill=aa.INK, family=aa.SANS, weight=600))
     for role, y, stroke, w in LINES:
         out.append(f'<line x1="{LEFT}" y1="{y}" x2="{RIGHT}" y2="{y}" stroke="{stroke}" stroke-width="{w}" data-role="{role}"/>')

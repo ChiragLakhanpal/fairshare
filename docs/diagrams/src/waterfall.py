@@ -23,6 +23,7 @@ AXIS_X, AXIS_R = 128, 1176
 INK_A = lambda a: f"rgba(54,73,90,{a})"
 MUTED_TINT = "rgba(90,113,129,0.15)"
 FOCAL_TINT = "rgba(0,108,191,0.12)"
+CHART_TITLE = "Why Harbor fell in September"  # the moved slide's title in web/src/deck/slides.ts, word for word
 
 
 def numbers():
@@ -55,11 +56,11 @@ def build(motion=False):
     bars = [("total", start, "September 2025", "total", False),
             ("delta", d_vol, "Sold more travel", "volume", False),
             ("delta", d_mix, "Shift between routes", "mix", False),
-            ("delta", d_share, "AA’s share fell", "share", True),
+            ("delta", d_share, "AA's share fell", "share", True),
             ("total", end, "September 2026", "total", False)]
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
-    # what the chart is about, inside the image because a slide takes the SVG alone
-    out.append(f'<text x="40" y="100" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}">Harbor Business Travel</text>')
+    # what the chart is about, inside the image because a slide takes the SVG alone: the slide's title, since the deck draws none over a figure
+    out.append(f'<text data-title x="40" y="100" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}">{CHART_TITLE}</text>')
     out.append(f'<text x="40" y="120" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">AA revenue in $ thousands, September 2025 vs September 2026</text>')
     # grid, axes, ticks
     for v in (100, 200, 300, 400):
@@ -121,7 +122,7 @@ def build(motion=False):
     # much it moved for Harbor, so it comes in with the bar
     mix_step, mix_cx = 3, X0 + 2 * PITCH + BAR / 2
     assert bars[mix_step - 1][3] == "mix" and abs(d_mix) < 1, "the mix note says the mix barely moved, so it must stay under $1K"
-    for k, line in enumerate(("Selling more on some routes", "and less on others, valued at", "last year’s AA share on each route.",
+    for k, line in enumerate(("Selling more on some routes", "and less on others, valued at", "last year's AA share on each route.",
                               "For Harbor it barely moved.")):
         put(mix_step, f'<text x="{mix_cx:g}" y="{round(value_y[mix_step - 1]) + 26 + 18 * k}" fill="{aa.INK if k == 3 else aa.MUTED}" '
                       f'font-size="13" font-family="{aa.SANS}" text-anchor="middle">{line}</text>')
@@ -137,7 +138,7 @@ def build(motion=False):
     assert ky + aa.TEXT_DESCENT * 11 <= aa.STAGE_BOTTOM, "the legend runs under the deck's footer"
     legend = [f'<line x1="40" y1="{BASE + 144}" x2="1240" y2="{BASE + 144}" stroke="{aa.RULE}" stroke-width="0.8"/>',
               f'<text x="40" y="{ky}" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">LEGEND</text>']
-    keys = [(INK_A(0.08), aa.INK, "Total"), (MUTED_TINT, aa.MUTED, "Increase"), ("#ffffff", aa.MUTED, "Decrease"), (FOCAL_TINT, aa.ACCENT, "Focal: AA’s share")]
+    keys = [(INK_A(0.08), aa.INK, "Total"), (MUTED_TINT, aa.MUTED, "Increase"), ("#ffffff", aa.MUTED, "Decrease"), (FOCAL_TINT, aa.ACCENT, "Focal: AA's share")]
     for i, (fill, stroke, text) in enumerate(keys):
         kx = 144 + i * 200
         key = [f'<rect x="{kx}" y="{ky - 12}" width="20" height="14" fill="{fill}" stroke="{stroke}" stroke-width="1"/>',

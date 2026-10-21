@@ -66,7 +66,7 @@ on arrival: it comes in an entry at a time, each with the pieces it marks, and t
 | `09a-numbers-share-animated.html` | 4 | AA revenue, AA share and fair share, a card a press, each with how it is calculated and its value for Harbor in Sep 2026, then where the seven numbers live and why that matters (the title, the heading over the values, and each card's frame and name show from the start) |
 | `09b-numbers-gaps-animated.html` | 5 | the share gap in points, the share gap in dollars, year over year and pace, a card a press in the same way, then the same close |
 | `11-revenue-by-month-animated.html` | 4 | the band over March and April 2026 with each month's net change against 2025, then one note a press beside it: Sunbelt sent nothing, Harbor's AA revenue fell, the other agencies grew in total (the title, the axes and the source line show from the start, and both lines draw in with their dots and their years) |
-| `12-share-vs-fair-animated.html` | 5 | fair share's hollow dots with their name, the note under the chart that says why fair share barely moves (every agency spreads its sales over the same twelve routes in similar proportions) and that the seat shares are made up, AA share's solid dots with their name and connectors, then one callout a press: the agency furthest above fair share (the top row) and the one furthest below (the bottom row), each with its two values (the title, the agencies' names, the axis and the source line show from the start) |
+| `12-share-vs-fair-animated.html` | 5 | fair share's hollow dots with their name, the note under the chart that says why fair share barely moves (every agency spreads its sales over the same twelve routes in similar proportions) and that the seat shares are made up, AA share's solid dots with their name and connectors and the subtitle's second sentence, which says the rows run from furthest above fair share to furthest below, then one callout a press: the agency furthest above fair share (the top row) and the one furthest below (the bottom row), each with its two values (the title, the subtitle's first sentence, the agencies' names, the axis and the source line show from the start) |
 | `15-at-aa-animated.html` | 7 | presses 1 to 3 bring one kind of piece each under the layers' names, with its entry in the legend: what runs today (seven pieces, with the legend's rule and its heading), what is built but not deployed (one) and what waits on AA's Microsoft account (four); presses 4 to 7 bring the AA feed beside each made-up table, hardest first: the agency's sales with the note on why they are the hardest, the seat capacity, the bookings with the agreements, and the CRM with the goals (on arrival the five layers at rest as on `01`'s static page, their names, the headings and the made-up tables show, and no piece, legend entry or feed does) |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
@@ -159,15 +159,15 @@ better run turns up:
 ## Rebuilding
 
 The builders in `src/` write every file here, using the diagram-design plugin's own projection code and the
-`american-airlines` profile that `.diagram-design` at the repo root points to. The builders that print numbers (`journeys.py`,
-`data_diagrams.py`, `waterfall.py`, `definitions.py`, `coverage.py`, `revenue.py`, `share_fair.py` and `planted.py`) read them
-from `deck_facts.py`, so they run in the repo's virtual environment (`.venv/bin/python`) on the local DuckDB build;
+`american-airlines` profile that `.diagram-design` at the repo root points to. The builders that print numbers (`exploded.py`,
+`blueprint.py`, `journeys.py`, `data_diagrams.py`, `waterfall.py`, `definitions.py`, `coverage.py`, `revenue.py`, `share_fair.py` and
+`planted.py`) read them from `deck_facts.py`, so they run in the repo's virtual environment (`.venv/bin/python`) on the local DuckDB build;
 `deck_facts.py` sets `FAIRSHARE_BACKEND=duckdb` itself, so the laptop's `.env` pointing at Databricks does not matter.
 
 ```
 FAIRSHARE_BACKEND=duckdb .venv/bin/python docs/diagrams/src/deck_facts.py   # every number: writes web/src/deck/facts.json
-python3 docs/diagrams/src/exploded.py                 # 01 and 15 (both versions each)
-python3 docs/diagrams/src/blueprint.py                # 02 (both versions)
+.venv/bin/python docs/diagrams/src/exploded.py        # 01 and 15 (both versions each)
+.venv/bin/python docs/diagrams/src/blueprint.py       # 02 (both versions)
 python3 docs/diagrams/src/swimlane.py                 # 03 (both versions)
 .venv/bin/python docs/diagrams/src/journeys.py        # 04, 05 (both versions)
 .venv/bin/python docs/diagrams/src/data_diagrams.py   # 06 (both versions), 07

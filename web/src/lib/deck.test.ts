@@ -178,6 +178,25 @@ const COPY_RULES: [rule: string, re: RegExp][] = [
 // the hairline pages' builder, whose captions are the openers' on-screen titles, and the pages it built, which are what the deck loads
 const HAIRLINE_PAGES = Object.values(import.meta.glob("../../../docs/diagrams/hairline/src/pages.mjs", { query: "?raw", import: "default", eager: true }))[0] as string;
 const BUILT_OPENERS = import.meta.glob<string>("../../../docs/diagrams/hairline/{stack,opener-*}.html", { query: "?raw", import: "default", eager: true });
+// The figure pages the builders wrote, which are what the room sees: a stale build fails here, as with the openers.
+const BUILT_FIGURES = import.meta.glob<string>("../../../docs/diagrams/*.html", { query: "?raw", import: "default", eager: true });
+const builtFigure = (file: string) => Object.entries(BUILT_FIGURES).find(([path]) => path.endsWith(`/${file}`))?.[1];
+/** The pages behind a slide's figure, by file name: an animated slide's own page and the static page whose PNG is its thumb, and an image
+ * slide's static page. A still is a screenshot of the app, not a figure. */
+function figureFiles(s: Slide): string[] {
+  const page = (png?: string) => (png?.startsWith("export/") ? [png.replace(/^export\/(.+)\.png$/, "$1.html")] : []);
+  if (s.kind === "animated") return [s.asset!, ...page(s.thumb)];
+  return s.kind === "image" && !s.still ? page(s.asset) : [];
+}
+/** A page's text with its escapes read back. */
+const unescape = (t: string) => t.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_, e: string) =>
+  e[0] === "#" ? String.fromCodePoint(e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : ({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" } as Record<string, string>)[e.toLowerCase()]);
+/** The words a figure shows, one string for each of its SVG <text> marks (those marked data-title alone when asked), with any tags inside
+ * dropped and the escapes read back. */
+function svgTexts(page: string, only?: "data-title"): string[] {
+  return [...page.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/g)].filter((m) => !only || new RegExp(`\\s${only}(\\s|=|$)`).test(m[1]))
+    .map((m) => unescape(m[2].replace(/<[^>]*>/g, "")).trim()).filter(Boolean);
+}
 /** Words a title may capitalize after its first: the names of people, places, products and things in this talk. An all-caps word (AA, SQL,
  * DFW-ORD, Q3, T-100, AI/BI) passes as it is, and a possessive is read without its 's. */
 const PROPER = new Set(["Fairshare", "Ask", "Delegate", "Genie", "Foundry", "Harbor", "Summit", "Travel", "Partners", "Sep", "September", "Azure", "Power",
@@ -251,6 +270,14 @@ describe("the copy rules", () => {
     }
     expect(Object.keys(BUILT_OPENERS).length, "the four openers and the stack").toBe(live.length);
   });
+  it("hold for the words the room reads on every figure the deck shows", () => {
+    const pages = slides.flatMap((s) => figureFiles(s).map((file) => ({ id: s.id, file, page: builtFigure(file) })));
+    expect(pages.filter((p) => !p.page).map((p) => p.file), "every figure page is built").toEqual([]);
+    expect(new Set(pages.map((p) => p.file)).size, "the animated pages, the static pages under their thumbs, and the backup figures").toBeGreaterThan(20);
+    const broken = pages.flatMap(({ id, file, page }) =>
+      svgTexts(page!).flatMap((t) => COPY_RULES.filter(([, re]) => re.test(t)).map(([rule]) => `${id} (${file}): ${rule}: ${t}`)));
+    expect([...new Set(broken)]).toEqual([]);
+  });
   it("hold for the deck's own strings in copy.ts", () => {
     const deck = [copy.askLive, copy.openPrecall, copy.present, copy.backToDeck, copy.deckFooter, copy.deckFooterData, copy.deckTopics, ...Object.values(copy.deckHead),
       copy.deckPass, copy.deckFail, copy.deckReport, copy.notesTitle, copy.notesWaiting, copy.notesNow, copy.notesPoint(2, 3), copy.notesNext, copy.notesLast,
@@ -259,6 +286,18 @@ describe("the copy rules", () => {
       copy.notesWarm("9:41 AM"), copy.notesWarmMissed("9:41 AM"), copy.notesWarmMissed(null), copy.notesOutline, copy.notesOffPath];
     // a clock time is a number and a colon, not a colon in a sentence
     expect(deck.flatMap((t) => copyProblems(t.replace(/\d{1,2}:\d{2}/g, "now")).map((p) => `${p}: ${t}`))).toEqual([]);
+  });
+});
+
+// The deck draws no title over a figure, so a figure's own title line, where it has one, is the title the room sees on that slide: it says
+// the slide's title word for word, in the static page under the thumb as in the stepped page. The builders mark the line data-title.
+describe("a figure's title line", () => {
+  it("is its slide's title from slides.ts, word for word, on every figure that has one", () => {
+    const titled = slides.flatMap((s) => figureFiles(s).map((file) => ({ id: s.id, file, lines: svgTexts(builtFigure(file) ?? "", "data-title") })))
+      .filter((f) => f.lines.length);
+    expect([...new Set(titled.map((f) => f.id))], "the figures with a title line").toEqual(["revenue", "numbers", "gaps", "share-fair", "moved"]);
+    expect(titled.map((f) => f.file).length, "the stepped page and the static page of each").toBe(10);
+    for (const f of titled) expect(f.lines, `${f.id} (${f.file})`).toEqual([fill(slides.find((s) => s.id === f.id)!.title, facts)]);
   });
 });
 

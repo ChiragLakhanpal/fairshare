@@ -240,6 +240,39 @@ def test_06_shows_its_headings_and_tier_cards_on_arrival_and_keeps_each_number_f
     assert len(numbers) == 4 and all(step_of(n) is not None for n in numbers), "each tier's number waits for its step"
 
 
+# The labels that tell the room what kind of picture it is looking at, on arrival, at the native ramp's 12px label, or 11px where 12px does not fit.
+# 15's four headings share one baseline, and at 12px its right half's three come within 7 and 11px of each other, so all four are 11px. 02's lane
+# labels stay as they were: at 11px FOUNDATIONS would start at x 17, outside the 40px margin the figure keeps, unless the grid moves, which is
+# Chirag's call. The FOCAL and LEGEND eyebrows stay small.
+STRUCTURE_LABELS = {"02-answer-checked": (r"^STEP \d$", 5, 12), "06-data-pipeline": (r"^(SOURCES|READ BY)$", 2, 12),
+                    "15-at-aa": (r"^(WHERE IT STANDS IN THE DEMO|TABLE OF MADE-UP DATA|AA FEED THAT WOULD REPLACE IT|HARDEST FIRST)$", 4, 11)}
+
+
+@pytest.mark.parametrize("name", [n for page in STRUCTURE_LABELS for n in (page, f"{page}-animated")])
+def test_a_figures_structure_labels_read_from_the_back_of_the_room(name):
+    pattern, count, size = STRUCTURE_LABELS[name.removesuffix("-animated")]
+    labels = texts(figure(name), pattern)
+    assert len(labels) == count and {float(n.attrs["font-size"]) for n in labels} == {size}, \
+        f"{name}: {[(n.words(), n.attrs['font-size']) for n in labels]} at {size}px"
+    if name.endswith("-animated"):
+        assert all(step_of(n) is None for n in labels), f"{name}: structure shows on arrival"
+
+
+@pytest.mark.parametrize("name", ["01-system-exploded", "01-system-exploded-animated", "02-answer-checked", "02-answer-checked-animated"])
+def test_01_and_02_print_their_counts_from_the_facts(name):
+    # 06 reads its counts from deck_facts; 01 and 02 do too, so a count can only change with the facts. The printed text is the facts' display,
+    # and the builder types no count by hand.
+    dated = json.loads((ROOT / "web/src/deck/facts.json").read_text(encoding="utf-8"))["dated"]
+    said = {n.words() for n in figure(name).walk() if n.tag == "text"}
+    want = ({f"{FACTS['agreements']['display']} agreements · Unity Catalog aa_demo", f"metric view gold.sales_metrics · {FACTS['kpis']['display']} numbers",
+             f"{dated['twins_checked']['display']} of {FACTS['kpis']['display']} checked nightly vs a SQL twin"} if name.startswith("01")
+            else {f"Tested on {dated['app_model_questions']['display']} questions"})
+    assert want <= said, f"{name}: {want - said}"
+    builder = (ROOT / "docs/diagrams/src" / ("exploded.py" if name.startswith("01") else "blueprint.py")).read_text(encoding="utf-8")
+    typed = re.findall(r"\b\d+ agreements\b|\b\d+ numbers\b|\b\d+ of \d+ checked\b|Tested on \d+", builder)
+    assert not typed, f"a count typed by hand in the builder: {typed}"
+
+
 def test_02_shows_its_lane_labels_on_arrival():
     labels = texts(figure("02-answer-checked-animated"), r"^(ACCOUNT|MANAGER|THE APP|BEHIND THE|SCREEN|FOUNDATIONS)$")
     assert len(labels) == 6 and all(step_of(n) is None for n in labels), "the blueprint's row headings are structure"
@@ -589,7 +622,7 @@ def test_revenue_keeps_one_order_of_weight_title_then_notes_then_the_source(name
     size = lambda n: float(n.attrs["font-size"])  # noqa: E731
     weight = lambda n: int(n.attrs.get("font-weight", 400))  # noqa: E731
     assert not [n.words() for n in words if n.attrs.get("font-style") == "italic"], "no italic display type"
-    (title,) = texts(fig, r"^AA revenue by month$")
+    (title,) = texts(fig, r"^AA revenue by month, and the March and April dip$")  # the slide's title, which deck.test.ts holds it to
     assert size(title) == max(size(n) for n in words) and weight(title) == max(weight(n) for n in words), "the title is the strongest text"
     notes = [n for n in words if "data-note" in n.attrs]
     assert notes and all(size(n) < size(title) and weight(n) < weight(title) for n in notes), "a note is smaller and lighter than the title"
@@ -834,6 +867,18 @@ def test_share_fair_keeps_one_order_of_weight_title_then_notes_then_the_source(n
     assert size(source) == min(size(n) for n in words) and source.attrs["fill"] == MUTED, "the source line is the smallest text, and grey"
 
 
+def test_share_fair_says_how_its_rows_run_only_with_aa_shares_dots():
+    # on arrival the agencies' names show in their order, so a line saying the top row is furthest above fair share would name the two agencies
+    # the callouts are about before AA share is even on the chart; it comes in with AA share's dots, on the subtitle's line
+    fig = figure(f"{SHARE}-animated")
+    (order,) = texts(fig, r"^The rows run from furthest above fair share to furthest below\.$")
+    (subtitle,) = texts(fig, r"^One row per agency, all its routes together\.$")
+    assert step_of(subtitle) is None and step_of(order) == step_of(series(fig, "aa")[0]), "the subtitle shows on arrival, and how the rows run comes with AA share"
+    assert order.attrs["y"] == subtitle.attrs["y"], "on the subtitle's line"
+    (still,) = texts(figure(SHARE), r"^The rows run from furthest above fair share to furthest below\.$")
+    assert still.attrs["x"] == order.attrs["x"], "the static page draws the line in the same place"
+
+
 def test_share_fair_lets_the_newest_note_lead_and_keeps_aa_shares_values_in_the_accent():
     fig = figure(f"{SHARE}-animated")
     notes = [n for n in fig.walk() if n.tag == "text" and "data-note" in n.attrs]
@@ -975,4 +1020,4 @@ def test_at_aa_says_it_in_plain_words_and_marks_every_azure_possibility_as_waiti
     for words, kind in pieces.items():
         if any(b.lower() in words.lower() for b in built):
             assert kind != "wait", f"{words!r} names something built, so it is not marked as waiting"
-    assert (pieces["Foundry writers"], pieces["Harness as a Foundry hosted agent"]) == ("run", "built"), "the Foundry writers run, the hosted agent is built"
+    assert (pieces["Foundry writers"], pieces["Ask as a Foundry hosted agent"]) == ("run", "built"), "the Foundry writers run, the hosted agent is built"

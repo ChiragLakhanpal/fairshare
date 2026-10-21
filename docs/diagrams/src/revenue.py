@@ -33,7 +33,7 @@ FOCAL_TINT = "rgba(0,108,191,0.08)"
 NOTE_SIZE, NOTE_LEADING = 13, 19   # the notes beside the band: under the 16px title in size and weight
 SOURCE_Y = 662               # the source line's baseline, the last line on the stage
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve")
-TITLE, EYEBROW = "AA revenue by month", "fairshare · the data"
+TITLE, EYEBROW = "AA revenue by month, and the March and April dip", "fairshare · the data"  # the revenue slide's title in slides.ts, word for word
 
 
 def text(x, y, s, *, size=12, weight=400, fill=aa.INK, mono=False, anchor="start", attrs=""):
@@ -122,7 +122,7 @@ def build(by_year, holes, shares, motion=False) -> str:
     millions = lambda v: f"${v / 1e6:.1f}M"                            # noqa: E731
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     # what the chart is about, inside the image because a slide takes the SVG alone
-    out.append(text(40, 100, TITLE, size=16, weight=600))
+    out.append(text(40, 100, TITLE, size=16, weight=600, attrs=" data-title"))  # the slide's title, since the deck draws none over a figure
     out.append(text(40, 120, f"AA revenue per month in $ millions, all agencies and routes. The axis starts at {millions(lo)}, not at zero.",
                     mono=True, fill=aa.MUTED))
     # step 1: the band over the two months with no Sunbelt rows, behind everything else. It names its months at its top and carries
