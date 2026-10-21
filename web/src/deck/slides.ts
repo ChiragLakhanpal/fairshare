@@ -185,7 +185,7 @@ export const slides: Slide[] = [
         { head: "Nothing goes out unapproved", body: "The app records nothing in the CRM until a person approves, and it never sends an email itself." },
       ],
     },
-    note: "Four guardrails, a press each, and each head says what it stops. The story I'd tell is the third one, a writer ignored the instruction I planted in a CRM note. Then what the tests found.",
+    note: "Four guardrails, a press each, and each head says what it stops. When the third comes in, tell how a writer ignored the instruction I planted in a CRM note. Then what the tests found.",
   },
   {
     id: "evals", part: "checks", kind: "native", title: "Genie and the whole app on known answers", min: 1, short: 1.5,
@@ -245,7 +245,7 @@ export const slides: Slide[] = [
         "Ask as a Foundry hosted agent is built but not deployed.",
       ],
     },
-    note: "Five limits, a press each. The one I'd stress is the first, it doesn't flag a single corporate's drop yet, though you can ask about one. The Foundry writers do run today. Then the same layers at AA.",
+    note: "Five limits, a press each. When the first comes in, stress that it doesn't flag a single corporate's drop yet, though you can ask about one. The Foundry writers do run today. Then the same layers at AA.",
   },
 
   // 5. Starting at AA: the same layers on AA's own data, the possibilities on Azure, the first four steps and how we'd know
