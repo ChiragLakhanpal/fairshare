@@ -82,8 +82,8 @@ export const slides: Slide[] = [
     note: "The other mode is Delegate, where pages wait for a person to decide. Let it play, then how the agents work.",
   },
   {
-    id: "delegate", part: "modes", kind: "image", title: "Agents draft, people decide", min: 1.25,
-    asset: "export/03-delegate.png",
+    id: "delegate", part: "modes", kind: "animated", title: "Agents draft, people decide", min: 1.25,
+    asset: "03-delegate-animated.html", thumb: "export/03-delegate.png",
     note: "Every night the job runs four agents. Fixed queries pull the facts, a Foundry writer drafts from only those, and the verifier checks every number. Nothing is logged or sent until a person approves. Let me open one.",
   },
   {

@@ -23,8 +23,8 @@ from aa import MUTED  # noqa: E402  the figures' muted text
 
 DIAGRAMS = ROOT / "docs" / "diagrams"
 FACTS = json.loads((ROOT / "web/src/deck/facts.json").read_text(encoding="utf-8"))["facts"]
-ANIMATED = ["01-system-exploded", "02-answer-checked", "04-journey-sales-director", "05-journey-account-manager", "06-data-pipeline",
-            "08-why-it-moved", "09a-numbers-share", "09b-numbers-gaps", "11-revenue-by-month", "12-share-vs-fair"]
+ANIMATED = ["01-system-exploded", "02-answer-checked", "03-delegate", "04-journey-sales-director", "05-journey-account-manager",
+            "06-data-pipeline", "08-why-it-moved", "09a-numbers-share", "09b-numbers-gaps", "11-revenue-by-month", "12-share-vs-fair"]
 # every page the deck shows a figure from: the animated pages in their frames, and the static pages whose PNGs are the thumbs and the backup slides
 SHOWN = [f"{n}-animated" for n in ANIMATED] + ANIMATED + ["07-fair-share", "14-what-was-planted"]
 TOP, BOTTOM = 64, 680
@@ -398,6 +398,100 @@ def test_a_journey_shows_its_payoff_only_on_its_last_step(name):
     payoff = [n for n in fig.walk() if n.tag == "text" and n.attrs.get("font-style") == "italic"]
     assert len(payoff) == 1 and payoff[0].words().startswith("Today"), "the one italic line is the payoff"
     assert step_of(payoff[0]) == step_count(name), "the payoff comes in with the last step"
+
+
+# ---------------------------------------------------------------- 03: Delegate, a swimlane that runs one stage a press
+
+DELEGATE = "03-delegate"
+DELEGATE_PAGES = [DELEGATE, f"{DELEGATE}-animated"]
+# the lanes top to bottom, each with its name: who does a step, and where it runs
+LANES = ["Nightly job", "Agent runtime", "AI Foundry", "Account manager", "CRM + mail"]
+# the flow in the order it runs, one stage a press: the nightly job, the fixed queries, the writer, the verifier, the person who approves, and then the
+# CRM and Outlook together; each key is a data-node, and what its box says shows the stage is the one named
+FLOW = ["job", "queries", "writer", "verifier", "decide", "crm"]
+SAYS = {"job": r"nightly", "queries": r"fixed SQL", "writer": r"fairshare-precall-pack", "verifier": r"Checks every number", "waits": r"Waits for a decision",
+        "review": r"Reviews the page", "decide": r"Approves or rejects", "crm": r"Dynamics 365 \(stand-in\)", "mail": r"Outlook"}
+CAPTION = "Nothing reaches the CRM or Outlook until a person approves."
+
+
+def flow_nodes(fig: Node) -> dict[str, Node]:
+    """The steps of the flow, by key, in the order the figure draws them."""
+    return {n.attrs["data-node"]: n for n in fig.walk() if "data-node" in n.attrs}
+
+
+def test_delegate_steps_inside_the_plugins_budget():
+    name = f"{DELEGATE}-animated"
+    steps = [int(n.attrs["data-step"]) for n in figure(name).walk() if "data-motion-item" in n.attrs]
+    assert step_count(name) <= 8 and len(steps) <= 12, f"at most eight steps and twelve marked items: {step_count(name)} and {len(steps)}"
+    assert sorted(set(steps)) == list(range(1, step_count(name) + 1)) and max(steps.count(s) for s in steps) <= 2, "every step brings something, two items at most"
+
+
+def test_delegate_shows_its_lanes_and_their_names_on_arrival():
+    fig = figure(f"{DELEGATE}-animated")
+    (lanes,) = [n for n in fig.walk() if n.attrs.get("data-role") == "lanes"]
+    assert step_of(lanes) is None, "the lanes are the figure's structure, so they show on arrival"
+    named = [n for n in lanes.walk() if "data-lane" in n.attrs]
+    assert [n.words().strip() for n in named] == LANES, "five lanes, each with its name"
+    assert all(len([k for k in n.walk() if k.tag == "svg"]) >= 1 for n in named), "each lane's mark says where its steps run"
+    assert len([n for n in lanes.walk() if n.tag == "line"]) == len(LANES) + 2, "a rule over and under every lane, and the line after the names"
+    assert flow_nodes(fig) and all(step_of(n) is not None for n in flow_nodes(fig).values()), "every step of the flow waits for its press"
+
+
+def test_delegate_brings_in_the_flow_one_stage_a_press_in_the_order_it_runs():
+    name = f"{DELEGATE}-animated"
+    fig = figure(name)
+    nodes = flow_nodes(fig)
+    assert sorted(nodes) == sorted(SAYS), "the nine steps of the flow"
+    for key, words in SAYS.items():
+        assert re.search(words, nodes[key].words()), f"{key} says {words!r}: {nodes[key].words()!r}"
+    step = {key: step_of(n) for key, n in nodes.items()}
+    assert [step[k] for k in FLOW] == list(range(1, step_count(name) + 1)), \
+        f"the nightly job, the fixed queries, the writer, the verifier, the person who approves, then the CRM and Outlook, a press each: {step}"
+    assert step["mail"] == step["crm"], "Outlook comes in with the CRM, once a person has approved"
+    assert step["verifier"] <= step["waits"] <= step["review"] <= step["decide"], "the checked page waits, and a person reviews it, before the decision"
+    arrows = [n for n in fig.walk() if n.tag == "path" and "data-to" in n.attrs]
+    assert sorted(a.attrs["data-to"] for a in arrows) == sorted(set(nodes) - {"job"}), "one arrow into every step but the first"
+    for a in arrows:
+        assert step_of(a) == step[a.attrs["data-to"]], f"the arrow into {a.attrs['data-to']} comes in with it"
+    labels = [n for n in fig.walk() if n.tag == "text" and "data-to" in n.attrs]
+    assert len(labels) == 4, "four arrows carry a label"
+    for label in labels:
+        assert step_of(label) == step[label.attrs["data-to"]], f"{label.words()!r} comes in with its arrow"
+
+
+def test_delegate_names_the_person_who_decides_in_its_legend_only_with_that_step():
+    fig = figure(f"{DELEGATE}-animated")
+    focal = [n for n in fig.walk() if n.attrs.get("data-focal") == "true"]
+    assert len(focal) == 1 and focal[0].attrs.get("data-node") == "decide", "the focal step is the person's decision"
+    (entry,) = texts(fig, r"^A person decides$")
+    assert step_of(entry) == step_of(focal[0]), "the legend entry that names the focal step comes in with it"
+    swatch = entry.parent.kids[entry.parent.kids.index(entry) - 1]
+    assert swatch.tag == "rect" and step_of(swatch) == step_of(focal[0]), "and so does its swatch"
+    (handoff,) = [n for n in fig.walk() if n.tag == "path" and n.attrs.get("stroke") == aa.ACCENT]
+    (key,) = texts(fig, r"^Handoff to a person$")
+    assert step_of(key) == step_of(handoff), "the key for the handoff to a person comes in with the handoff"
+    rest = texts(fig, r"^(LEGEND|Step|Next step|Request|Reply)$")
+    assert len(rest) == 5 and all(step_of(n) is None for n in rest), "the rest of the key reads the figure's marks, so it shows on arrival"
+
+
+def test_delegate_shows_its_caption_only_on_its_last_step():
+    name = f"{DELEGATE}-animated"
+    fig = figure(name)
+    caption = texts(fig, r"^FOCAL STEP$") + texts(fig, rf"^{re.escape(CAPTION)}$")
+    assert len(caption) == 2, "the caption: its eyebrow and its line"
+    assert {step_of(n) for n in caption} == {step_count(name)}, "the caption gives the point away, so it comes in with the last step"
+
+
+@pytest.mark.parametrize("name", DELEGATE_PAGES)
+def test_delegate_says_it_in_plain_words_and_keeps_saying_the_crm_is_a_stand_in(name):
+    fig = figure(name)
+    assert not [n.words() for n in fig.walk() if n.tag == "text" and n.attrs.get("font-style") == "italic"], "no italic display type"
+    assert not re.search("[–—]", html(name)), "no em or en dash on the page"
+    assert len(texts(fig, rf"^{re.escape(CAPTION)}$")) == 1, "the caption says who decides, in the active voice"
+    named = texts(fig, r"Dynamics 365")
+    assert named and all("stand-in" in n.words() for n in named), "wherever the figure names Dynamics 365, it says the CRM is a stand-in"
+    (desc,) = [n for n in fig.walk() if n.tag == "desc"]
+    assert "made-up CRM shaped like Dynamics 365 Sales" in desc.words(), "and so does its description"
 
 
 # ---------------------------------------------------------------- 11: revenue by month, a chart that draws itself

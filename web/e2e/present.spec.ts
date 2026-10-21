@@ -210,6 +210,34 @@ test("share against fair share shows its agencies on arrival, then one thing a p
   await expect(page).toHaveURL(/#moved$/);
 });
 
+test("delegate shows its lanes on arrival, then its flow one stage a press in the order it runs, and then the pre-call pack", async ({ page }) => {
+  await openSlide(page, "riffle-opener");
+  await page.keyboard.press("ArrowRight"); // delegate arrives on its first step going forward
+  await expect(page).toHaveURL(/#delegate$/);
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", "0");
+  const figure = page.frameLocator("iframe[data-slide-frame]");
+  await expect(figure.locator("[data-lane]"), "the five lanes and their names show on arrival").toHaveCount(5);
+  for (const lane of await figure.locator("[data-lane]").all()) await expect(lane).toBeVisible();
+  for (const item of await itemStates(page)) expect(item.opacity, `step ${item.step} before its press`).toBe("0");
+  // a step of the flow shows once the press that brings it has come, and not before
+  const shownNodes = () => figure.locator("[data-node]").evaluateAll((els) =>
+    els.filter((el) => getComputedStyle(el.closest("[data-motion-item]")!).opacity === "1").map((el) => el.getAttribute("data-node")));
+  const flow = [["job"], ["queries"], ["writer"], ["verifier", "waits"], ["review", "decide"], ["crm", "mail"]];
+  const count = Number(await root(page).getAttribute("data-step-count"));
+  expect(count, "a press for each stage of the flow").toBe(flow.length);
+  for (let step = 1; step <= count; step++) {
+    await page.keyboard.press("ArrowRight");
+    await expect(root(page)).toHaveAttribute("data-step-current", String(step));
+    const shown = async () => (await itemStates(page)).every((i) => (i.step <= step ? i.opacity === "1" : i.opacity === "0"));
+    await expect.poll(shown, `one stage a press, step ${step}`).toBe(true);
+    await expect.poll(async () => (await shownNodes()).sort(), `step ${step}`).toEqual(flow.slice(0, step).flat().sort());
+  }
+  await expect(figure.getByText("Nothing reaches the CRM or Outlook until a person approves.")).toBeVisible(); // the last press brings the caption
+  await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#precall$/);
+});
+
 test("a load on an animated slide, a reload or the way back from a demo, shows its whole figure, and the first press moves on", async ({ page }) => {
   await openSlide(page, "pipeline");
   await expect(ready(page)).toBeVisible();
