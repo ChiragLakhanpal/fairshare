@@ -165,6 +165,15 @@ def test_every_example_carries_its_unit():
     assert set(UNIT_OF) <= set(deck_facts.COLUMNS) and all(set(c) <= set(deck_facts.COLUMNS[t][1]) for t, c in UNIT_OF.items()), "UNIT_OF names a column the deck does not show"
 
 
+def test_a_meaning_that_gives_the_stored_form_says_it_is_stored():
+    """The examples now show 42% and Sep 2026. A meaning that says what the table holds (a number between zero and one, the first day of the
+    month) has to say that it is kept or stored that way. Written as, or a bare as, would contradict the example beside it."""
+    holds = r"between zero and one|first day of that month"
+    offenders = [f"{table}.{c['name']}" for table, columns in STORED["columns"].items() for c in columns
+                 if re.search(holds, c["meaning"]) and not re.search(rf"\b(?:kept|stored) as\b[^.]*(?:{holds})", c["meaning"])]
+    assert not offenders, f"these meanings contradict their examples: {offenders}"
+
+
 BANNED_IN_COPY = ("additionally", "crucial", "delve", "enduring", "enhance", "fostering", "garner", "interplay", "intricate", "landscape", "pivotal",
                   "showcase", "tapestry", "testament", "underscore", "vibrant")
 

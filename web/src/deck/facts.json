@@ -87,7 +87,7 @@
    },
    {
     "example": "42%",
-    "meaning": "The share of its sales the agency is asked to send to AA, as a number between zero and one. Made up.",
+    "meaning": "The share of its sales the agency is asked to send to AA, kept as a number between zero and one. Made up.",
     "name": "share_goal",
     "type": "DOUBLE"
    }
@@ -495,7 +495,7 @@
    },
    {
     "example": "Sep 2026",
-    "meaning": "The month of the sales, written as the first day of that month.",
+    "meaning": "The month of the sales, stored as the first day of that month.",
     "name": "sales_month",
     "type": "DATE"
    },
@@ -607,7 +607,7 @@
    },
    {
     "example": "Sep 2026",
-    "meaning": "The month of the seats, written as the first day of that month.",
+    "meaning": "The month of the seats, stored as the first day of that month.",
     "name": "sales_month",
     "type": "DATE"
    },
@@ -699,19 +699,19 @@
    },
    {
     "example": "34.22%",
-    "meaning": "AA's share of the agency's sales this month, as a number between zero and one.",
+    "meaning": "AA's share of the agency's sales this month, kept as a number between zero and one.",
     "name": "aa_share_now",
     "type": "DOUBLE"
    },
    {
     "example": "44.34%",
-    "meaning": "AA's share of the agency's sales a year earlier, as a number between zero and one.",
+    "meaning": "AA's share of the agency's sales a year earlier, kept as a number between zero and one.",
     "name": "aa_share_prior",
     "type": "DOUBLE"
    },
    {
     "example": "40.12%",
-    "meaning": "Fair share this month: AA's seat share on the agency's routes, as a number between zero and one. The seat shares are made up.",
+    "meaning": "Fair share this month: AA's seat share on the agency's routes, kept as a number between zero and one. The seat shares are made up.",
     "name": "fair_share_now",
     "type": "DOUBLE"
    },
