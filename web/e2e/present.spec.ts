@@ -273,19 +273,69 @@ test("a deck the browser restores from its cache spends the way back too", async
   }
 });
 
-// A still is a screenshot of the app, and the app's own top bar sits where the part label would be drawn.
-test("the part label sits on an ordinary slide and stays off the two stills", async ({ page }) => {
-  const label = (id: string, text: string) => page.locator(`[data-slide="${id}"]`).getByText(text, { exact: true });
-  await page.goto("/present#coverage");
-  await expect(label("coverage", "Where the numbers come from")).toBeVisible();
+// The frame: the AA logo and the five topics along the top, and along the bottom the talk's title (or "Synthetic data") and the slide's
+// number on the path. A still is a screenshot of the app, which has its own top bar, so it gets no frame at all.
+const slideAt = (page: Page, id: string) => page.locator(`[data-slide="${id}"]`);
+async function openSlide(page: Page, id: string) {
   await page.goto("about:blank"); // a change of hash alone would leave the deck where it is
-  await page.goto("/present#ask-still");
+  await page.goto(`/present#${id}`);
   await expect(page.locator("[data-deck-ready]")).toBeAttached();
-  await expect(page.locator('[data-slide="ask-still"]')).toBeVisible();
-  await expect(label("ask-still", "Backup")).toHaveCount(0);
+  await expect(slideAt(page, id)).toBeVisible();
+}
+
+test("the tracker lights the slide's topic and marks the slide, and the footer numbers it on the path", async ({ page }) => {
+  await openSlide(page, "ask");
+  const tracker = slideAt(page, "ask").locator("[data-tracker]");
+  await expect(tracker.locator('[aria-current="step"]')).toHaveText("Ask and Delegate");
+  await expect(tracker.locator("[aria-current]")).toHaveCount(1);
+  await expect(tracker.locator('[data-segment="current"]')).toHaveCount(1);
+  await expect(slideAt(page, "ask").locator('[data-frame="footer"]')).toContainText(/^Fairshare: sales answers you can check\s*\d+ \/ \d+$/i);
+});
+
+// One slide from each topic, so each name is drawn lit (heavier, so wider) once; the longest, Where the numbers come from, is the one at risk.
+for (const size of [{ width: 1024, height: 768 }, { width: 1920, height: 1080 }]) {
+  test(`at ${size.width} by ${size.height} no two topic names overlap and none is cut off, whichever topic is lit`, async ({ page }) => {
+    await page.setViewportSize(size);
+    for (const id of ["problem", "ask", "row", "measured", "know"]) {
+      await openSlide(page, id);
+      const names = slideAt(page, id).locator("[data-topic-name]");
+      await expect(names).toHaveCount(5);
+      await expect(slideAt(page, id).locator('[data-tracker] [aria-current="step"]')).toHaveCount(1);
+      const got = await names.evaluateAll((els) => els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { text: el.textContent ?? "", x: r.x, y: r.y, width: r.width, height: r.height, scroll: el.scrollWidth, client: el.clientWidth };
+      }));
+      for (const n of got) expect(n.scroll, `on ${id}, ${n.text} is cut off: ${n.scroll} > ${n.client}`).toBeLessThanOrEqual(n.client);
+      got.forEach((a, i) => got.slice(i + 1).forEach((b) => expect(touches(a, b), `on ${id}, ${a.text} overlaps ${b.text}`).toBe(false)));
+    }
+  });
+}
+
+test("the welcome shows the logo alone, a still shows no frame at all, and a backup slide says Backup", async ({ page }) => {
+  await openSlide(page, "title");
+  await expect(slideAt(page, "title").locator('[data-frame="header"] img[src="/aa-logo.svg"]')).toBeVisible();
+  await expect(slideAt(page, "title").locator("[data-tracker]")).toHaveCount(0);
+  await expect(slideAt(page, "title").locator('[data-frame="footer"]')).toHaveCount(0);
+  await openSlide(page, "coverage"); // a figure: the whole frame
+  await expect(slideAt(page, "coverage").locator('[data-frame="header"] img[src="/aa-logo.svg"]')).toBeVisible();
+  await expect(slideAt(page, "coverage").locator("[data-tracker]")).toBeVisible();
+  await expect(slideAt(page, "coverage").locator('[data-frame="footer"]')).toBeVisible();
+  await openSlide(page, "ask-still");
+  await expect(slideAt(page, "ask-still").locator("[data-frame]")).toHaveCount(0);
   await page.keyboard.press("ArrowRight"); // the next backup slide
-  await expect(page.locator('[data-slide="precall-still"]')).toBeVisible();
-  await expect(label("precall-still", "Backup")).toHaveCount(0);
+  await expect(slideAt(page, "precall-still")).toBeVisible();
+  await expect(slideAt(page, "precall-still").locator("[data-frame]")).toHaveCount(0);
+  await page.keyboard.press("ArrowRight"); // a backup slide that is not a still
+  await expect(slideAt(page, "manager").locator('[data-frame="footer"]')).toContainText(/Backup$/i);
+  await expect(slideAt(page, "manager").locator("[data-tracker] [aria-current]")).toHaveCount(0);
+});
+
+test("a live page in the deck drops its own logo, since the frame draws one, and keeps its caption", async ({ page }) => {
+  await openSlide(page, "query-opener");
+  await expect(page.locator('iframe[data-live-frame][data-shown="1"]')).toBeVisible();
+  const live = page.frameLocator("iframe[data-live-frame]");
+  await expect(live.locator(".caption")).toBeVisible();
+  await expect(live.locator(".brand")).toBeHidden();
 });
 
 // The notes window pings the warehouse when it opens and every eight minutes, and a failed ping used to say nothing. Its

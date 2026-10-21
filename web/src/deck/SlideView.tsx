@@ -1,35 +1,43 @@
-// One slide on the 1280 by 720 stage, with a small eyebrow naming its part at the right end of the logo band. An image
-// slide is its PNG. A live slide is its thumb with the hairline page in a frame on top, shown once the page has loaded
-// (without its live readout), so its motion starts on arrival. An animated slide is its thumb with the diagram's motion page in a frame on top,
-// hidden until the page's controller is ready; then the frame switches to embed mode (only the figure, fitted to the
-// frame), gets Home or End (arrivalKey), and shows. A frame that never gets ready, slow or blocked, leaves the thumb, and
-// the deck counts it as zero steps. A frame never takes the pointer or the focus, so the deck keeps every key press, and
-// it exists only while its slide shows. Native slides are drawn in layouts.tsx. Every string goes through fill(). A still,
-// a screenshot of the app, has no eyebrow, because the app's own top bar sits under that corner (showEyebrow).
+// One slide on the 1280 by 720 stage, inside the frame (Frame.tsx) that frameInfo gives it: the logo and the topics along
+// the top, the label and the slide's number along the bottom, and nothing at all around a still, a screenshot of the app
+// with its own top bar. An image slide is its PNG. A live slide is its thumb with the hairline page in a frame on top,
+// shown once the page has loaded (without its live readout or its logo, since the deck's frame draws one), so its motion
+// starts on arrival; a live slide with a byline also hides the page's caption, and draws its title and the byline at the
+// bottom instead. An animated slide is its thumb with the diagram's motion page in a frame on top, hidden until the page's
+// controller is ready; then the frame switches to embed mode (only the figure, fitted to the frame), gets Home or End
+// (arrivalKey), and shows. A frame that never gets ready, slow or blocked, leaves the thumb, and the deck counts it as zero
+// steps. A frame never takes the pointer or the focus, so the deck keeps every key press, and it exists only while its
+// slide shows. Figures fill the stage under the frame's strips; native slides are drawn in layouts.tsx, in the frame's
+// content box. Every string goes through fill().
 import { useReducedMotion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
-import { arrivalKey, fill, PARTS, sendKey, showEyebrow, type DeckFacts, type Jump, type Slide } from "../lib/deck";
+import { copy } from "../copy";
+import { arrivalKey, fill, sendKey, showsData, type DeckFacts, type FrameInfo, type Jump, type Slide } from "../lib/deck";
 import { images, pages } from "./assets";
-import { MONO, MUTED, NativeSlide } from "./layouts";
+import { DeckFrame } from "./Frame";
+import { MUTED, NativeSlide } from "./layouts";
 
 const POLL_MS = 50;
 
-/** Whether a live frame shows its hairline page, which then loses its live readout (#read), as the thumb under it does.
- * A blocked frame cannot be read, and a failed one holds another page: both keep the thumb. The page opened on its own
- * keeps its readout. */
-function showPage(f: HTMLIFrameElement): boolean {
+/** Whether a live frame shows its hairline page, which then loses its live readout (#read), as the thumb under it does,
+ * and its logo (.brand), since the deck's frame draws one; on a slide with a byline it also loses its caption, which the
+ * title and the byline replace. A blocked frame cannot be read, and a failed one holds another page: both keep the thumb.
+ * The page opened on its own keeps all three. */
+export function showPage(f: { readonly contentDocument: Document | null }, byline: boolean): boolean {
   try {
     const doc = f.contentDocument;
     if (!doc?.querySelector(".frame")) return false;
-    doc.getElementById("read")?.style.setProperty("display", "none");
+    const hide = ["#read", ".brand", ...(byline ? [".caption"] : [])];
+    for (const part of hide) doc.querySelector<HTMLElement>(part)?.style.setProperty("display", "none");
     return true;
   } catch {
     return false;
   }
 }
 
-export function SlideView({ slide, backward, frameRef, facts, onDemo }: {
+export function SlideView({ slide, frame, backward, frameRef, facts, onDemo }: {
   slide: Slide;
+  frame: FrameInfo;
   backward: boolean;
   frameRef: RefObject<HTMLIFrameElement | null>;
   facts: DeckFacts;
@@ -39,6 +47,7 @@ export function SlideView({ slide, backward, frameRef, facts, onDemo }: {
   const [ready, setReady] = useState(false); // the animated frame's controller is ready
   const [shown, setShown] = useState(false); // the live frame's page has loaded
   const title = fill(slide.title, facts);
+  const hasByline = slide.kind === "live" && !!slide.byline?.length;
 
   // Once per slide (Present keys SlideView by slide id, so a new slide is a new mount): poll the frame for as long as the
   // slide is up, until its controller has run.
@@ -75,46 +84,55 @@ export function SlideView({ slide, backward, frameRef, facts, onDemo }: {
   }, []);
 
   const cover = "absolute inset-0 h-full w-full";
-  const frame = { pointerEvents: "none" as const };
+  const noPointer = { pointerEvents: "none" as const };
   return (
     <div data-slide={slide.id} className="absolute inset-0">
-      {slide.kind === "image" && <img src={images[slide.asset!]} alt={title} className={`${cover} object-contain`} draggable={false} />}
-      {(slide.kind === "animated" || slide.kind === "live") && (
-        <img src={images[slide.thumb!]} alt={title} className={`${cover} object-contain`} draggable={false} />
-      )}
-      {slide.kind === "animated" && (
-        <iframe
-          data-slide-frame
-          data-ready={ready ? "1" : undefined}
-          ref={frameRef}
-          src={pages[slide.asset!]}
-          title={title}
-          tabIndex={-1}
-          className={`${cover} border-0`}
-          style={{ ...frame, visibility: ready ? "visible" : "hidden" }}
-        />
-      )}
-      {slide.kind === "live" && (
-        <iframe
-          data-live-frame
-          data-shown={shown ? "1" : undefined}
-          src={pages[slide.asset!]}
-          title={title}
-          tabIndex={-1}
-          onLoad={(e) => setShown(showPage(e.currentTarget))}
-          className={`${cover} border-0`}
-          style={{ ...frame, visibility: shown ? "visible" : "hidden" }}
-        />
-      )}
-      {slide.kind === "native" && slide.native && <NativeSlide slide={slide} facts={facts} onDemo={onDemo} />}
-      {showEyebrow(slide) && (
-        <span
-          className="pointer-events-none absolute right-[40px] top-[24px] flex h-[22px] items-center text-[8px] font-medium uppercase tracking-[0.18em]"
-          style={{ fontFamily: MONO, color: MUTED }}
-        >
-          {PARTS[slide.part]}
-        </span>
-      )}
+      <DeckFrame info={frame} label={showsData(slide, facts) ? copy.deckFooterData : copy.deckFooter}>
+        {slide.kind === "image" && <img src={images[slide.asset!]} alt={title} className={`${cover} object-contain`} draggable={false} />}
+        {(slide.kind === "animated" || slide.kind === "live") && (
+          <img src={images[slide.thumb!]} alt={title} className={`${cover} object-contain`} draggable={false} />
+        )}
+        {slide.kind === "animated" && (
+          <iframe
+            data-slide-frame
+            data-ready={ready ? "1" : undefined}
+            ref={frameRef}
+            src={pages[slide.asset!]}
+            title={title}
+            tabIndex={-1}
+            className={`${cover} border-0`}
+            style={{ ...noPointer, visibility: ready ? "visible" : "hidden" }}
+          />
+        )}
+        {slide.kind === "live" && (
+          <iframe
+            data-live-frame
+            data-shown={shown ? "1" : undefined}
+            src={pages[slide.asset!]}
+            title={title}
+            tabIndex={-1}
+            onLoad={(e) => setShown(showPage(e.currentTarget, hasByline))}
+            className={`${cover} border-0`}
+            style={{ ...noPointer, visibility: shown ? "visible" : "hidden" }}
+          />
+        )}
+        {hasByline && <Byline title={title} lines={slide.byline!.map((l) => fill(l, facts))} />}
+        {slide.kind === "native" && slide.native && <NativeSlide slide={slide} facts={facts} onDemo={onDemo} />}
+      </DeckFrame>
+    </div>
+  );
+}
+
+/** A live slide's title and byline, centered at the bottom of the stage where the page's caption sat, ending where the
+ * content box ends (y 664), so it clears the footer. It is white behind, so the caption in the thumb under it never shows
+ * through while the page loads. */
+function Byline({ title, lines }: { title: string; lines: string[] }) {
+  return (
+    <div data-byline className="absolute inset-x-0 bottom-[56px] flex flex-col items-center bg-white px-[64px] text-center">
+      <h1 className="text-[32px] font-semibold leading-[1.2] tracking-[-0.01em] text-navy">{title}</h1>
+      <div className="mt-3 text-[20px] leading-[1.4]" style={{ color: MUTED }}>
+        {lines.map((l) => <p key={l}>{l}</p>)}
+      </div>
     </div>
   );
 }

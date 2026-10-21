@@ -1,14 +1,14 @@
-// The deck's native slides, in the app's AA tokens under the same logo band as the figures: a statement, tiles (a
-// "Possibility" tile carries a chip), the columns of a table or the basic checks, and a live demo with its button. The
-// results, agenda and close layouts draw nothing yet. Every string a slide carries goes through fill(), so its
-// {placeholders} show the facts' display strings. A demo button hands its demo to onDemo, which the deck answers by
+// The deck's native slides, in the app's AA tokens, inside the content box the frame (Frame.tsx) leaves them: a statement,
+// tiles (a "Possibility" tile carries a chip), the columns of a table or the basic checks, and a live demo with its
+// button. The results, agenda and close layouts draw nothing yet. Every string a slide carries goes through fill(), so
+// its {placeholders} show the facts' display strings. A demo button hands its demo to onDemo, which the deck answers by
 // jumping into the app in its own tab (the notes window's small previews pass none, so their buttons do nothing); the
 // dashboard link needs no jump, because it only opens a new tab.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Check, ChevronRight, Close, External } from "../components/Icons";
 import { copy } from "../copy";
 import { api } from "../lib/api";
-import { fill, knownTables, showsData, type DeckFacts, type Demo, type Jump, type Slide, type Tile } from "../lib/deck";
+import { fill, knownTables, type DeckFacts, type Demo, type Jump, type Slide, type Tile } from "../lib/deck";
 import { REPORT_URL } from "./slides";
 
 /** The figures' mono face and muted ink (MONO and MUTED in docs/diagrams/src/aa.py). */
@@ -21,29 +21,16 @@ const BUTTON_TYPE = "text-[19px] font-semibold";
 const BUTTON = "press inline-flex items-center gap-2.5 rounded-xl px-6 py-3.5 text-white transition-colors";
 const DOT = "h-2 w-2 shrink-0 rounded-full bg-blue";
 
-/** The figures' logo band, where every figure has it: the AA logo, a hairline, and the project tag. */
-function LogoBand({ tag }: { tag: string }) {
-  return (
-    <div aria-hidden="true" className="absolute left-[40px] top-[24px] flex h-[22px] items-center">
-      <img src="/aa-logo.svg" alt="" className="h-[22px] w-auto" draggable={false} />
-      <span className="mx-[14px] h-[16px] w-px bg-line" />
-      <span className="text-[8px] font-medium uppercase tracking-[0.18em]" style={{ fontFamily: MONO, color: MUTED }}>{tag}</span>
-    </div>
-  );
-}
-
-/** A native slide: the logo band, the title, and the layout. The band says "synthetic data" when the slide shows the
- * data: a table, or a number that a query on the made-up data returned. */
+/** A native slide: the title and the layout, in the frame's content box (x 64 to 1216, y 88 to 664) and centered in its
+ * height. A layout taller than the box shrinks to it, and a table then steps its type down until it fits (Tables). */
 export function NativeSlide({ slide, facts, onDemo }: { slide: Slide; facts: DeckFacts; onDemo?: (demo: Jump) => void }) {
   const n = slide.native!;
   const f = (t: string) => fill(t, facts);
-  const data = showsData(slide, facts);
   return (
     <div className="absolute inset-0 bg-white text-ink">
-      <LogoBand tag={data ? copy.deckTagData : copy.deckTag} />
-      <div className="absolute inset-x-[40px] bottom-[36px] top-[86px] flex flex-col">
-        <h1 className="text-[30px] font-semibold leading-[1.15] tracking-[-0.02em]">{f(slide.title)}</h1>
-        <div className="mt-8 min-h-0 flex-1">
+      <div className="absolute inset-x-[64px] bottom-[56px] top-[88px] flex flex-col justify-center">
+        <h1 className="shrink-0 text-[30px] font-semibold leading-[1.15] tracking-[-0.02em]">{f(slide.title)}</h1>
+        <div className="mt-8 min-h-0">
           {n.layout === "statement" && <Statement lines={n.lines.map(f)} link={slide.id === "start" ? REPORT_URL : null} />}
           {n.layout === "tiles" && <Tiles tiles={n.tiles.map((t) => ({ ...t, head: f(t.head), body: f(t.body) }))} />}
           {n.layout === "table" && <Tables keys={n.tables} facts={facts} />}

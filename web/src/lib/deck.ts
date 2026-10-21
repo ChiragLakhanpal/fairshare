@@ -12,7 +12,7 @@ export type Topic = "steps" | "modes" | "numbers" | "checks" | "aa";
 export type Part = "open" | Topic | "close" | "backup";
 export type Kind = "image" | "live" | "animated" | "native";
 export type PathName = "full" | "short";
-/** still: a screenshot of the app itself, drawn edge to edge. The app has its own top bar, so a still gets no part label over it, and no frame.
+/** still: a screenshot of the app itself, drawn edge to edge. The app has its own top bar, so a still gets no frame (frameInfo).
  * data: a figure that prints values from the data. byline: lines a live slide shows under its title, in place of its page's caption. */
 export type Slide = { id: string; part: Part; kind: Kind; title: string; min: number; short?: number; asset?: string; thumb?: string; still?: boolean; data?: boolean; byline?: string[]; native?: Native; note: string };
 export type Demo = { kind: "ask"; question: string } | { kind: "precall" } | { kind: "dashboard" };
@@ -53,8 +53,8 @@ export const TOPICS: Record<Topic, { name: string; line: string }> = {
   aa: { name: "Starting at AA", line: "The same layers on AA's own data, and the first four steps." },
 };
 
-/** The name of each part: the label at the top right of a slide, and the heading of its section in the notes window's outline, which
- * lists the parts in this order. */
+/** The name of each part: the heading of its section in the notes window's outline, which lists the parts in this order. The frame's footer
+ * says the backup part's name in place of a slide number. */
 export const PARTS: Record<Part, string> = {
   open: "Welcome",
   steps: TOPICS.steps.name,
@@ -71,20 +71,20 @@ export function isTopic(p: Part): p is Topic {
   return Object.hasOwn(TOPICS, p);
 }
 
-/** Whether SlideView draws the part's name at the top right of a slide. A still is a screenshot of the app, whose own top bar sits under
- * that corner, so it gets none. */
-export function showEyebrow(s: Slide): boolean {
-  return !s.still;
-}
+/** A slide on the path as the tracker marks it, from where the slide on the screen stands: shown before it, the slide itself, or still
+ * to come. */
+export type Segment = "passed" | "current" | "later";
 
 /** What the frame draws around a slide. bare: nothing at all, not even the logo (a still). tracker: the five topic names across the top, with
- * topic lit and inTopic marking which of that topic's slides on the path is showing. footer: the line along the bottom, with the slide's
- * number on the path that is on (null off it, and on the first and last slides) or, when backup is true, the word Backup in its place. */
+ * topic lit and inTopic marking which of that topic's slides on the path is showing; segments holds a mark for each topic's slides on the path,
+ * in order. footer: the line along the bottom, with the slide's number on the path that is on (null off it, and on the first and last slides)
+ * or, when backup is true, the word Backup in its place. */
 export type FrameInfo = {
   bare: boolean;
   tracker: boolean;
   topic: Topic | null;
   inTopic: { at: number; of: number } | null;
+  segments: Record<Topic, Segment[]>;
   number: { at: number; of: number } | null;
   footer: boolean;
   backup: boolean;
@@ -93,12 +93,16 @@ export type FrameInfo = {
 /** The frame for a slide, on the path that is on. The first and last slides of the path (the welcome and the thanks) get the logo only, an open
  * slide after the first (the agenda) the footer without the tracker, a backup slide the tracker with no topic lit and the footer, and a still
  * nothing. The place in the topic and the number count the slides on the path, so a slide the path leaves out keeps its topic lit and has
- * neither. An unknown id takes the first slide. */
+ * neither. The segments mark the path's slides by their place in the deck: the ones before this slide passed, this one current, the rest
+ * later; a backup slide sits outside the path, so every segment is later. An unknown id takes the first slide. */
 export function frameInfo(slides: Slide[], path: PathName, id: string): FrameInfo {
   const s = slides.find((x) => x.id === id) ?? slides[0];
   const backup = s.part === "backup";
-  if (s.still) return { bare: true, tracker: false, topic: null, inTopic: null, number: null, footer: false, backup };
   const line = onPath(slides, path);
+  const here = slides.indexOf(s);
+  const mark = (x: Slide): Segment => (x === s ? "current" : !backup && slides.indexOf(x) < here ? "passed" : "later");
+  const segments = Object.fromEntries(TOPIC_ORDER.map((t) => [t, line.filter((x) => x.part === t).map(mark)])) as Record<Topic, Segment[]>;
+  if (s.still) return { bare: true, tracker: false, topic: null, inTopic: null, segments, number: null, footer: false, backup: false };
   const at = line.indexOf(s);
   const ends = at >= 0 && (at === 0 || at === line.length - 1);
   const topic = isTopic(s.part) ? s.part : null;
@@ -108,6 +112,7 @@ export function frameInfo(slides: Slide[], path: PathName, id: string): FrameInf
     tracker: !ends && s.part !== "open" && s.part !== "close",
     topic,
     inTopic: topic && at >= 0 ? { at: group.indexOf(s) + 1, of: group.length } : null,
+    segments,
     number: at >= 0 && !ends ? { at: at + 1, of: line.length } : null,
     footer: !ends,
     backup,

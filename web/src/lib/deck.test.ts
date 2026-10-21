@@ -207,22 +207,6 @@ describe("the Ask demo's question", () => {
   });
 });
 
-import { showEyebrow } from "./deck";
-
-describe("the part label", () => {
-  const byId = (id: string) => slides.find((s) => s.id === id)!;
-  it("is drawn on an ordinary slide and left off a still, which has the app's own top bar under that corner", () => {
-    expect(showEyebrow(byId("coverage"))).toBe(true); // an ordinary image slide
-    expect(showEyebrow(byId("title"))).toBe(true);
-    expect(showEyebrow(byId("ask-still"))).toBe(false);
-    expect(showEyebrow(byId("precall-still"))).toBe(false);
-  });
-  it("is left off exactly the two stills, and a still is an image slide", () => {
-    expect(slides.filter((s) => !showEyebrow(s)).map((s) => s.id)).toEqual(["ask-still", "precall-still"]);
-    slides.filter((s) => s.still).forEach((s) => expect(s.kind, s.id).toBe("image"));
-  });
-});
-
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NativeSlide } from "../deck/layouts";
@@ -256,7 +240,7 @@ describe("the drift line's colour", () => {
   it("is never red when the talk is on time or ahead", () => expect([driftIsRed(0), driftIsRed(-0.5), driftIsRed(-10)]).toEqual([false, false, false]));
 });
 
-import { frameInfo, isTopic, PARTS, type FrameInfo } from "./deck";
+import { frameInfo, isTopic, PARTS, type FrameInfo, type PathName, type Topic } from "./deck";
 
 describe("the topics", () => {
   it("are the five the talk is told in, word for word and in order", () => {
@@ -287,20 +271,26 @@ describe("the topics", () => {
 });
 
 describe("what the frame draws", () => {
-  // the logo only: what the first and last slides of the path get, and the base the other cases change
-  const frame = (over: Partial<FrameInfo> = {}): FrameInfo => ({ bare: false, tracker: false, topic: null, inTopic: null, number: null, footer: false, backup: false, ...over });
+  // the logo only: what the first and last slides of the path get, and the base the other cases change. The tracker's segments have tests of
+  // their own, at the end.
+  type Parts = Omit<FrameInfo, "segments">;
+  const frame = (over: Partial<Parts> = {}): Parts => ({ bare: false, tracker: false, topic: null, inTopic: null, number: null, footer: false, backup: false, ...over });
+  const parts = (path: PathName, id: string): Parts => {
+    const { segments: _, ...rest } = frameInfo(F, path, id);
+    return rest;
+  };
 
   it("lights the topic of a topic slide, with its place among that topic's slides on the path and its number on the path", () => {
-    expect(frameInfo(F, "full", "problem")).toEqual(frame({ tracker: true, topic: "steps", inTopic: { at: 1, of: 1 }, number: { at: 3, of: 11 }, footer: true }));
-    expect(frameInfo(F, "full", "what")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 1, of: 2 }, number: { at: 4, of: 11 }, footer: true }));
-    expect(frameInfo(F, "full", "ask")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 2, of: 2 }, number: { at: 5, of: 11 }, footer: true }));
-    expect(frameInfo(F, "full", "limits")).toEqual(frame({ tracker: true, topic: "checks", inTopic: { at: 2, of: 2 }, number: { at: 9, of: 11 }, footer: true }));
-    expect(frameInfo(F, "full", "start")).toEqual(frame({ tracker: true, topic: "aa", inTopic: { at: 1, of: 1 }, number: { at: 10, of: 11 }, footer: true }));
+    expect(parts("full", "problem")).toEqual(frame({ tracker: true, topic: "steps", inTopic: { at: 1, of: 1 }, number: { at: 3, of: 11 }, footer: true }));
+    expect(parts("full", "what")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 1, of: 2 }, number: { at: 4, of: 11 }, footer: true }));
+    expect(parts("full", "ask")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 2, of: 2 }, number: { at: 5, of: 11 }, footer: true }));
+    expect(parts("full", "limits")).toEqual(frame({ tracker: true, topic: "checks", inTopic: { at: 2, of: 2 }, number: { at: 9, of: 11 }, footer: true }));
+    expect(parts("full", "start")).toEqual(frame({ tracker: true, topic: "aa", inTopic: { at: 1, of: 1 }, number: { at: 10, of: 11 }, footer: true }));
   });
   it("counts only the slides on the path that is on", () => {
-    expect(frameInfo(F, "full", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 2, of: 2 }, number: { at: 7, of: 11 }, footer: true }));
+    expect(parts("full", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 2, of: 2 }, number: { at: 7, of: 11 }, footer: true }));
     // pipeline is off the short path, so system is the only slide of its topic on it
-    expect(frameInfo(F, "short", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 1, of: 1 }, number: { at: 6, of: 8 }, footer: true }));
+    expect(parts("short", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 1, of: 1 }, number: { at: 6, of: 8 }, footer: true }));
   });
   it("numbers the short path from 1 to its length, and the welcome and the thanks show no number", () => {
     const line = onPath(F, "short");
@@ -315,22 +305,51 @@ describe("what the frame draws", () => {
     }
   });
   it("shows the logo only on the first and last slides of the path", () => {
-    for (const path of ["full", "short"] as const) for (const id of ["welcome", "thanks"]) expect(frameInfo(F, path, id), `${path} ${id}`).toEqual(frame());
+    for (const path of ["full", "short"] as const) for (const id of ["welcome", "thanks"]) expect(parts(path, id), `${path} ${id}`).toEqual(frame());
   });
   it("shows the footer but no tracker on an open slide that is not the first", () => {
-    expect(frameInfo(F, "full", "agenda")).toEqual(frame({ number: { at: 2, of: 11 }, footer: true }));
-    expect(frameInfo(F, "short", "agenda")).toEqual(frame({ number: { at: 2, of: 8 }, footer: true }));
+    expect(parts("full", "agenda")).toEqual(frame({ number: { at: 2, of: 11 }, footer: true }));
+    expect(parts("short", "agenda")).toEqual(frame({ number: { at: 2, of: 8 }, footer: true }));
   });
   it("gives a backup slide the frame with no number and no topic lit, and a still no frame at all", () => {
-    expect(frameInfo(F, "full", "words")).toEqual(frame({ tracker: true, footer: true, backup: true }));
-    expect(frameInfo(F, "short", "words")).toEqual(frame({ tracker: true, footer: true, backup: true }));
-    expect(frameInfo(F, "full", "ask-still")).toEqual(frame({ bare: true, backup: true }));
+    expect(parts("full", "words")).toEqual(frame({ tracker: true, footer: true, backup: true }));
+    expect(parts("short", "words")).toEqual(frame({ tracker: true, footer: true, backup: true }));
+    // a still is no backup to the frame, so nothing that reads the frame labels it
+    expect(parts("full", "ask-still")).toEqual(frame({ bare: true }));
+  });
+  it("draws exactly the two stills of the real deck bare, and a still is an image slide", () => {
+    expect(slides.filter((s) => frameInfo(slides, "full", s.id).bare).map((s) => s.id)).toEqual(["ask-still", "precall-still"]);
+    slides.filter((s) => s.still).forEach((s) => expect(s.kind, s.id).toBe("image"));
   });
   it("lights the topic of a slide the path leaves out, but gives it no place and no number", () => {
-    expect(frameInfo(F, "short", "pipeline")).toEqual(frame({ tracker: true, topic: "numbers", footer: true }));
-    expect(frameInfo(F, "short", "limits")).toEqual(frame({ tracker: true, topic: "checks", footer: true }));
+    expect(parts("short", "pipeline")).toEqual(frame({ tracker: true, topic: "numbers", footer: true }));
+    expect(parts("short", "limits")).toEqual(frame({ tracker: true, topic: "checks", footer: true }));
   });
-  it("takes an unknown id for the first slide", () => expect(frameInfo(F, "full", "nope")).toEqual(frameInfo(F, "full", "welcome")));
+  it("takes an unknown id for the first slide", () => expect(parts("full", "nope")).toEqual(parts("full", "welcome")));
+
+  it("gives each topic a segment for each of its slides on the path: passed before the slide, current for it and later after it", () => {
+    expect(frameInfo(F, "full", "ask").segments).toEqual({ steps: ["passed"], modes: ["passed", "current"], numbers: ["later", "later"], checks: ["later", "later"], aa: ["later"] });
+    expect(frameInfo(F, "full", "start").segments).toEqual({ steps: ["passed"], modes: ["passed", "passed"], numbers: ["passed", "passed"], checks: ["passed", "passed"], aa: ["current"] });
+    // the short path leaves out pipeline and the whole of Checks and misses
+    expect(frameInfo(F, "short", "system").segments).toEqual({ steps: ["passed"], modes: ["passed", "passed"], numbers: ["current"], checks: [], aa: ["later"] });
+  });
+  it("marks no segment current on a slide the path leaves out, and none passed on a backup slide, which sits outside the path", () => {
+    expect(frameInfo(F, "short", "pipeline").segments).toEqual({ steps: ["passed"], modes: ["passed", "passed"], numbers: ["later"], checks: [], aa: ["later"] });
+    expect(frameInfo(F, "full", "words").segments).toEqual({ steps: ["later"], modes: ["later", "later"], numbers: ["later", "later"], checks: ["later", "later"], aa: ["later"] });
+  });
+  it("counts the real deck's segments along the path that is on", () => {
+    for (const path of ["full", "short"] as const) {
+      const topical = onPath(slides, path).filter((x) => isTopic(x.part));
+      topical.forEach((x, i) => {
+        const f = frameInfo(slides, path, x.id);
+        const all = TOPIC_ORDER.flatMap((t) => f.segments[t]);
+        expect(all, `${path} ${x.id}`).toHaveLength(topical.length);
+        expect(all.filter((g) => g === "passed"), `${path} ${x.id}`).toHaveLength(i);
+        expect(all.filter((g) => g === "current"), `${path} ${x.id}`).toHaveLength(1);
+        expect(f.segments[x.part as Topic][f.inTopic!.at - 1], `${path} ${x.id}`).toBe("current");
+      });
+    }
+  });
 });
 
 import { arrivalStep, showsData, stepCount, type Facts, type Native, type Result, type Tile } from "./deck";
@@ -436,14 +455,122 @@ describe("the words a slide shows", () => {
 describe("the checks layout", () => {
   const slide: Slide = { id: "fake-checks", part: "numbers", kind: "native", title: "A fixture", min: 0, note: "", native: { layout: "checks" } };
 
-  it("draws every check, and says the data is synthetic", () => {
+  it("draws every check", () => {
     const html = renderToStaticMarkup(createElement(NativeSlide, { slide, facts }));
     facts.checks.filter((c) => !c.name.includes("'")).forEach((c) => expect(html).toContain(c.name)); // React escapes an apostrophe
-    expect(html).toContain("synthetic data");
   });
   it("draws the title and does not throw for a layout no slide uses yet", () => {
     for (const native of [{ layout: "results", items: [] }, { layout: "agenda" }, { layout: "close", lines: ["Thank you."] }] as Native[]) {
       expect(renderToStaticMarkup(createElement(NativeSlide, { slide: { ...slide, native }, facts })), native.layout).toContain("A fixture");
     }
+  });
+});
+
+import { copy } from "../copy";
+import { DeckFrame } from "../deck/Frame";
+import { showPage, SlideView } from "../deck/SlideView";
+
+// The frame drawn on its own around a stand-in for a slide, from the frame info of the talk in miniature. A topic's column is cut out of the
+// markup by its data-topic attribute.
+describe("the frame's strips", () => {
+  const draw = (info: FrameInfo, label = "A label") => renderToStaticMarkup(createElement(DeckFrame, { info, label, children: createElement("p", null, "The slide") }));
+  const times = (html: string, text: string) => html.split(text).length - 1;
+  const column = (html: string, t: Topic) => html.split(`data-topic="${t}"`)[1]?.split("data-topic=")[0] ?? "";
+  const segments = (html: string, t: Topic) => [...column(html, t).matchAll(/data-segment="(\w+)"/g)].map((m) => m[1]);
+
+  it("names each topic once, lights the slide's topic, and draws a segment for each topic slide on the path with this one marked", () => {
+    const html = draw(frameInfo(F, "full", "ask"));
+    expect(html).toContain("The slide");
+    expect(html).toContain('src="/aa-logo.svg"');
+    TOPIC_ORDER.forEach((t) => expect(times(html, `>${TOPICS[t].name}<`), t).toBe(1));
+    expect(times(html, 'aria-current="step"')).toBe(1);
+    expect(column(html, "modes")).toMatch(/aria-current="step"[^>]*>Ask and Delegate</);
+    expect(Object.fromEntries(TOPIC_ORDER.map((t) => [t, segments(html, t)]))).toEqual({
+      steps: ["passed"], modes: ["passed", "current"], numbers: ["later", "later"], checks: ["later", "later"], aa: ["later"],
+    });
+    expect(html).toContain(">5 / 11<");
+    expect(html).toContain(">A label<");
+  });
+  it("draws no topic names without the tracker, and no footer without the footer", () => {
+    const agenda = draw(frameInfo(F, "full", "agenda"));
+    TOPIC_ORDER.forEach((t) => expect(agenda, t).not.toContain(TOPICS[t].name));
+    expect(agenda).not.toContain("data-segment");
+    expect(agenda).toContain(">2 / 11<");
+    const welcome = draw(frameInfo(F, "full", "welcome"));
+    expect(welcome).toContain('src="/aa-logo.svg"');
+    TOPIC_ORDER.forEach((t) => expect(welcome, t).not.toContain(TOPICS[t].name));
+    expect(welcome).not.toContain('data-frame="footer"');
+    expect(welcome).not.toContain("A label");
+  });
+  it("says Backup in place of a number on a backup slide, with no topic lit", () => {
+    const html = draw(frameInfo(F, "full", "words"));
+    expect(html).toContain(">Backup<");
+    expect(html).not.toMatch(/\d+ \/ \d+/);
+    expect(html).not.toContain("aria-current");
+    TOPIC_ORDER.forEach((t) => expect(times(html, `>${TOPICS[t].name}<`), t).toBe(1));
+  });
+  it("leaves the number out on a slide the path leaves out", () => {
+    const html = draw(frameInfo(F, "short", "pipeline"));
+    expect(html).toContain('data-frame="footer"');
+    expect(html).not.toMatch(/\d+ \/ \d+/);
+    expect(html).not.toContain(">Backup<");
+  });
+});
+
+describe("a slide in its frame", () => {
+  const byId = (id: string) => slides.find((s) => s.id === id)!;
+  const view = (slide: Slide, frame: FrameInfo = frameInfo(slides, "full", slide.id)) =>
+    renderToStaticMarkup(createElement(SlideView, { slide, frame, backward: false, frameRef: { current: null }, facts, onDemo: () => {} }));
+
+  it("says Synthetic data on a slide that shows data, and the talk's title on one that does not", () => {
+    expect(copy.deckFooter).toBe("Fairshare: sales answers you can check");
+    expect(copy.deckFooterData).toBe("Synthetic data");
+    expect(view(byId("checks"))).toContain(`>${copy.deckFooterData}<`);
+    expect(view(byId("problem"))).toContain(`>${copy.deckFooter}<`);
+    expect(view(byId("problem"))).not.toContain(copy.deckFooterData);
+  });
+  it("draws a still bare, with no frame", () => {
+    const html = view(byId("ask-still"));
+    expect(html).not.toContain("data-frame");
+    expect(html).not.toContain("/aa-logo.svg");
+  });
+  it("draws a native slide and a figure inside the frame", () => {
+    for (const id of ["problem", "coverage"]) expect(view(byId(id)), id).toContain('data-frame="header"');
+  });
+
+  // No slide of the deck has a byline yet, so a fixture stands in: the welcome's live page, with two lines under its title
+  const live: Slide = {
+    id: "fixture-live", part: "open", kind: "live", title: "A fixture title", byline: ["A first line", "A second line"], min: 0,
+    asset: "hairline/title-b-airliner.html", thumb: "hairline/png/title-b.png", note: "",
+  };
+  it("draws a live slide's title and byline lines at the bottom when it has a byline, and nothing there when it has none", () => {
+    const html = view(live, frameInfo([live], "full", live.id));
+    expect(html).toMatch(/data-byline[^>]*>.*A fixture title.*A first line.*A second line/);
+    const plain = { ...live, byline: undefined };
+    expect(view(plain, frameInfo([plain], "full", plain.id))).not.toContain("data-byline");
+  });
+  it("hides a live page's logo and readout, and its caption only when the slide has a byline", () => {
+    // a stand-in for the hairline page in the frame: the parts showPage reads, each with the display it ends up with
+    const page = () => {
+      const parts: Record<string, { style: { display: string; setProperty: (p: string, v: string) => void } }> = {};
+      for (const sel of [".frame", "#read", ".brand", ".caption"]) {
+        const style = { display: "", setProperty: (p: string, v: string) => void (p === "display" && (style.display = v)) };
+        parts[sel] = { style };
+      }
+      const doc = {
+        querySelector: (sel: string) => parts[sel.trim()] ?? null,
+        querySelectorAll: (sel: string) => sel.split(",").flatMap((s) => (parts[s.trim()] ? [parts[s.trim()]] : [])),
+        getElementById: (id: string) => parts[`#${id}`] ?? null,
+      };
+      const hidden = () => Object.keys(parts).filter((sel) => parts[sel].style.display === "none").sort();
+      return { frame: { contentDocument: doc as unknown as Document }, hidden };
+    };
+    const plain = page();
+    expect(showPage(plain.frame, false)).toBe(true);
+    expect(plain.hidden()).toEqual(["#read", ".brand"]);
+    const withByline = page();
+    expect(showPage(withByline.frame, true)).toBe(true);
+    expect(withByline.hidden()).toEqual(["#read", ".brand", ".caption"]);
+    expect(showPage({ contentDocument: null }, true)).toBe(false); // a frame that failed keeps the thumb
   });
 });

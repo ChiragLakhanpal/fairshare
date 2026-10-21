@@ -1,7 +1,7 @@
-// The /present deck: a 1280 by 720 stage on white, scaled to the window with CSS zoom, one slide at a time. The slide's id
-// is the URL hash, so a reload keeps the place. Keys go through keyAction: Right arrow, Space and Page Down go forward,
-// Left arrow and Page Up go back, Home and End go to the ends of the main path, S to the next part, and P opens the notes
-// window (Notes.tsx, the same page with ?notes). On an animated slide a press first steps the framed diagram, until its
+// The /present deck: a 1280 by 720 stage on white, scaled to the window with CSS zoom, one slide at a time, in the frame
+// (Frame.tsx) that frameInfo gives it on the path that is on. The slide's id is the URL hash, so a reload keeps the place.
+// Keys go through keyAction: Right arrow, Space and Page Down go forward, Left arrow and Page Up go back, Home and End go
+// to the ends of the main path, S to the next part, and P opens the notes window (Notes.tsx, the same page with ?notes). On an animated slide a press first steps the framed diagram, until its
 // last step going forward or step 0 going back, and only then moves the deck. Under reduced motion the diagram shows whole
 // and counts as zero steps. The deck is the one source of truth for the notes window: it applies each message the notes
 // window sends as if it were pressed here, and posts its state on mount, after every move and after every message it
@@ -15,7 +15,10 @@ import { flushSync } from "react-dom";
 import facts from "../deck/facts.json";
 import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
-import { askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameState, fromHash, keyAction, KEYS, pressTarget, sendKey, type Action, type Jump, type Msg, type PathName } from "../lib/deck";
+import {
+  askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameInfo, frameState, fromHash, keyAction, KEYS, pressTarget, sendKey,
+  type Action, type Jump, type Msg, type PathName,
+} from "../lib/deck";
 import { store } from "../lib/store";
 import { Notes } from "./Notes";
 
@@ -175,7 +178,7 @@ function Deck() {
   return (
     <div data-deck-ready={ready ? "" : undefined} className="fixed inset-0 grid place-items-center overflow-hidden bg-white">
       <div className="relative h-[720px] w-[1280px] overflow-hidden bg-white" style={{ zoom }}>
-        <SlideView key={slide.id} slide={slide} backward={backward} frameRef={frameRef} facts={facts} onDemo={jump} />
+        <SlideView key={slide.id} slide={slide} frame={frameInfo(slides, path, slide.id)} backward={backward} frameRef={frameRef} facts={facts} onDemo={jump} />
       </div>
     </div>
   );
