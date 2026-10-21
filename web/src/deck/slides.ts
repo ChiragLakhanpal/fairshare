@@ -105,7 +105,7 @@ export const slides: Slide[] = [
   {
     id: "stack-opener", part: "numbers", kind: "live", title: "The five layers under Ask and Delegate", min: 0.25,
     asset: "hairline/stack.html", thumb: "hairline/png/stack.png",
-    note: "Now where the numbers come from, and first the five layers under every answer. Let it play a few seconds, since pointing at it does nothing in the deck. Then the layers one at a time.",
+    note: "Now where the numbers come from, and first the five layers under every answer. Let it play a few seconds, then the layers one at a time.",
   },
   {
     id: "system", part: "numbers", kind: "animated", title: "Fairshare's five layers, with the checks in blue", min: 2.25, short: 1.5,
@@ -135,7 +135,7 @@ export const slides: Slide[] = [
   {
     id: "revenue", part: "numbers", kind: "animated", title: "AA revenue by month, and the March and April dip", min: 0.75, data: true,
     asset: "11-revenue-by-month-animated.html", thumb: "export/11-revenue-by-month.png",
-    note: "This year runs ahead of last except March and April, {yoy_mar26} and {yoy_apr26}, and the axis doesn't start at zero. Then a press each, Sunbelt sent nothing, Harbor fell, and the rest grew. Next, four tests the rows pass.",
+    note: "This year beats last except March and April, {yoy_mar26} and {yoy_apr26}, and the axis starts above zero. Then a press each, Sunbelt sent nothing, Harbor fell, and the other agencies grew in total. Next, four tests the rows pass.",
   },
   {
     id: "checks", part: "numbers", kind: "native", title: "Four tests the sales rows pass before every commit", min: 1,
@@ -227,7 +227,7 @@ export const slides: Slide[] = [
         {
           head: "The commit check",
           body: "Before each commit, a hook runs the SQL behind every known answer and the Python tests, and any failure stops the commit.",
-          result: "{commit_tests} pass",
+          result: "All pass",
         },
       ],
     },

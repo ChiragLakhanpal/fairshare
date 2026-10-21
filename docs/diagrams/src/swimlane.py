@@ -44,7 +44,7 @@ LANES = [
 NODES = {
     "job": (240, 88, 200, 64, "Runs the agents", "fairshare nightly · 6 am"),
     "queries": (240, 188, 200, 64, "Pulls the facts", "fixed SQL"),
-    "writer": (320, 296, 256, 64, "Drafts the page", "fairshare-precall-pack + 3 more"),
+    "writer": (320, 296, 256, 64, "Drafts the page", "fairshare-precall-pack + 2 more"),  # the job runs three writers: precall, watch, mismatch
     "verifier": (520, 188, 200, 64, "Checks every number", "verifier"),
     "waits": (768, 188, 200, 64, "Waits for a decision", "ops.agent_runs"),
     "review": (768, 396, 200, 64, "Reviews the page", None),

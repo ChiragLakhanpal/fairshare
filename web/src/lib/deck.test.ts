@@ -130,6 +130,8 @@ const COPY_RULES: [rule: string, re: RegExp][] = [
   ["an arrow or shorthand in place of words", /->|=>|→|←|\bw\/|\be\.g\.|\bi\.e\.|\betc\./i],
   ["a semicolon, where one idea a sentence wants a period", /;/],
 ];
+// the hairline pages' builder, whose captions are the openers' on-screen titles
+const HAIRLINE_PAGES = Object.values(import.meta.glob("../../../docs/diagrams/hairline/src/pages.mjs", { query: "?raw", import: "default", eager: true }))[0] as string;
 /** Words a title may capitalize after its first: the names of people, places, products and things in this talk. An all-caps word (AA, SQL,
  * DFW-ORD, Q3, T-100, AI/BI) passes as it is, and a possessive is read without its 's. */
 const PROPER = new Set(["Fairshare", "Ask", "Delegate", "Genie", "Foundry", "Harbor", "Summit", "Travel", "Partners", "Sep", "September", "Azure", "Power",
@@ -181,6 +183,21 @@ describe("the copy rules", () => {
     ];
     expect(strings.flatMap((t) => copyProblems(t).map((p) => `${p}: ${t}`))).toEqual([]);
     expect(Object.values(TOPICS).flatMap((t) => copyProblems(t.name, { title: true }))).toEqual([]);
+  });
+  it("hold for the captions the room reads on the live pages, each its slide's title", () => {
+    // hairline/src/pages.mjs writes each page's one caption line: the custom pages as [file, caption], the openers as name: caption. The welcome's
+    // byline replaces its page's caption in the deck, so it is left out.
+    const captions = new Map<string, string>();
+    for (const [, file, caption] of HAIRLINE_PAGES.matchAll(/^\s*[\w"-]+: \["([^"]+)", "([^"]*)"\],?$/gm)) captions.set(file, caption);
+    const openers = HAIRLINE_PAGES.match(/const OPENERS = \{([\s\S]*?)\};/)?.[1] ?? "";
+    for (const [, name, caption] of openers.matchAll(/(\w+): "([^"]*)"/g)) captions.set(`opener-${name}.html`, caption);
+    const live = slides.filter((s) => s.kind === "live" && !s.byline);
+    expect(live.map((s) => s.id)).toEqual(["query-opener", "riffle-opener", "stack-opener", "elevator-opener", "sieve-opener"]);
+    for (const s of live) {
+      const caption = captions.get(s.asset!.replace(/^hairline\//, ""));
+      expect(caption, s.id).toBe(s.title);
+      expect(copyProblems(caption!, { title: true }), s.id).toEqual([]);
+    }
   });
   it("hold for the deck's own strings in copy.ts", () => {
     const deck = [copy.askLive, copy.openPrecall, copy.present, copy.backToDeck, copy.deckFooter, copy.deckFooterData, copy.deckTopics, ...Object.values(copy.deckHead),

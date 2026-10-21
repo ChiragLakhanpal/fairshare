@@ -539,11 +539,6 @@ DATED: dict[str, dict] = {
     "foundry_groundedness_misses": _dated(1, "1", _EVAL, "2026-10-15",
                                           "Of those pages, the ones whose groundedness grade failed. Relevance, coherence, fluency and the four "
                                           "content harms passed on every page."),
-    # the commit check: the hook runs the SQL behind each known answer, then the Python tests, and a failure stops the commit
-    "commit_tests": _dated(338, "338", ".githooks/pre-commit on the commit 'deck: every slide and note rewritten to the unslop rules': "
-                           "evals/run_benchmark.py --check, then pytest evals -q", "2026-10-21",
-                           "Python tests that passed in the hook, after the SQL behind all twenty known answers ran. The web tests, vitest and "
-                           "Playwright, are not in the hook."),
     # a rule a note quotes: a constant in the SQL that applies it, so a note says it without typing the number
     "tier_watch_band_pts": _dated(3, "three", "lakehouse/07_agreement_watch.sql line 88: a tier row is Watch when it is within 3 points of its line",
                                   "2026-10-20", "A tier row closer than this to its line is Watch; at this distance or more it is Fine."),

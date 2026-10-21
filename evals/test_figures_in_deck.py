@@ -8,6 +8,7 @@ frame) shows on arrival, and a chart's lines draw then; its notes come one per p
 step and recedes to the muted text once a later one arrives (aa.EMBED_CSS again), so the newest note or card leads; a text in it marked data-keep (a
 value drawn in the accent) keeps the color it is drawn in. These read the generated pages; rebuild them with the commands in docs/diagrams/README.md.
 """
+import ast
 import json
 import re
 import sys
@@ -491,6 +492,21 @@ def test_delegate_gives_no_count_of_the_agents_the_nightly_job_runs(name):
     assert [n.words() for n in job.walk() if n.tag == "text"][0] == "Runs the agents", "the job's box names no count"
     counted = re.findall(r"(?i)\b(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:\w+\s+)?agents\b", html(name))
     assert not counted, f"no count of agents anywhere on the page, its step announcements and description included: {counted}"
+
+
+def test_delegate_counts_the_writers_the_nightly_job_runs():
+    # the job's agents task plans the pre-call pack, the agreement watch and CRM versus reality (lakehouse/job_tasks.py), each with its own Foundry
+    # writer (harness/foundry.py NAMES), while prospect research runs only when a person picks a market; so the writer's box names the pre-call
+    # pack's writer and counts the other writers the job runs, and "+ 3 more" (all four) was wrong
+    task = (ROOT / "lakehouse/job_tasks.py").read_text(encoding="utf-8")
+    (planned,) = re.findall(r"^\s*planned = (.+)$", task, re.M)
+    keys = list(dict.fromkeys(re.findall(r'\("(\w+)", \{', planned)))
+    names = ast.literal_eval(re.search(r"^NAMES = (\{.*\})$", (ROOT / "harness/foundry.py").read_text(encoding="utf-8"), re.M).group(1))
+    assert keys[0] == "precall" and len(keys) > 1 and all(k in names for k in keys), f"the job's agents, each with a Foundry writer: {keys}"
+    for page in DELEGATE_PAGES:
+        (writer,) = [n for n in figure(page).walk() if n.attrs.get("data-node") == "writer"]
+        lines = [n.words() for n in writer.walk() if n.tag == "text"]
+        assert lines[1:] == [f"{names['precall']} + {len(keys) - 1} more"], f"{page}: the writer's box counts the {len(keys)} writers the job runs: {lines}"
 
 
 @pytest.mark.parametrize("name", DELEGATE_PAGES)

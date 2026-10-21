@@ -907,13 +907,6 @@
    "source": "evals/results/2026-10-13T160143.json, harness run 5: Qwen3-Next, the model inside the Databricks App, judged by gpt-5-mini",
    "value": 2
   },
-  "commit_tests": {
-   "date": "2026-10-21",
-   "display": "338",
-   "note": "Python tests that passed in the hook, after the SQL behind all twenty known answers ran. The web tests, vitest and Playwright, are not in the hook.",
-   "source": ".githooks/pre-commit on the commit 'deck: every slide and note rewritten to the unslop rules': evals/run_benchmark.py --check, then pytest evals -q",
-   "value": 338
-  },
   "foundry_attack_false_flags": {
    "date": "2026-10-15",
    "display": "2",
