@@ -137,6 +137,7 @@ test("a frame that gets ready in time, even a slow one, never paints the finishe
   await page.keyboard.press("ArrowRight");
   await expect(slideAt(page, "pipeline")).toBeVisible();
   await page.waitForTimeout(FRAME_FALLBACK_MS / 2); // slow, but inside the time it is given
+  expect(await page.locator("iframe[data-slide-frame]").getAttribute("data-ready"), "the frame is still held back when it is let go").toBeNull();
   release();
   await expect(ready(page)).toBeVisible();
   await expect(root(page)).toHaveAttribute("data-step-current", "0");
@@ -170,7 +171,8 @@ test("an animated slide shows nothing of its figure before its frame is ready, a
   await openSlide(page, "elevator-opener");
   await page.keyboard.press("ArrowRight");
   await expect(slideAt(page, "pipeline")).toBeVisible();
-  await expect(page.locator("iframe[data-slide-frame]")).not.toHaveAttribute("data-ready", "1");
+  await page.waitForTimeout(FRAME_FALLBACK_MS / 2); // more than a frame that is not held needs to be ready, and inside the time it is given
+  expect(await page.locator("iframe[data-slide-frame]").getAttribute("data-ready"), "the frame is still held back when it is let go").toBeNull();
   await expect(slideAt(page, "pipeline").locator("img[data-thumb]"), "no finished figure before the frame is ready").toBeHidden();
   release();
   await expect(ready(page)).toBeVisible();
