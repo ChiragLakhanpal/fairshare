@@ -1,7 +1,10 @@
 import { chromium, expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { slides } from "../src/deck/slides";
+import { onPath } from "../src/lib/deck";
 
+const FONTS = /fonts\.(googleapis|gstatic)\.com/;
 test.beforeEach(async ({ context }) => {
-  await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort()); // the font stylesheet holds the controller back
+  await context.route(FONTS, (r) => r.abort()); // the font stylesheet holds the controller back
 });
 const root = (page: Page) => page.frameLocator("iframe[data-slide-frame]").locator("[data-motion-root]");
 const ready = (page: Page) => page.locator('iframe[data-slide-frame][data-ready="1"]');
@@ -25,6 +28,15 @@ async function expectAt(page: Page, id: string, step: number) {
 /** Where the deck is: the hash and, on a native slide, its step. */
 const where = (page: Page) =>
   page.evaluate(() => ({ hash: location.hash, step: document.querySelector("[data-slide] [data-step-current]")?.getAttribute("data-step-current") ?? null }));
+/** The button in the notes window's outline that sends the deck to a slide. */
+const outlined = (notes: Page, id: string) => notes.locator(`nav [data-outline="${id}"]`);
+/** Sends the deck to a slide as the notes window's outline does, from a channel in the deck's own page. */
+const goTo = (page: Page, id: string) =>
+  page.evaluate((id) => {
+    const channel = new BroadcastChannel("fairshare-deck");
+    channel.postMessage({ t: "go", id });
+    channel.close();
+  }, id);
 /** Keys sent from the notes window in one go, all queued on the channel before the deck renders once. */
 const burst = (notes: Page, action: "next" | "prev", n: number) =>
   notes.evaluate(({ action, n }) => {
@@ -71,11 +83,10 @@ test("with reduced motion an animated slide shows the whole figure and the first
 test("the notes window follows the deck, drives it, keeps the warehouse awake, and resyncs after a reload", async ({ page, context }) => {
   let pings = 0;
   await context.route("**/api/agencies", (r) => { pings += 1; return r.fulfill({ json: [] }); });
-  await page.goto("/present#title");
-  await expect(page.locator("[data-deck-ready]")).toBeAttached();
+  await openSlide(page, "agenda"); // a load lands complete, so the next press moves on
   const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
   const now = notes.locator("[data-now]");
-  await expect(now).toHaveAttribute("data-now", "title");
+  await expect(now).toHaveAttribute("data-now", "agenda");
   await page.keyboard.press("ArrowRight");
   await expect(now).toHaveAttribute("data-now", "problem");
   const points = await stepsOf(page, "problem");
@@ -98,16 +109,16 @@ test("the notes window follows the deck, drives it, keeps the warehouse awake, a
   await expectAt(page, "ask", lines); // a reload lands on the slide complete, and the notes window follows
   await expect(notes.getByText(`Point ${lines} of ${lines}`, { exact: true })).toBeVisible();
   await notes.keyboard.press("ArrowRight");
-  await expect(page).toHaveURL(/#system$/);
-  await expect(now).toHaveAttribute("data-now", "system");
+  await expect(page).toHaveURL(/#precall$/); // the short path goes from Ask's demo to Delegate's
+  await expect(now).toHaveAttribute("data-now", "precall");
   expect(pings).toBeGreaterThan(0);
 });
 
 test("keys the notes window sends in a burst are applied in order, through a slide's points and on, as the same keys one at a time are", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
-  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "title");
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "agenda");
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "problem", 0);
   const points = await stepsOf(page, "problem");
@@ -115,7 +126,7 @@ test("keys the notes window sends in a burst are applied in order, through a sli
   await expectAt(page, "what", 0);
   const single = await where(page);
   // the same keys from the same start, all at once: none skipped, none doubled, and the notes window shows the same place
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "problem", 0);
   await burst(notes, "next", points + 1);
@@ -147,7 +158,7 @@ test("a burst that goes through a diagram's steps and into the next slide's poin
 });
 
 test("keys that come before the deck has drawn the one before still take the place that one left", async ({ page }) => {
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "problem", 0);
   const points = await stepsOf(page, "problem");
@@ -164,12 +175,12 @@ test("keys that come before the deck has drawn the one before still take the pla
 
 test("the first move starts the clock on plan, so a talk on plan reads on time", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
-  await page.goto("/present#title");
+  await page.goto("/present#welcome");
   await expect(page.locator("[data-deck-ready]")).toBeAttached();
   const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
   await expect(notes.getByText("The clock starts on the first move.")).toBeVisible();
   const before = await page.evaluate(() => Date.now());
-  await page.keyboard.press("ArrowRight"); // the title's planned half minute is already behind the talk
+  await page.keyboard.press("ArrowRight"); // the welcome's planned half minute is already behind the talk
   const after = await page.evaluate(() => Date.now());
   const started = Number(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt")));
   expect(started).toBeGreaterThanOrEqual(before - 30_000);
@@ -238,12 +249,12 @@ test("the pre-call jump opens Delegate on the pre-call agent, with a way back", 
   await expect(page).toHaveURL(/\/present#precall$/);
 });
 
-test("the sidebar entry opens the deck on the title", async ({ page, context }) => {
+test("the sidebar entry opens the deck on the welcome", async ({ page, context }) => {
   await mockApp(context);
   await page.goto("/");
   await page.getByRole("link", { name: "Present" }).click();
   await expect(page).toHaveURL(/\/present/);
-  await expect(page.locator('[data-slide="title"]')).toBeVisible();
+  await expect(page.locator('[data-slide="welcome"]')).toBeVisible();
 });
 
 test("a demo button in the notes window jumps the deck's tab, and the way back lands on the same slide", async ({ page, context }) => {
@@ -347,6 +358,7 @@ test("a deck the browser restores from its cache spends the way back too, and sh
     await page.keyboard.press("ArrowRight"); // and brings in its first line
     await expectAt(page, "ask", 1);
     const lines = await stepsOf(page, "ask");
+    expect(lines, "more than one line, so the slide left at its first line is not already complete").toBeGreaterThan(1);
     await page.evaluate(() => { (window as unknown as Kept).kept = "the same page"; }); // a page that loads again loses it
     await page.getByRole("button", { name: "Ask it live" }).click();
     await expect(back(page)).toBeVisible();
@@ -377,7 +389,7 @@ test("the tracker lights the slide's topic and marks the slide, and the footer n
 for (const size of [{ width: 1024, height: 768 }, { width: 1920, height: 1080 }]) {
   test(`at ${size.width} by ${size.height} no two topic names overlap and none is cut off, whichever topic is lit`, async ({ page }) => {
     await page.setViewportSize(size);
-    for (const id of ["problem", "ask", "row", "measured", "know"]) {
+    for (const id of ["problem", "ask", "row", "guardrails", "know"]) {
       await openSlide(page, id);
       const names = slideAt(page, id).locator("[data-topic-name]");
       await expect(names).toHaveCount(5);
@@ -392,23 +404,33 @@ for (const size of [{ width: 1024, height: 768 }, { width: 1920, height: 1080 }]
   });
 }
 
-test("the welcome shows the logo alone, a still shows no frame at all, and a backup slide says Backup", async ({ page }) => {
-  await openSlide(page, "title");
-  await expect(slideAt(page, "title").locator('[data-frame="header"] img[src="/aa-logo.svg"]')).toBeVisible();
-  await expect(slideAt(page, "title").locator("[data-tracker]")).toHaveCount(0);
-  await expect(slideAt(page, "title").locator('[data-frame="footer"]')).toHaveCount(0);
-  await openSlide(page, "coverage"); // a figure: the whole frame
-  await expect(slideAt(page, "coverage").locator('[data-frame="header"] img[src="/aa-logo.svg"]')).toBeVisible();
-  await expect(slideAt(page, "coverage").locator("[data-tracker]")).toBeVisible();
-  await expect(slideAt(page, "coverage").locator('[data-frame="footer"]')).toBeVisible();
-  await openSlide(page, "ask-still");
-  await expect(slideAt(page, "ask-still").locator("[data-frame]")).toHaveCount(0);
-  await page.keyboard.press("ArrowRight"); // the next backup slide
-  await expect(slideAt(page, "precall-still")).toBeVisible();
-  await expect(slideAt(page, "precall-still").locator("[data-frame]")).toHaveCount(0);
-  await page.keyboard.press("ArrowRight"); // a backup slide that is not a still
+test("the welcome and the thanks show the logo alone, a still shows no frame at all, and a backup slide says Backup", async ({ page }) => {
+  for (const id of ["welcome", "thanks"]) {
+    await openSlide(page, id);
+    await expect(slideAt(page, id).locator('[data-frame="header"] img[src="/aa-logo.svg"]'), id).toBeVisible();
+    await expect(slideAt(page, id).locator("[data-tracker]"), id).toHaveCount(0);
+    await expect(slideAt(page, id).locator('[data-frame="footer"]'), id).toHaveCount(0);
+  }
+  await openSlide(page, "revenue"); // a figure: the whole frame
+  await expect(slideAt(page, "revenue").locator('[data-frame="header"] img[src="/aa-logo.svg"]')).toBeVisible();
+  await expect(slideAt(page, "revenue").locator("[data-tracker]")).toBeVisible();
+  await expect(slideAt(page, "revenue").locator('[data-frame="footer"]')).toBeVisible();
+  for (const id of ["ask-still", "precall-still"]) {
+    await openSlide(page, id);
+    await expect(slideAt(page, id).locator("[data-frame]"), id).toHaveCount(0);
+  }
+  await openSlide(page, "manager"); // a backup slide that is not a still
   await expect(slideAt(page, "manager").locator('[data-frame="footer"]')).toContainText(/Backup$/i);
   await expect(slideAt(page, "manager").locator("[data-tracker] [aria-current]")).toHaveCount(0);
+});
+
+test("the welcome hides its page's caption and shows the talk's title, his name, the role and the made-up data line", async ({ page }) => {
+  await openSlide(page, "welcome");
+  await expect(page.locator('iframe[data-live-frame][data-shown="1"]')).toBeVisible();
+  await expect(page.frameLocator("iframe[data-live-frame]").locator(".caption")).toBeHidden();
+  const byline = slideAt(page, "welcome").locator("[data-byline]");
+  await expect(byline.getByRole("heading", { level: 1 })).toHaveText("Fairshare: sales answers you can check");
+  for (const line of slides.find((s) => s.id === "welcome")!.byline!) await expect(byline.getByText(line, { exact: true })).toBeVisible();
 });
 
 test("a live page in the deck drops its own logo, since the frame draws one, and keeps its caption", async ({ page }) => {
@@ -422,14 +444,14 @@ test("a live page in the deck drops its own logo, since the frame draws one, and
 // Native steps. A native slide shows its title on arrival, and each point, tile, table, check, result or topic comes in on a press; the press
 // after the last one moves the deck. Going back into a slide, a reload and the way back from a demo show it complete.
 test("a native slide shows its title on arrival, takes a press for each point, and then the deck moves on", async ({ page }) => {
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "problem", 0);
   const count = await stepsOf(page, "problem");
   expect(count).toBeGreaterThan(1);
   await expect(slideAt(page, "problem").getByRole("heading", { level: 1 })).toBeVisible();
   const shown = stepRoot(page, "problem").locator("[data-step]:visible");
-  const read = stepRoot(page, "problem").getByRole("listitem"); // what a screen reader can reach
+  const read = stepRoot(page, "problem").locator('[data-step]:not([aria-hidden="true"])'); // what a screen reader can reach: the points and the question
   await expect(shown).toHaveCount(0);
   await expect(read).toHaveCount(0);
   for (let k = 1; k <= count; k++) {
@@ -443,15 +465,17 @@ test("a native slide shows its title on arrival, takes a press for each point, a
 });
 
 test("an unreached point is invisible and keeps its place, a point arrives over 320ms, and the points before it recede to the muted color", async ({ page }) => {
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "problem", 0);
   const slide = slideAt(page, "problem");
   const title = slide.getByRole("heading", { level: 1 });
-  const points = slide.locator("li[data-step]");
+  const points = slide.locator("[data-step]"); // the two points, then the question to the room
   const wording = (i: number) => points.nth(i).locator(":scope > span").last();
   const titleAt = (await title.boundingBox())!.y;
-  for (let i = 0; i < 3; i++) {
+  const count = await stepsOf(page, "problem");
+  await expect(points).toHaveCount(count);
+  for (let i = 0; i < count; i++) {
     await expect(points.nth(i), `point ${i + 1} before it is said`).toHaveCSS("visibility", "hidden"); // invisible, not faded
     await expect(points.nth(i)).toHaveCSS("opacity", "0");
     await expect(points.nth(i)).toHaveAttribute("aria-hidden", "true");
@@ -473,7 +497,7 @@ test("an unreached point is invisible and keeps its place, a point arrives over 
 
 test("with reduced motion the points still step, with no fade", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "problem", 0);
   const first = slideAt(page, "problem").locator("li[data-step]").first();
@@ -485,7 +509,7 @@ test("with reduced motion the points still step, with no fade", async ({ page })
 });
 
 test("going back into a stepped slide lands on its last step, a press forward from there moves on, and a press back takes the points back one at a time", async ({ page }) => {
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   await page.keyboard.press("ArrowRight");
   const count = await stepsOf(page, "problem");
   for (let i = 0; i <= count; i++) await page.keyboard.press("ArrowRight"); // every point, and on
@@ -501,12 +525,13 @@ test("going back into a stepped slide lands on its last step, a press forward fr
     await page.keyboard.press("ArrowLeft");
     await expectAt(page, "problem", k);
   }
-  await page.keyboard.press("ArrowLeft"); // the title alone: the deck moves back
-  await expect(page).toHaveURL(/#title$/);
+  await page.keyboard.press("ArrowLeft"); // the title alone: the deck moves back, onto the agenda complete
+  await expect(page).toHaveURL(/#agenda$/);
+  await expectAt(page, "agenda", await stepsOf(page, "agenda"));
 });
 
 test("reloading on a stepped slide lands on it complete, with the clock kept", async ({ page }) => {
-  await openSlide(page, "title");
+  await openSlide(page, "agenda");
   await page.keyboard.press("ArrowRight"); // the first move starts the clock
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "problem", 1);
@@ -520,6 +545,7 @@ test("reloading on a stepped slide lands on it complete, with the clock kept", a
   expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt"))).toBe(started);
   await page.keyboard.press("ArrowRight"); // from complete, one press moves on
   await expectAt(page, "what", 0);
+  expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt")), "the move after the reload keeps the clock").toBe(started);
 });
 
 test("returning from the Ask demo lands on ask complete, with the clock kept", async ({ page, context }) => {
@@ -528,6 +554,7 @@ test("returning from the Ask demo lands on ask complete, with the clock kept", a
   await page.keyboard.press("ArrowRight"); // the first move starts the clock, and ask arrives on its title
   await expectAt(page, "ask", 0);
   const count = await stepsOf(page, "ask");
+  expect(count, "more than one line, so the slide left at its first line is not already complete").toBeGreaterThan(1);
   await page.keyboard.press("ArrowRight");
   await expectAt(page, "ask", 1);
   const started = await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt"));
@@ -540,44 +567,53 @@ test("returning from the Ask demo lands on ask complete, with the clock kept", a
   expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt"))).toBe(started);
   await page.keyboard.press("ArrowRight"); // from complete, one press moves on
   await expect(page).not.toHaveURL(/#ask$/);
+  expect(await page.evaluate(() => sessionStorage.getItem("fairshare.deck.startedAt")), "the move after the way back keeps the clock").toBe(started);
 });
 
 test("the notes window says which point the deck is on, and draws the slide at that point", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
-  await openSlide(page, "title");
+  await openSlide(page, "welcome");
   const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
   const now = notes.locator("[data-now]");
-  await expect(now).toHaveAttribute("data-now", "title");
+  await expect(now).toHaveAttribute("data-now", "welcome");
   const point = notes.getByText(/^Point \d+ of \d+$/);
   await expect(point).toHaveCount(0); // the welcome has no points
   await page.keyboard.press("ArrowRight");
-  await expect(now).toHaveAttribute("data-now", "problem");
-  const count = await stepsOf(page, "problem");
+  await expect(now).toHaveAttribute("data-now", "agenda");
+  const count = await stepsOf(page, "agenda");
   const small = notes.locator("main [data-step-current]"); // the slide on the screen, drawn small
   for (let k = 0; k <= count; k++) {
     if (k > 0) await page.keyboard.press("ArrowRight");
-    await expectAt(page, "problem", k);
+    await expectAt(page, "agenda", k);
     await expect(point).toHaveText(`Point ${k} of ${count}`);
     await expect(small).toHaveAttribute("data-step-current", String(k));
   }
   await notes.keyboard.press("ArrowLeft"); // a press in the notes window takes a point back in the deck, and the line follows
-  await expectAt(page, "problem", count - 1);
+  await expectAt(page, "agenda", count - 1);
   await expect(point).toHaveText(`Point ${count - 1} of ${count}`);
   await expect(small).toHaveAttribute("data-step-current", String(count - 1));
   const next = notes.locator("aside [data-step-current]"); // the next slide is drawn complete
   await expect(next).toHaveAttribute("data-step-current", (await next.getAttribute("data-step-count"))!);
 });
 
-test("a jump from the notes window's outline arrives on a slide's title going forward, and complete going back", async ({ page, context }) => {
+test("a jump from the notes window's outline lands a slide of the path on its first step and a backup slide complete, whichever way it lies", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
-  await openSlide(page, "title");
+  await openSlide(page, "welcome");
   const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
-  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "title");
-  await notes.getByRole("button", { name: "A live question in Ask", exact: true }).click();
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "welcome");
+  await outlined(notes, "ask").click(); // forward
   await expectAt(page, "ask", 0);
   await expect(notes.getByText(`Point 0 of ${await stepsOf(page, "ask")}`, { exact: true })).toBeVisible();
-  await notes.getByRole("button", { name: "Two slow steps today", exact: true }).click();
-  await expectAt(page, "problem", await stepsOf(page, "problem"));
+  await outlined(notes, "problem").click(); // back, and still on its first step
+  await expectAt(page, "problem", 0);
+  await outlined(notes, "agents").click(); // a backup slide, read at once in the questions
+  const tiles = await stepsOf(page, "agents");
+  expect(tiles).toBeGreaterThan(0);
+  await expectAt(page, "agents", tiles);
+  await outlined(notes, "words").click(); // an earlier backup slide, complete too
+  await expectAt(page, "words", await stepsOf(page, "words"));
+  await outlined(notes, "guardrails").click(); // back onto the path, on its first step again
+  await expectAt(page, "guardrails", 0);
 });
 
 test("the notes window's outline groups every slide under its part, in the order of the talk, and the backup slides come last", async ({ context }) => {
@@ -586,14 +622,38 @@ test("the notes window's outline groups every slide under its part, in the order
   await notes.goto("/present?notes");
   const parts = ["Welcome", "Two slow steps", "Ask and Delegate", "Where the numbers come from", "Checks and misses", "Starting at AA", "Thank you", "Backup"];
   const heads = await notes.getByRole("navigation", { name: "Every slide" }).getByRole("heading", { level: 3 }).allTextContents();
-  const at = heads.map((h) => parts.indexOf(h));
-  expect(at, `the headings ${heads.join(", ")}`).not.toContain(-1);
-  expect(at, "in the order of the talk").toEqual([...at].sort((a, b) => a - b));
-  expect([heads[0], heads.at(-1)]).toEqual(["Welcome", "Backup"]);
-  expect(heads.filter((h) => parts.slice(1, 6).includes(h)), "the five topics").toEqual(parts.slice(1, 6));
+  expect(heads, "every part has slides, so every part is listed, in the order of the talk").toEqual(parts);
   const under = (part: string) => notes.locator("nav section", { has: notes.getByRole("heading", { name: part, level: 3, exact: true }) });
-  await expect(under("Two slow steps").getByRole("button", { name: "Two slow steps today", exact: true })).toBeVisible();
-  await expect(under("Backup").getByRole("button", { name: "Five words in plain English", exact: true })).toBeVisible();
+  await expect(under("Two slow steps").locator('[data-outline="problem"]')).toBeVisible();
+  await expect(under("Thank you").locator('[data-outline="thanks"]')).toBeVisible();
+  await expect(under("Backup").locator('[data-outline="words"]')).toBeVisible();
+  await expect(notes.locator("nav [data-outline]")).toHaveCount(slides.length);
+});
+
+// The layout under a native slide's title zooms out when it holds too much for the box (data-fit-zoom). A slide of the talk holds no more than
+// its box, so none may shrink; a backup is read in the questions, so none may shrink below 0.8. The test lets the deck's own fonts load where
+// the network has them, since Inter sets wider than the system faces the other tests fall back to.
+test("every native slide of the main path sits at full size, and no native backup slide below 0.8", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await context.unroute(FONTS);
+  await openSlide(page, "welcome");
+  const inter = await page.evaluate(async () => {
+    for (const face of ["400 20px Inter", "600 28px Inter", "400 28px Inter", "600 40px Inter", "500 20px 'Geist Mono'", "600 20px 'Geist Mono'"]) await document.fonts.load(face);
+    await document.fonts.ready;
+    // check() also says true when no face is named Inter at all, so look for a loaded one
+    return [...document.fonts].some((f) => f.family.replace(/["']/g, "") === "Inter" && f.status === "loaded");
+  });
+  test.info().annotations.push({ type: "faces", description: inter ? "measured in Inter" : "Inter did not load, so measured in the system faces" });
+  const zoomOn = async (id: string) => {
+    await goTo(page, id);
+    await expect(slideAt(page, id)).toBeVisible();
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    return Number(await slideAt(page, id).locator("[data-fit-zoom]").getAttribute("data-fit-zoom"));
+  };
+  const main = onPath(slides, "full").filter((s) => s.native);
+  expect(main.length).toBeGreaterThan(10);
+  for (const s of main) expect(await zoomOn(s.id), s.id).toBe(1);
+  for (const s of slides.filter((x) => x.part === "backup" && x.native)) expect(await zoomOn(s.id), s.id).toBeGreaterThanOrEqual(0.8);
 });
 
 test("a checkpoint's time stays on one line in the notes window, and its name wraps instead", async ({ context }) => {

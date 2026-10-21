@@ -64,7 +64,8 @@ const ZOOM_STEP = 0.025;
 /** The layout's box under the title. A layout taller than the space left (a dense table, or more than a slide should hold) zooms out as a
  * whole, a step at a time, until it fits, so nothing runs under the footer; a layout that fits stays on the ramp. Items that have not
  * arrived keep their places, so the zoom holds while the slide steps. It starts again from full size once the fonts arrive. The height
- * test compares the two boxes, not scrollHeight: an item waiting 8px low reaches past the box, and scrollHeight counts that. */
+ * test compares the two boxes, not scrollHeight: an item waiting 8px low reaches past the box, and scrollHeight counts that. The box says
+ * its zoom in data-fit-zoom, so a test can hold the talk's slides at full size. */
 function Fit({ children }: { children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
@@ -86,10 +87,11 @@ function Fit({ children }: { children: ReactNode }) {
     const content = inner.current;
     if (!el || !content || zoom <= MIN_ZOOM) return;
     const tall = content.getBoundingClientRect().height > el.getBoundingClientRect().height + 1;
-    if (tall || el.scrollWidth > el.clientWidth) setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP));
+    // rounded to the step, so the zoom reads 0.9 and not 0.8999999999999999 after four steps
+    if (tall || el.scrollWidth > el.clientWidth) setZoom((z) => Math.max(MIN_ZOOM, Math.round((z - ZOOM_STEP) * 1000) / 1000));
   }, [zoom, fonts]);
   return (
-    <div ref={box} className="mt-12 min-h-0 overflow-hidden">
+    <div ref={box} data-fit-zoom={zoom} className="mt-12 min-h-0 overflow-hidden">
       <div ref={inner} style={zoom < 1 ? { zoom } : undefined}>
         {children}
       </div>
@@ -186,11 +188,12 @@ function Tiles({ tiles, step }: { tiles: Tile[]; step: number }) {
 }
 
 /** Each table's columns in plain words with one example from the data, a table a press. A slide may keep only some of the columns (only,
- * by name). More than sixteen rows take two columns. The name and example columns are as wide as the slide's longest name and example
- * need, and an example wraps to two lines at most. */
+ * by name), in the order it names them. More than sixteen rows take two columns. The name and example columns are as wide as the slide's
+ * longest name and example need, and an example wraps to two lines at most. */
 function Tables({ keys: named, only, facts, step }: { keys: string[]; only?: string[]; facts: DeckFacts; step: number }) {
-  // a key facts.json does not describe is skipped, not thrown on
-  const tables = knownTables(named, facts.columns).map((key) => ({ key, columns: facts.columns[key].filter((c) => !only || only.includes(c.name)) }));
+  // a key facts.json does not describe is skipped, not thrown on, and so is a column name the table does not have
+  const keep = (columns: DeckFacts["columns"][string]) => (only ? only.flatMap((name) => columns.filter((c) => c.name === name)) : columns);
+  const tables = knownTables(named, facts.columns).map((key) => ({ key, columns: keep(facts.columns[key]) }));
   const all = tables.flatMap((t) => t.columns);
   const two = all.length > 16;
   const longest = (pick: (c: (typeof all)[number]) => string) => Math.max(0, ...all.map((c) => pick(c).length));
@@ -252,12 +255,12 @@ function Checks({ keys, checks, step }: { keys?: string[]; checks: DeckFacts["ch
   );
 }
 
-// the checks' values are at most "2026-09-01 and 2026-09-01"
-const CHECK_COLUMNS = "minmax(0,1fr) 14em 14em 1.4em";
+// the checks' values, with their units, are at most "Sep 2026 and Sep 2026"
+const CHECK_COLUMNS = "minmax(0,1fr) 12em 12em 1.4em";
 
-/** Every check at once: what it makes sure of, what it should be, what it is, and whether it passes. */
+/** Every check at once: what it makes sure of, what it should be, what it is (each value as facts.json prints it, with its unit), and
+ * whether it passes. */
 function ChecksTable({ checks }: { checks: DeckFacts["checks"] }) {
-  const show = (v: unknown) => (typeof v === "number" ? v.toLocaleString("en-US") : String(v));
   return (
     <div className={TABLE}>
       <div className="grid gap-x-4 pb-2" style={{ gridTemplateColumns: CHECK_COLUMNS }}>
@@ -269,8 +272,8 @@ function ChecksTable({ checks }: { checks: DeckFacts["checks"] }) {
       {checks.map((c) => (
         <div key={c.key} className="grid items-baseline gap-x-4 border-t border-line-2 py-2" style={{ gridTemplateColumns: CHECK_COLUMNS }}>
           <span>{c.name}</span>
-          <span className={MONO_CELL}>{show(c.expected)}</span>
-          <span className={MONO_CELL}>{show(c.actual)}</span>
+          <span className={MONO_CELL}>{c.display.expected}</span>
+          <span className={MONO_CELL}>{c.display.actual}</span>
           <span className="self-center">
             <Mark ok={c.ok} />
           </span>

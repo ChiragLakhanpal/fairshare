@@ -8,7 +8,7 @@
 
 /** The five topics the talk is told in, in the order of TOPIC_ORDER. */
 export type Topic = "steps" | "modes" | "numbers" | "checks" | "aa";
-/** What a slide belongs to: the welcome (open), a topic, the thanks (close) or the backup slides. */
+/** What a slide belongs to: the welcome and the agenda (open), a topic, the thanks (close) or the backup slides. */
 export type Part = "open" | Topic | "close" | "backup";
 export type Kind = "image" | "live" | "animated" | "native";
 export type PathName = "full" | "short";
@@ -26,7 +26,7 @@ export type Result = { head: string; body: string; result: string; miss?: string
 export type Native =
   | { layout: "statement"; lines: string[]; ask?: string } // ask: the question to the room, after the last line
   | { layout: "tiles"; tiles: Tile[] }
-  | { layout: "table"; tables: string[]; columns?: string[] } // keys of facts.columns; columns keeps only those column names, in the table's order
+  | { layout: "table"; tables: string[]; columns?: string[] } // keys of facts.columns; columns keeps only those column names, in its own order
   | { layout: "checks"; keys?: string[] } // keys of facts.checks; none means all of them, shown at once
   | { layout: "results"; items: Result[] }
   | { layout: "agenda" } // the five topics, name and line
@@ -35,10 +35,11 @@ export type Native =
 /** What fill() reads from facts.json: the display string of every fact and every dated fact. */
 export type Facts = { facts: Record<string, { display: string }>; dated: Record<string, { display: string }> };
 /** All of facts.json that a slide shows: the facts, plus the columns of each table (each with an example that carries its unit) and the basic
- * checks (each with a snake_case key and a why, one plain sentence on what the check guards against). */
+ * checks (each with a snake_case key, a why, one plain sentence on what the check guards against, and its values as the query returned them
+ * and as a slide prints them, with their units). */
 export type DeckFacts = Facts & {
   columns: Record<string, { name: string; meaning: string; example: string }[]>;
-  checks: { key: string; name: string; why: string; expected: unknown; actual: unknown; ok: boolean }[];
+  checks: { key: string; name: string; why: string; expected: unknown; actual: unknown; ok: boolean; display: { expected: string; actual: string } }[];
 };
 
 /** The topics in the order of the talk. */
@@ -69,6 +70,11 @@ export const PARTS: Record<Part, string> = {
 /** Whether a part is one of the five topics, and not the welcome, the thanks or a backup. */
 export function isTopic(p: Part): p is Topic {
   return Object.hasOwn(TOPICS, p);
+}
+
+/** The parts the notes window's outline lists, in the order of PARTS: only those with a slide, so no heading stands alone. */
+export function outlineParts(slides: Slide[]): Part[] {
+  return (Object.keys(PARTS) as Part[]).filter((p) => slides.some((s) => s.part === p));
 }
 
 /** A slide on the path as the tracker marks it, from where the slide on the screen stands: shown before it, the slide itself, or still
@@ -184,6 +190,12 @@ export function stepCount(s: Slide): number {
  * the slide (a reload, or the way back from a demo), so the slide shows complete. */
 export function arrivalStep(s: Slide, how: "forward" | "backward" | "load"): number {
   return how === "forward" ? 0 : stepCount(s);
+}
+
+/** How a jump from the notes window's outline arrives, wherever the deck stands: a backup slide as going back would bring it, complete, since a
+ * question pulls it up to be read at once; a slide of the path as going forward would, on its first step, so the presenter walks it again. */
+export function outlineArrival(s: Slide): "forward" | "backward" {
+  return s.part === "backup" ? "backward" : "forward";
 }
 
 /** A frame that becomes ready this long after its slide arrived started late: the presenter has been talking over the

@@ -184,7 +184,7 @@ def test_every_check_has_a_key_and_a_plain_reason():
     no -ing tail, and the data is never called real."""
     checks = STORED["checks"]
     assert len(checks) == len(deck_facts.CHECKS)
-    assert all(set(c) == {"key", "name", "why", "expected", "actual", "ok"} for c in checks)
+    assert all(set(c) == {"key", "name", "why", "expected", "actual", "ok", "display"} for c in checks)
     keys = [c["key"] for c in checks]
     assert len(keys) == len(set(keys)), "a check key is used twice"
     assert all(re.fullmatch(r"[a-z][a-z0-9]*(_[a-z0-9]+)*", k) for k in keys), f"check keys are snake_case: {keys}"
@@ -209,3 +209,36 @@ def test_genie_earlier_runs_are_dated_from_their_result_files():
         run = json.loads((ROOT / "evals/results" / name).read_text(encoding="utf-8"))
         assert (run["correct"], run["n"]) == (d["value"], 20), name
     assert STORED["dated"]["genie_benchmark_earlier"] == json.loads(json.dumps(d)), "rerun deck_facts.py"
+
+
+# ---- check values carry their units (the deck redesign, task 6)
+
+def test_check_values_carry_their_units():
+    """The table of all eight checks printed 4920.87 and 2026-09-01 and 2026-09-01. Each check now names a format, and facts.json keeps the
+    value as the query returned it beside the string the slide prints: dollars with cents, months by name, counts as whole numbers."""
+    shown = {c["key"]: c["display"] for c in STORED["checks"]}
+    assert shown["duplicates_removed"] == {"expected": "$4,920.87", "actual": "$4,920.87"}
+    assert shown["last_month"] == {"expected": "Sep 2026 and Sep 2026", "actual": "Sep 2026 and Sep 2026"}
+    assert shown["sales_row_count"] == {"expected": "3,000", "actual": "3,000"}
+    for key in ("no_repeated_rows", "sales_have_seats", "no_empty_sales", "aa_within_market", "pace_month_count"):
+        assert shown[key] == {"expected": "0", "actual": "0"}, key
+    for c in STORED["checks"]:
+        assert set(c["display"]) == {"expected", "actual"}, c["key"]
+        assert all(isinstance(v, str) and v for v in c["display"].values()), c["key"]
+
+
+def test_every_check_names_a_format_that_reads_its_value():
+    """A check's format comes from FORMATS (or the pair of months its key returns), and its expected value reads in that format, so a typo or
+    a value of the wrong kind stops the build instead of printing raw."""
+    for key, _name, _why, _sql, expected, fmt in deck_facts.CHECKS:
+        assert fmt in deck_facts.FORMATS, (key, fmt)
+        read, show = deck_facts.FORMATS[fmt]
+        assert show(read(expected, key)), key
+
+
+def test_a_check_value_the_format_cannot_read_still_shows():
+    """A failing check must still say what came back: a NULL or a value of another kind shows as stored, never as an error."""
+    assert deck_facts._check_shown("int", None) == "NULL"
+    assert deck_facts._check_shown("int", 2999) == "2,999"
+    assert deck_facts._check_shown("months", "2026-08-01 and 2026-09-01") == "Aug 2026 and Sep 2026"
+    assert deck_facts._check_shown("usd_cents", "not a number") == "not a number"

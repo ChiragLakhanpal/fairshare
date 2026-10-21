@@ -134,7 +134,7 @@ function Byline({ title, lines }: { title: string; lines: string[] }) {
     <div data-byline className="absolute inset-x-0 bottom-[56px] flex flex-col items-center bg-white px-[64px] text-center">
       <h1 className="text-[32px] font-semibold leading-[1.2] tracking-[-0.01em] text-navy">{title}</h1>
       <div className="mt-3 text-[20px] leading-[1.4]" style={{ color: MUTED }}>
-        {lines.map((l) => <p key={l}>{l}</p>)}
+        {lines.map((l, i) => <p key={i}>{l}</p>)}
       </div>
     </div>
   );

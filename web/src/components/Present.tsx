@@ -6,14 +6,15 @@
 // brings in an item a press (its step is kept in a ref as well as in state, so a press applied in the same tick as the one
 // before it reads the step that one left); on an animated slide a press steps the framed diagram. Going forward a press
 // steps until the last step, and going back until step 0, and only then moves the deck. A slide arrives on step 0 going
-// forward and complete going back, after a reload, and on the way back from a demo. Under reduced motion the diagram shows
-// whole and counts as zero steps. The deck is the one source of truth for the notes window: it applies each message the
-// notes window sends as if it were pressed here, and posts its state (the slide, its step and its number of steps, the
-// path and the start of the talk) on mount, after every move and step, and after every message it applies. The path
-// (localStorage) and the start of the talk, set on the first move and dated back to the plan (sessionStorage), outlive a
-// reload and a demo jump. A demo button on a slide, or in the notes window, jumps into the app in this tab (jump): the
-// slide to come back to waits in sessionStorage for the app's link, and the deck clears it when it opens again, or when
-// the browser restores it from its cache.
+// forward and complete going back, after a reload, and on the way back from a demo; a jump from the notes window's outline
+// lands a backup slide complete and a slide of the path on step 0, whichever way it lies (outlineArrival). Under reduced
+// motion the diagram shows whole and counts as zero steps. The deck is the one source of truth for the notes window: it
+// applies each message the notes window sends as if it were pressed here, and posts its state (the slide, its step and its
+// number of steps, the path and the start of the talk) on mount, after every move and step, and after every message it
+// applies. The path (localStorage) and the start of the talk, set on the first move and dated back to the plan
+// (sessionStorage), outlive a reload and a demo jump. A demo button on a slide, or in the notes window, jumps into the app
+// in this tab (jump): the slide to come back to waits in sessionStorage for the app's link, and the deck clears it when it
+// opens again, or when the browser restores it from its cache.
 import { useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -22,7 +23,7 @@ import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
 import {
   arrivalStep, askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameInfo, frameState, fromHash, keyAction, KEYS,
-  pressTarget, sendKey, stepCount, type Action, type Jump, type Msg, type PathName,
+  outlineArrival, pressTarget, sendKey, stepCount, type Action, type Jump, type Msg, type PathName,
 } from "../lib/deck";
 import { store } from "../lib/store";
 import { Notes } from "./Notes";
@@ -84,12 +85,13 @@ function Deck() {
     setPlace(p);
   };
 
-  /** Shows another slide, on the step it arrives on: its title alone going forward, complete going back. The first move
-   * starts the clock, dated back by the planned start of the slide it lands on. */
-  const go = (next: string) => {
+  /** Shows another slide, on the step it arrives on: its title alone going forward, complete going back. The way it
+   * arrives is the direction it lies in, unless the caller says (an outline jump does). The first move starts the clock,
+   * dated back by the planned start of the slide it lands on. */
+  const go = (next: string, how?: "forward" | "backward") => {
     const from = here.current.id;
     if (next === from) return;
-    const back = slides.indexOf(slideOf(next)) < slides.indexOf(slideOf(from));
+    const back = how ? how === "backward" : slides.indexOf(slideOf(next)) < slides.indexOf(slideOf(from));
     history.replaceState(null, "", `#${next}`);
     setBackward(back);
     stand({ id: next, step: arrivalStep(slideOf(next), back ? "backward" : "forward") });
@@ -152,7 +154,7 @@ function Deck() {
   const onMessage = useEffectEvent((m: Msg) => {
     if (!m || typeof m !== "object") return;
     if (m.t === "key" && REMOTE.has(m.action)) act(m.action);
-    else if (m.t === "go" && slides.some((s) => s.id === m.id)) go(m.id);
+    else if (m.t === "go" && slides.some((s) => s.id === m.id)) go(m.id, outlineArrival(slideOf(m.id)));
     else if (m.t === "path" && (m.path === "full" || m.path === "short")) {
       write(local, KEYS.path, m.path);
       setPath(m.path);

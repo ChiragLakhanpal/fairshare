@@ -109,6 +109,113 @@ describe("slides.ts", () => {
   });
 });
 
+// The talk as the spec's table tells it: the main path in order, each slide with its part, its minutes and, on the short path, its minutes
+// there. row is split in two, row and seats, a minute each, and numbers keeps 1.75 minutes until gaps joins the path after it.
+const TALK: [id: string, part: Slide["part"], min: number, short?: number][] = [
+  ["welcome", "open", 0.5, 0.5], ["agenda", "open", 0.5, 0.5],
+  ["problem", "steps", 1, 1],
+  ["what", "modes", 0.5, 0.5], ["query-opener", "modes", 0.25], ["ask", "modes", 3.5, 2.5], ["director", "modes", 1.25], ["riffle-opener", "modes", 0.25],
+  ["delegate", "modes", 1.25], ["precall", "modes", 3, 2],
+  ["stack-opener", "numbers", 0.25], ["system", "numbers", 2.25, 1.5], ["elevator-opener", "numbers", 0.25], ["pipeline", "numbers", 1.5],
+  ["row", "numbers", 1], ["seats", "numbers", 1], ["revenue", "numbers", 0.75], ["checks", "numbers", 1], ["numbers", "numbers", 1.75],
+  ["share-fair", "numbers", 1], ["moved", "numbers", 1.5],
+  ["sieve-opener", "checks", 0.25], ["checked", "checks", 2], ["guardrails", "checks", 1.5], ["evals", "checks", 1, 1.5], ["evals-more", "checks", 1],
+  ["limits", "checks", 1],
+  ["at-aa", "aa", 1.5], ["azure", "aa", 0.75], ["start", "aa", 1, 1], ["know", "aa", 1],
+  ["thanks", "close", 0.25, 0.25],
+];
+
+describe("the talk's order", () => {
+  const byId = (id: string) => slides.find((x) => x.id === id);
+  it("walks the main path in the spec's order, each slide in its part", () => {
+    expect(onPath(slides, "full").map((x) => [x.id, x.part])).toEqual(TALK.map(([id, part]) => [id, part]));
+  });
+  it("plans each slide's minutes on the main path and, for the slides on it, on the short path", () => {
+    expect(onPath(slides, "full").map((x) => [x.id, x.min, x.short ?? null])).toEqual(TALK.map(([id, , min, short]) => [id, min, short ?? null]));
+  });
+  it("walks the short path from the welcome to the thanks", () => {
+    expect(onPath(slides, "short").map((x) => x.id)).toEqual(["welcome", "agenda", "problem", "what", "ask", "precall", "system", "evals", "start", "thanks"]);
+  });
+  it("has left out the old title, coverage, built-how and measured", () => {
+    for (const id of ["title", "coverage", "built-how", "measured"]) expect(byId(id), id).toBeUndefined();
+  });
+  it("keeps planted, the table of all eight checks and the sales table among the backups", () => {
+    for (const id of ["planted", "checks-all", "dict-facts"]) expect(byId(id)?.part, id).toBe("backup");
+  });
+  it("gives every slide its own id", () => expect(new Set(slides.map((x) => x.id)).size).toBe(slides.length));
+});
+
+// test_labels.py lists the figures that print values from the data, and each of them says so in its logo band
+const labels = Object.values(import.meta.glob("../../../evals/test_labels.py", { query: "?raw", import: "default", eager: true }))[0] as string;
+const DATA_FIGURES = [...(labels.match(/DATA_FIGURES = \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+
+describe("what the talk's slides hold", () => {
+  const byId = (id: string) => slides.find((x) => x.id === id)!;
+  const layout = <L extends Native["layout"]>(id: string, l: L) => {
+    const n = byId(id).native;
+    expect(n?.layout, id).toBe(l);
+    return n as Extract<Native, { layout: L }>;
+  };
+
+  it("opens on the airliner page, with his name, the role as the posting names it and a line that the data is made up", () => {
+    const w = byId("welcome");
+    expect([w.part, w.kind, w.asset, w.thumb]).toEqual(["open", "live", "hairline/title-b-airliner.html", "hairline/png/title-b.png"]);
+    expect(w.byline?.slice(0, 2)).toEqual(["Chirag Lakhanpal", "Analyst/Sr Analyst, Sales AI & Innovation"]);
+    expect(w.byline).toHaveLength(3);
+    expect(w.byline![2]).toMatch(/^Every number in this talk comes from made-up data\.$/);
+  });
+  it("lists the five topics on the agenda", () => expect(byId("agenda").native).toEqual({ layout: "agenda" }));
+  it("ends on a thank-you with his name, his email and a question to the room, and no link", () => {
+    const t = byId("thanks");
+    const { lines } = layout("thanks", "close");
+    expect(t.title).toMatch(/^Thank you/);
+    expect(lines.slice(0, 2)).toEqual(["Chirag Lakhanpal", "chirag.lakhanpal.cl@gmail.com"]);
+    expect(lines).toHaveLength(3);
+    expect(lines[2]).toMatch(/\?$/);
+    texts(t).forEach((x) => expect(x).not.toMatch(/https?:|www\.|github|databricksapps|\.com\//i));
+  });
+  it("brings in the two slow steps a press each, and then the question to the room", () => {
+    const n = layout("problem", "statement");
+    expect(n.lines).toHaveLength(2);
+    expect(n.ask).toMatch(/\?$/);
+  });
+  it("shows one sales row and one seats row, four columns each, in the order the slide names them", () => {
+    expect(byId("row").native).toEqual({ layout: "table", tables: ["gold.fact_agency_sales_monthly"], columns: ["aa_revenue", "market_revenue", "aa_pax", "market_pax"] });
+    expect(byId("seats").native).toEqual({ layout: "table", tables: ["gold.fact_market_capacity"], columns: ["aa_seats", "total_seats", "aa_seat_share", "source"] });
+    expect(byId("dict-facts").native).toEqual({ layout: "table", tables: ["gold.fact_agency_sales_monthly"] }); // every column, as the backup
+  });
+  it("names four checks on the main path, under a title that does not say checks, and all eight in the backup", () => {
+    const { keys } = layout("checks", "checks");
+    expect(keys).toHaveLength(4);
+    expect(new Set(keys).size).toBe(4);
+    keys!.forEach((k) => expect(facts.checks.map((c) => c.key), k).toContain(k));
+    expect(byId("checks").title).not.toMatch(/check/i);
+    expect(byId("checks-all").native).toEqual({ layout: "checks" });
+  });
+  it("brings in the four guardrails a press each, none tagged a possibility", () => {
+    const { tiles } = layout("guardrails", "tiles");
+    expect(tiles).toHaveLength(4);
+    tiles.forEach((t) => expect(t.tag, t.head).toBeUndefined());
+  });
+  it("gives the evals two slides, Genie and the whole app and then the other three, with results and misses from the dated facts", () => {
+    expect(layout("evals", "results").items).toHaveLength(2);
+    expect(layout("evals-more", "results").items).toHaveLength(3);
+    const said = (id: string) => new Set(texts(byId(id)).flatMap(placeholders));
+    for (const k of ["genie_benchmark", "genie_benchmark_earlier", "genie_benchmark_date", "app_model_date", "app_model_right", "app_model_partly", "app_model_wrong",
+      "app_model_questions", "app_model_gave_up_passed"]) expect(said("evals").has(k), `evals: {${k}}`).toBe(true);
+    for (const k of ["foundry_eval_date", "foundry_quality_pages", "foundry_groundedness_misses", "foundry_shield_refused", "nightly_parity_runs", "nightly_parity_from",
+      "nightly_parity_to", "nightly_parity_drift", "twins_checked"]) expect(said("evals-more").has(k), `evals-more: {${k}}`).toBe(true);
+    for (const id of ["evals", "evals-more"]) layout(id, "results").items.forEach((r) => placeholders(`${r.result} ${r.miss ?? ""}`).forEach((k) => expect(known.has(k)).toBe(true)));
+  });
+  it("marks as data every figure that prints values from the data, and no other figure", () => {
+    expect(DATA_FIGURES.length).toBeGreaterThan(5); // the list was read from test_labels.py
+    for (const s of slides.filter((x) => (x.kind === "image" || x.kind === "animated") && !x.still)) {
+      const figure = (s.kind === "image" ? s.asset! : s.thumb!).replace(/^export\/|\.png$/g, "");
+      expect(!!s.data, `${s.id} (${figure})`).toBe(DATA_FIGURES.includes(figure));
+    }
+  });
+});
+
 import { checkpointPlan, drift, keyAction, nextPart, plannedStart, TOPIC_ORDER, TOPICS } from "./deck";
 
 describe("keyAction", () => {
@@ -170,8 +277,9 @@ describe("where the keys go, and the notes window's clock", () => {
   });
   it("keeps S on a backup slide, and walks the real deck's parts", () => {
     expect(nextPart(S, "full", "words")).toBe("words");
-    expect(nextPart(slides, "full", "title")).toBe("problem"); // the welcome is a part of its own
-    expect(nextPart(slides, "short", "title")).toBe("problem");
+    expect(nextPart(slides, "full", "welcome")).toBe("problem"); // the welcome and the agenda are the open part
+    expect(nextPart(slides, "short", "welcome")).toBe("problem");
+    expect(nextPart(slides, "full", "know")).toBe("thanks"); // the last topic ends and the thanks begins
     expect(nextPart(slides, "full", "problem")).toBe("what"); // the first topic ends and the second begins
     expect(nextPart(slides, "short", "problem")).toBe("what");
   });
@@ -229,6 +337,28 @@ describe("a table slide's keys", () => {
     const html = renderToStaticMarkup(createElement(NativeSlide, { slide: fake, facts }));
     expect(html).toContain("gold.dim_agency");
     expect(html).not.toContain("no_such_table");
+  });
+});
+
+// A slide that names a check or a column facts.json does not hold draws without it and says nothing, so the content rules catch the name.
+describe("the checks and columns a slide names", () => {
+  const checkKeys = new Set(facts.checks.map((c) => c.key));
+  const columns = facts.columns as Record<string, { name: string }[]>;
+  const unknownNames = (list: Slide[]) => list.flatMap((s) => {
+    const n = s.native;
+    if (n?.layout === "checks") return (n.keys ?? []).filter((k) => !checkKeys.has(k)).map((k) => `${s.id}: check ${k}`);
+    if (n?.layout === "table" && n.columns) {
+      const names = new Set(n.tables.flatMap((t) => (columns[t] ?? []).map((c) => c.name)));
+      return n.columns.filter((c) => !names.has(c)).map((c) => `${s.id}: column ${c}`);
+    }
+    return [];
+  });
+  const fixture = (native: Native): Slide => ({ id: "fake", part: "backup", kind: "native", title: "A fixture", min: 0, note: "", native });
+
+  it("are ones facts.json holds, on every slide of the deck", () => expect(unknownNames(slides)).toEqual([]));
+  it("catch a check or a column facts.json does not hold (fixtures, not the deck)", () => {
+    expect(unknownNames([fixture({ layout: "checks", keys: ["no_repeated_rows", "no_such_check"] })])).toEqual(["fake: check no_such_check"]);
+    expect(unknownNames([fixture({ layout: "table", tables: ["gold.fact_market_capacity"], columns: ["aa_seats", "aa_revenue"] })])).toEqual(["fake: column aa_revenue"]);
   });
 });
 
@@ -583,6 +713,12 @@ describe("native layouts, one item a press", () => {
     expect(visibleText(html)).toContain("$80,582.47"); // the example, with its unit
     expect(visibleText(drawNative(nat({ layout: "table", tables })))).toContain("total_seats"); // and every column with none named
   });
+  it("keep a table slide's columns in the order the slide names them, which may not be the table's", () => {
+    const html = drawNative(nat({ layout: "table", tables: ["gold.fact_agency_sales_monthly"], columns: ["aa_revenue", "market_revenue", "aa_pax", "market_pax"] }));
+    const at = ["aa_revenue", "market_revenue", "aa_pax", "market_pax"].map((name) => html.indexOf(`>${name}<`));
+    expect(at.every((i) => i > 0)).toBe(true);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+  });
   it("bring the checks a slide names in one a press, in its order, each with what it guards against", () => {
     const keys = ["sales_have_seats", "no_repeated_rows"];
     const slide = nat({ layout: "checks", keys });
@@ -600,6 +736,14 @@ describe("native layouts, one item a press", () => {
     expect(stepItems(html)).toEqual([]);
     expect(facts.checks).toHaveLength(8);
     facts.checks.forEach((c) => expect(visibleText(html), c.key).toContain(c.name));
+  });
+  it("print each check's values with their units in the table of all of them", () => {
+    const text = visibleText(drawNative(nat({ layout: "checks" })));
+    for (const shown of ["$4,920.87", "Sep 2026 and Sep 2026", "3,000"]) expect(text).toContain(shown);
+    for (const raw of ["4920.87", "2026-09-01", "3000"]) expect(text).not.toContain(raw);
+  });
+  it("say on the layout's box how far it is zoomed, full size when it fits", () => {
+    expect(drawNative(nat({ layout: "statement", lines: ["One."] }))).toContain('data-fit-zoom="1"');
   });
   it("bring results in one a press: the head, the body, the result as a display number and the miss in red", () => {
     const items: Result[] = [
@@ -727,7 +871,7 @@ describe("a slide in its frame", () => {
     expect(html).not.toContain("/aa-logo.svg");
   });
   it("draws a native slide and a figure inside the frame", () => {
-    for (const id of ["problem", "coverage"]) expect(view(byId(id)), id).toContain('data-frame="header"');
+    for (const id of ["problem", "revenue"]) expect(view(byId(id)), id).toContain('data-frame="header"');
   });
   it("hands its step to a native slide, which shows complete without one", () => {
     const problem = byId("problem");
@@ -736,16 +880,15 @@ describe("a slide in its frame", () => {
     expect(shown()).toBe(stepCount(problem));
   });
 
-  // No slide of the deck has a byline yet, so a fixture stands in: the welcome's live page, with two lines under its title
-  const live: Slide = {
-    id: "fixture-live", part: "open", kind: "live", title: "A fixture title", byline: ["A first line", "A second line"], min: 0,
-    asset: "hairline/title-b-airliner.html", thumb: "hairline/png/title-b.png", note: "",
-  };
   it("draws a live slide's title and byline lines at the bottom when it has a byline, and nothing there when it has none", () => {
-    const html = view(live, frameInfo([live], "full", live.id));
-    expect(html).toMatch(/data-byline[^>]*>.*A fixture title.*A first line.*A second line/);
-    const plain = { ...live, byline: undefined };
+    const welcome = byId("welcome");
+    const [name, role, data] = welcome.byline!.map(esc);
+    expect(view(welcome)).toMatch(new RegExp(`data-byline[^>]*>.*${esc(welcome.title)}.*${name}.*${role.replace(/&/g, "&amp;")}.*${data}`));
+    const plain = { ...welcome, byline: undefined };
     expect(view(plain, frameInfo([plain], "full", plain.id))).not.toContain("data-byline");
+    // two lines alike still draw as two
+    const twice = { ...welcome, byline: ["The same line", "The same line"] };
+    expect(view(twice, frameInfo([twice], "full", twice.id)).split("The same line")).toHaveLength(3);
   });
   it("hides a live page's logo and readout, and its caption only when the slide has a byline", () => {
     // a stand-in for the hairline page in the frame: the parts showPage reads, each with the display it ends up with
@@ -766,5 +909,20 @@ describe("a slide in its frame", () => {
     expect(showPage(withByline.frame, true)).toBe(true);
     expect(withByline.hidden()).toEqual(["#read", ".brand", ".caption"]);
     expect(showPage({ contentDocument: null }, true)).toBe(false); // a frame that failed keeps the thumb
+  });
+});
+
+import { outlineArrival, outlineParts } from "./deck";
+
+describe("the notes window's outline", () => {
+  it("lists only the parts that have slides, in the order of the talk", () => {
+    expect(outlineParts(slides)).toEqual(["open", ...TOPIC_ORDER, "close", "backup"]);
+    expect(outlineParts(S)).toEqual(["open", "modes", "numbers", "aa", "backup"]); // the miniature has no steps, checks or close slides
+  });
+  it("lands a jump on a backup slide complete, and on a slide of the path on its first step, wherever the deck stands", () => {
+    const byId = (id: string) => slides.find((x) => x.id === id)!;
+    expect(arrivalStep(byId("words"), outlineArrival(byId("words")))).toBe(stepCount(byId("words")));
+    expect(stepCount(byId("words"))).toBeGreaterThan(0);
+    for (const id of ["problem", "guardrails", "start"]) expect(arrivalStep(byId(id), outlineArrival(byId(id))), id).toBe(0);
   });
 });

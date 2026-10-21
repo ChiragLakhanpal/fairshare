@@ -2,67 +2,99 @@
  "checks": [
   {
    "actual": 3000,
+   "display": {
+    "actual": "3,000",
+    "expected": "3,000"
+   },
    "expected": 3000,
    "key": "sales_row_count",
    "name": "Sales rows equal every agency, route and month, minus Sunbelt's two missing months",
    "ok": true,
-   "why": "This check catches a load that adds or drops sales rows, because the count has to equal every agency, route and month that reported."
+   "why": "Catches sales rows lost or added on the way in, because the expected count is known."
   },
   {
    "actual": 0,
+   "display": {
+    "actual": "0",
+    "expected": "0"
+   },
    "expected": 0,
    "key": "no_repeated_rows",
    "name": "One row per agency, route and month, with no repeats",
    "ok": true,
-   "why": "This check finds an agency, route and month that has more than one row, because a sum would count those sales twice."
+   "why": "Catches an agency, route and month with more than one row, because a sum would count it twice."
   },
   {
    "actual": 0,
+   "display": {
+    "actual": "0",
+    "expected": "0"
+   },
    "expected": 0,
    "key": "sales_have_seats",
    "name": "Every sales row has a seats row",
    "ok": true,
-   "why": "This check finds a sales row with no seats row for its route and month, because the fair share calculation would leave that sale out."
+   "why": "Catches a sale with no seats row for its route and month, which fair share would leave out."
   },
   {
    "actual": 0,
+   "display": {
+    "actual": "0",
+    "expected": "0"
+   },
    "expected": 0,
    "key": "no_empty_sales",
    "name": "No empty sales numbers",
    "ok": true,
-   "why": "This check finds an empty sales number, because a sum skips it without an error and the share built from it would be wrong."
+   "why": "Catches an empty sales number, which a sum skips without an error, so the share comes out wrong."
   },
   {
    "actual": 0,
+   "display": {
+    "actual": "0",
+    "expected": "0"
+   },
    "expected": 0,
    "key": "aa_within_market",
    "name": "AA is never above the market in revenue or passengers",
    "ok": true,
-   "why": "This check catches columns that a load swapped, because the market numbers include AA and so cannot be lower than the AA numbers."
+   "why": "Catches swapped columns, because the market includes AA and so can never be smaller than AA."
   },
   {
    "actual": "2026-09-01 and 2026-09-01",
+   "display": {
+    "actual": "Sep 2026 and Sep 2026",
+    "expected": "Sep 2026 and Sep 2026"
+   },
    "expected": "2026-09-01 and 2026-09-01",
    "key": "last_month",
    "name": "Both facts end in September 2026",
    "ok": true,
-   "why": "This check catches a table that stops before the newest month, because fair share needs sales and seats for the same month."
+   "why": "Catches a table that stops early, because fair share needs sales and seats for the same month."
   },
   {
    "actual": 4920.87,
+   "display": {
+    "actual": "$4,920.87",
+    "expected": "$4,920.87"
+   },
    "expected": 4920.87,
    "key": "duplicates_removed",
    "name": "Cleaning removed the duplicates' revenue",
    "ok": true,
-   "why": "This check catches a cleaning step that removes more or less than the duplicate tickets, because the revenue it removes must equal their fares."
+   "why": "Catches cleaning that removes more or less than the fares of the duplicate tickets."
   },
   {
    "actual": 0,
+   "display": {
+    "actual": "0",
+    "expected": "0"
+   },
    "expected": 0,
    "key": "pace_month_count",
    "name": "Pace never counts more months than the calendar has",
    "ok": true,
-   "why": "This check catches a pace calculation that counts a month twice, because the months an agency reported cannot be more than the months of the year so far."
+   "why": "Catches a month counted twice in pace, since no agency reports more months than the year has had."
   }
  ],
  "columns": {

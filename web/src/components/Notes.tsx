@@ -4,9 +4,11 @@
 // were pressed there and posts its state back; this window never posts a state, so nothing echoes. It shows the slide on
 // the screen at its step, with the point it is on ("Point 2 of 3" on a native slide with steps), and the next one complete
 // (native and image slides drawn small, live and animated ones as their thumbs), the note in large type, the talk time
-// with the drift and the checkpoints, and the outline of every slide, grouped by part, backup included. It also calls
-// api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL warehouse awake,
-// because the warehouse stops after ten idle minutes. Under the demo buttons it says when the last ping got through.
+// with the drift and the checkpoints, and the outline of every slide, grouped by part, backup included (a part with no
+// slide gets no heading). A click in the outline sends the deck to that slide, which lands a backup slide complete and a
+// slide of the path on its first step (outlineArrival in lib/deck.ts). It also calls api.agencies() when it opens and
+// every eight minutes: one small query, never cached, that keeps the SQL warehouse awake, because the warehouse stops
+// after ten idle minutes. Under the demo buttons it says when the last ping got through.
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { images } from "../deck/assets";
@@ -15,14 +17,13 @@ import { NativeSlide } from "../deck/layouts";
 import { slides } from "../deck/slides";
 import { api } from "../lib/api";
 import {
-  blurAfterClick, CHANNEL, checkpointPlan, clock, driftIsRed, fill, fromHash, keyAction, KEYS, liveDrift, move, onPath, PARTS, plannedStart,
-  stepCount, type Msg, type Part, type PathName, type Slide,
+  blurAfterClick, CHANNEL, checkpointPlan, clock, driftIsRed, fill, fromHash, keyAction, KEYS, liveDrift, move, onPath, outlineParts, PARTS,
+  plannedStart, stepCount, type Msg, type PathName, type Slide,
 } from "../lib/deck";
 import { Check } from "./Icons";
 
 const PING_MS = 8 * 60_000;
 const TICK_MS = 500;
-const ORDER = Object.keys(PARTS) as Part[];
 
 /** What the deck last posted, and when its slide arrived here (the drift is measured from the arrival). */
 type View = { id: string; path: PathName; startedAt: number | null; arrivedAt: number; step: number; steps: number };
@@ -261,7 +262,8 @@ function Preview({ slide, step }: { slide: Slide; step?: number }) {
   );
 }
 
-/** Every part and every slide, backup included. A click sends the deck there; a slide off the path is greyed. */
+/** Every part that has a slide, and every slide, backup included. A click sends the deck there; a slide off the path is greyed. Each
+ * button names its slide in data-outline, so a test finds it whatever its title says. */
 function Outline({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg) => void }) {
   const current = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -271,7 +273,7 @@ function Outline({ view, slide, send }: { view: View; slide: Slide; send: (m: Ms
   return (
     <nav aria-label={copy.notesOutline} className="min-h-0 overflow-y-auto pr-1">
       <h2 className="t-label">{copy.notesOutline}</h2>
-      {ORDER.map((part) => (
+      {outlineParts(slides).map((part) => (
         <section key={part} className="mt-4">
           <h3 className="mb-1 px-2 text-[12.5px] font-semibold text-ink-2">{PARTS[part]}</h3>
           <ol className="text-[13.5px] leading-snug">
@@ -286,6 +288,7 @@ function Outline({ view, slide, send }: { view: View; slide: Slide; send: (m: Ms
                       ref={here ? current : undefined}
                       type="button"
                       aria-current={here ? "true" : undefined}
+                      data-outline={s.id}
                       onClick={() => send({ t: "go", id: s.id })}
                       className={`w-full rounded-md px-2 py-1 text-left transition-colors ${here ? "bg-tint text-navy" : off ? "text-grey hover:bg-surface" : "text-ink hover:bg-surface"}`}
                     >

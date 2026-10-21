@@ -8,7 +8,8 @@ DATED     numbers a local query cannot reproduce (a Databricks run, a results fi
           its source and date.
 COLUMNS   the tables a slide shows: an example row, and what each column means in one plain sentence.
 UNITS     the unit each example carries, so a slide never prints a bare 80582.47, 0.3805 or 2026-09-01.
-CHECKS    sentences the data must keep true: (key, sentence, why it is checked, SQL that returns one value, the value it must return).
+CHECKS    sentences the data must keep true: (key, sentence, why it is checked, SQL that returns one value, the value it must return, the
+          format a slide shows the value in).
 
 Slides and notes write a number as a {key}; the deck fills it from facts.json. The figure builders call fact(key) for a value and
 display(key) for the string a slide shows.
@@ -106,6 +107,16 @@ def _share(v):
     return f"{v * 100:.2f}".rstrip("0").rstrip(".") + "%"
 
 
+def _month_pair(v, key):
+    """Two months joined by ' and ', each the first of its month, as the last_month check returns them: 2026-09-01 and 2026-09-01."""
+    parts = _text(v, key).split(" and ")
+    if len(parts) != 2:
+        raise ValueError(f"{key}: {v!r} is not two dates joined by ' and '")
+    for p in parts:
+        datetime.date.fromisoformat(p)
+    return v
+
+
 FORMATS = {  # name: (read the value from the query, show it)
     "usd": (_whole, _usd),                            # $88,391
     "usd_cents": (_places(2), _usd_cents),            # $4,920.87
@@ -115,6 +126,7 @@ FORMATS = {  # name: (read the value from the query, show it)
     "pts": (_places(1), lambda v: f"{v:.1f}"),        # 1.7 (points, and also pace, where 100 is on pace)
     "int": (_whole, lambda v: f"{v:,}"),              # 27,967
     "month": (_text, _month),                         # the value is the first of the month, as 2026-01-01; shown as Jan 2026
+    "months": (_month_pair, lambda v: " and ".join(_month(p) for p in v.split(" and "))),  # 2026-09-01 and 2026-09-01: Sep 2026 and Sep 2026
     "text": (_text, str),                             # as is
 }
 
@@ -724,47 +736,48 @@ UNITS: dict[str, dict[str, str]] = {
 
 # ---------------------------------------------------------------- the checks the data must keep passing
 
-CHECKS: list[tuple[str, str, str, str, object]] = [  # (key, sentence, why, SQL, expected); a why is one plain sentence on what the check guards against
+CHECKS: list[tuple[str, str, str, str, object, str]] = [  # (key, sentence, why, SQL, expected, format); a why is one plain sentence on what the check
+    # guards against, and the format is a FORMATS name for how a slide prints the expected and actual values
     # twelve agencies by twelve routes by twenty-one months is 3,024 cells; Sunbelt's two missing months take away twelve routes each
     ("sales_row_count", "Sales rows equal every agency, route and month, minus Sunbelt's two missing months",
-     "This check catches a load that adds or drops sales rows, because the count has to equal every agency, route and month that reported.", """
+     "Catches sales rows lost or added on the way in, because the expected count is known.", """
         SELECT COUNT(s.agency_id) AS value
         FROM aa_demo.gold.dim_agency a
         CROSS JOIN aa_demo.gold.dim_market m
         CROSS JOIN (SELECT DISTINCT sales_month FROM aa_demo.gold.fact_agency_sales_monthly) d
         LEFT JOIN aa_demo.gold.fact_agency_sales_monthly s
-               ON s.agency_id = a.agency_id AND s.market_id = m.market_id AND s.sales_month = d.sales_month""", 3000),
+               ON s.agency_id = a.agency_id AND s.market_id = m.market_id AND s.sales_month = d.sales_month""", 3000, "int"),
     ("no_repeated_rows", "One row per agency, route and month, with no repeats",
-     "This check finds an agency, route and month that has more than one row, because a sum would count those sales twice.", """
+     "Catches an agency, route and month with more than one row, because a sum would count it twice.", """
         SELECT COUNT(*) AS value
         FROM (SELECT agency_id, market_id, sales_month FROM aa_demo.gold.fact_agency_sales_monthly
-              GROUP BY agency_id, market_id, sales_month HAVING COUNT(*) > 1) AS t""", 0),
+              GROUP BY agency_id, market_id, sales_month HAVING COUNT(*) > 1) AS t""", 0, "int"),
     ("sales_have_seats", "Every sales row has a seats row",
-     "This check finds a sales row with no seats row for its route and month, because the fair share calculation would leave that sale out.", """
+     "Catches a sale with no seats row for its route and month, which fair share would leave out.", """
         SELECT COUNT(*) AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
         LEFT JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
-        WHERE c.market_id IS NULL""", 0),
+        WHERE c.market_id IS NULL""", 0, "int"),
     ("no_empty_sales", "No empty sales numbers",
-     "This check finds an empty sales number, because a sum skips it without an error and the share built from it would be wrong.", """
+     "Catches an empty sales number, which a sum skips without an error, so the share comes out wrong.", """
         SELECT COUNT(*) AS value FROM aa_demo.gold.fact_agency_sales_monthly
-        WHERE aa_revenue IS NULL OR aa_pax IS NULL OR market_revenue IS NULL OR market_pax IS NULL""", 0),
+        WHERE aa_revenue IS NULL OR aa_pax IS NULL OR market_revenue IS NULL OR market_pax IS NULL""", 0, "int"),
     ("aa_within_market", "AA is never above the market in revenue or passengers",
-     "This check catches columns that a load swapped, because the market numbers include AA and so cannot be lower than the AA numbers.", """
+     "Catches swapped columns, because the market includes AA and so can never be smaller than AA.", """
         SELECT COUNT(*) AS value FROM aa_demo.gold.fact_agency_sales_monthly
-        WHERE aa_revenue > market_revenue OR aa_pax > market_pax""", 0),
+        WHERE aa_revenue > market_revenue OR aa_pax > market_pax""", 0, "int"),
     ("last_month", "Both facts end in September 2026",
-     "This check catches a table that stops before the newest month, because fair share needs sales and seats for the same month.", """
+     "Catches a table that stops early, because fair share needs sales and seats for the same month.", """
         SELECT CONCAT(CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_agency_sales_monthly) AS STRING), ' and ',
-                      CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_market_capacity) AS STRING)) AS value""", "2026-09-01 and 2026-09-01"),
+                      CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_market_capacity) AS STRING)) AS value""", "2026-09-01 and 2026-09-01", "months"),
     ("duplicates_removed", "Cleaning removed the duplicates' revenue",
-     "This check catches a cleaning step that removes more or less than the duplicate tickets, because the revenue it removes must equal their fares.", """
+     "Catches cleaning that removes more or less than the fares of the duplicate tickets.", """
         SELECT ROUND((SELECT SUM(fare_usd * ticket_count) FROM aa_demo.bronze.fact_corporate_bookings)
-                   - (SELECT SUM(fare_usd * ticket_count) FROM aa_demo.silver.fact_corporate_bookings), 2) AS value""", 4920.87),
+                   - (SELECT SUM(fare_usd * ticket_count) FROM aa_demo.silver.fact_corporate_bookings), 2) AS value""", 4920.87, "usd_cents"),
     ("pace_month_count", "Pace never counts more months than the calendar has",
-     "This check catches a pace calculation that counts a month twice, because the months an agency reported cannot be more than the months of the year so far.", """
+     "Catches a month counted twice in pace, since no agency reports more months than the year has had.", """
         SELECT COUNT(*) AS value FROM aa_demo.gold.agency_pace
-        WHERE months_reported > EXTRACT(MONTH FROM sales_month)""", 0),
+        WHERE months_reported > EXTRACT(MONTH FROM sales_month)""", 0, "int"),
 ]
 
 
@@ -843,14 +856,26 @@ def _same(actual, expected) -> bool:
     return math.isclose(actual, expected, rel_tol=0, abs_tol=1e-9) if numbers else actual == expected
 
 
+def _check_shown(fmt: str, v) -> str:
+    """A check's value the way a slide prints it, in the check's format. A value the format cannot read (a NULL, or another kind of value that
+    a failing check returned) shows as stored, because a check that fails must still say what came back."""
+    read, show = FORMATS[fmt]
+    try:
+        return show(read(v, fmt))
+    except (TypeError, ValueError):
+        return _example(v)
+
+
 def _checks() -> list[dict]:
     out = []
-    for key, name, why, sql, expected in CHECKS:
+    for key, name, why, sql, expected, fmt in CHECKS:
         rows = query(_sql(sql))
         if len(rows) != 1 or "value" not in rows[0]:
             raise ValueError(f"{key}: the query must return one row with a column named value")
         actual = _json(rows[0]["value"])
-        out.append({"key": key, "name": name, "why": why, "expected": expected, "actual": actual, "ok": _same(actual, expected)})
+        read, show = FORMATS[fmt]
+        display = {"expected": show(read(expected, key)), "actual": _check_shown(fmt, actual)}  # the expected value is written here, so it must read
+        out.append({"key": key, "name": name, "why": why, "expected": expected, "actual": actual, "ok": _same(actual, expected), "display": display})
     return out
 
 
