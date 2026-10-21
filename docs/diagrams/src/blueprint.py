@@ -5,7 +5,8 @@ corner says where that work runs.
     python3 docs/diagrams/src/blueprint.py   # writes docs/diagrams/02-answer-checked.html and 02-answer-checked-animated.html
 
 The data-* contract is diagram-design's; scripts/verify-service-blueprint.py in the plugin reads it back. The animated page steps
-one layer at a time: the stage headers, the three lines and the legend stay put, and each row of cells comes in as one group.
+one layer at a time: the stage headers, the three lines and the legend stay put, and each row of cells comes in as one group. The
+caption and the legend entry that name the verifier give the point away, so they come in with its row.
 """
 from __future__ import annotations
 
@@ -97,6 +98,9 @@ def body(motion=False):
         out.append(f'<line x1="{LEFT}" y1="{y}" x2="{RIGHT}" y2="{y}" stroke="{stroke}" stroke-width="{w}" data-role="{role}"/>')
     caption = [text(LEFT, 532, CAPTION[0], size=8, fill=aa.MUTED, family=aa.MONO, anchor="start", spacing="0.18em"),
                text(LEFT + 104, 532, CAPTION[1], size=14, fill=aa.INK, family=aa.SANS, anchor="start", italic=True)]
+    # the legend's last entry, since it names the verifier and so waits for the verifier's row
+    focal_key = [f'<rect x="872" y="619" width="16" height="10" rx="2" fill="{aa.ACCENT_TINT}" stroke="{aa.ACCENT}" stroke-width="1"/>',
+                 text(896, 628, "Focal: the verifier", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start")]
     assert len(STEPS) == len(ROWS)
     for n, (layer, label, top, cells) in enumerate(ROWS):
         row = [f'<g data-layer="{layer}">']
@@ -108,7 +112,7 @@ def body(motion=False):
             row += cell(layer, sid, x, top, name, real, marks, (layer, sid) == FOCAL)
         row.append("</g>")
         if motion:
-            out.append(aa.motion_item(n + 1, STEPS[n], row + (caption if layer == FOCAL[0] else [])))
+            out.append(aa.motion_item(n + 1, STEPS[n], row + (caption + focal_key if layer == FOCAL[0] else [])))
         else:
             out += row
     if not motion:
@@ -120,12 +124,12 @@ def body(motion=False):
     out.append(text(252, 628, "Line of visibility", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start"))
     out.append(f'<rect x="384" y="619" width="16" height="10" rx="2" fill="{HIDDEN_FILL}" stroke="{HIDDEN_STROKE}" stroke-width="1"/>')
     out.append(text(408, 628, "Hidden work", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start"))
-    out.append(f'<rect x="528" y="619" width="16" height="10" rx="2" fill="{aa.ACCENT_TINT}" stroke="{aa.ACCENT}" stroke-width="1"/>')
-    out.append(text(552, 628, "Focal: the verifier", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start"))
-    out.append(aa.icon(DBX, 704, 616, 14))
-    out.append(text(724, 628, "Runs on Databricks", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start"))
-    out.append(aa.icon(AZ, 876, 616, 14))
-    out.append(text(896, 628, "Runs on AI Foundry", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start"))
+    out.append(aa.icon(DBX, 528, 616, 14))
+    out.append(text(548, 628, "Runs on Databricks", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start"))
+    out.append(aa.icon(AZ, 700, 616, 14))
+    out.append(text(720, 628, "Runs on AI Foundry", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start"))
+    if not motion:
+        out += focal_key
     return "\n        ".join(out)
 
 

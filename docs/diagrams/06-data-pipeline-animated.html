@@ -187,6 +187,22 @@
     html[data-embed] [data-motion-root] { width: 100vw; max-width: none; margin: 0; }
     html[data-embed] .diagram-container { overflow: hidden; }
     html[data-embed] [data-motion-root] svg { width: 100vw; min-width: 0; height: auto; display: block; }
+    html[data-embed] [data-brand="aa-logo"] { display: none; }
+    /* a step not reached yet is invisible, not faded; 01's slabs stay, assembled, and lift on each press. On step 0, where a
+       slide arrives, nothing fades: the deck shows the frame at once, so a fade would play out in front of the room */
+    html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]) { opacity: 0; }
+    html[data-embed] .motion-ready[data-frame="start"] [data-motion-item] { transition: none; }
+    /* draw-in for charts, once, when the deck switches the page to embed mode: a line (a path with pathLength="1") traces
+       left to right, a dot fades in after its line, and a bar grows from its baseline */
+    html[data-embed] .draw-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: aa-draw-line 900ms ease-out forwards; }
+    html[data-embed] .draw-dot { opacity: 0; animation: aa-draw-dot 300ms ease-out 900ms forwards; }
+    html[data-embed] .draw-bar { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); animation: aa-draw-bar 600ms ease-out forwards; }
+    @keyframes aa-draw-line { to { stroke-dashoffset: 0; } }
+    @keyframes aa-draw-dot { to { opacity: 1; } }
+    @keyframes aa-draw-bar { to { transform: scaleY(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      html[data-embed] .draw-line, html[data-embed] .draw-dot, html[data-embed] .draw-bar { animation: none; stroke-dashoffset: 0; opacity: 1; transform: none; }
+    }
   </style>
 </head>
 <body>

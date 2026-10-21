@@ -26,16 +26,17 @@ There is no figure 13. `hairline/png/title-b.png` is the title slide image, and 
 `01`, `02`, `04`, `05`, `06` and `08` also come as `<name>-animated.html`: the same figure as its static page, in
 diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays complete.
 Each step brings in one idea. On `01` each layer lifts clear; on the other five the marks only fade in, and nothing
-moves. The logo band, the headers or actors, the lifelines or axes, and the legend stay in place.
+moves. The logo band, the headers or actors, the lifelines or axes, and the legend stay in place, except what gives the
+point away: the legend key that names the focal item, a caption and a payoff line come in with the step they belong to.
 
 | Page | Steps | What each step brings in |
 |---|---|---|
-| `01-system-exploded-animated.html` | 5 | the app lifts clear, then the checks, the agents and the definitions; the last step shows the data and where each layer lives |
-| `02-answer-checked-animated.html` | 4 | the account manager's row, the app's row, the work behind the screen with the verifier, the foundations |
-| `04-journey-sales-director-animated.html` | 7 | the question, Genie and its rows, the change explained, the model's draft, the verifier, the answer with its query, the click on a number |
-| `05-journey-account-manager-animated.html` | 7 | the nightly job's request, the fixed SQL, the writer's draft, the verifier, the waiting page and Monday's look, the approve branch, the reject branch |
+| `01-system-exploded-animated.html` | 5 | the app lifts clear, then the checks, the agents and the definitions; the last step shows the data, where each layer lives and the caption |
+| `02-answer-checked-animated.html` | 4 | the account manager's row, the app's row, the work behind the screen with the verifier, its caption and its legend key, the foundations |
+| `04-journey-sales-director-animated.html` | 7 | the question, Genie and its rows, the change explained, the model's draft, the verifier, the answer with its query, the click on a number and the payoff line |
+| `05-journey-account-manager-animated.html` | 7 | the nightly job's request, the fixed SQL, the writer's draft, the verifier, the waiting page and Monday's look, the approve branch, the reject branch and the payoff line |
 | `06-data-pipeline-animated.html` | 7 | the sources, bronze, silver, gold, the numbers defined once, the readers, the one sentence on who can see what |
-| `08-why-it-moved-animated.html` | 5 | September 2025, volume, mix, share, September 2026, each with the line that carries the total into it |
+| `08-why-it-moved-animated.html` | 5 | September 2025, volume, the shift between routes (mix) with its note, share with the callout and its legend key, September 2026 with the sum, each with the line that carries the total into it |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
 reduced motion, or with no JavaScript, the whole figure shows at once. A figure that prints values from the data says
@@ -43,10 +44,13 @@ reduced motion, or with no JavaScript, the whole figure shows at once. A figure 
 
 **Embed mode.** The deck at `/present` loads an animated page in a frame and steps it with its own arrow keys. The page
 carries no script of its own for that, because the plugin allows only its own controller. The deck waits until the
-controller is ready, sets `data-embed` on the frame's `html` element, which hides the title, the note and the buttons and
-fits the figure to the frame (`EMBED_CSS` in `src/aa.py`), then sends Home or End and the arrow keys to the figure. Which
-slide uses which page is in `web/src/deck/slides.ts`. An animated page has no PNG of its own: the static page's export is
-its thumbnail, which the deck shows until the frame is ready.
+controller is ready, sets `data-embed` on the frame's `html` element, which hides the title, the note, the buttons and the
+logo band, hides every step the controller has not reached (on its own a page keeps the plugin's faded look), and fits the
+figure to the frame (`EMBED_CSS` in `src/aa.py`), then sends Home or End and the arrow keys to the figure. Which slide uses
+which page is in `web/src/deck/slides.ts`. An animated page has no PNG of its own: the static page's export is its
+thumbnail, which the deck shows only when the frame is still not ready after `FRAME_FALLBACK_MS` (`web/src/lib/deck.ts`);
+until then the slide shows nothing of the figure. In the deck a figure keeps its content between y 64 and y 680, clear of
+the frame's header and footer, and `evals/test_figures_in_deck.py` holds every figure the deck shows to that.
 
 ## The two stills
 

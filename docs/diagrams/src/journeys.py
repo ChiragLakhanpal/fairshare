@@ -7,6 +7,7 @@ calls solid with a filled head, replies dashed with a filled head, a one-way not
 messages as U loops, at most one combined fragment, two accent elements. A label sits in one gap between two lifelines,
 never over a third; builder asserts keep every label mask clear of every lifeline. The animated twins keep the actors, the lifelines and the
 legend in place and bring in the messages a few at a time: each diagram's `groups` lists the motion steps, a label and the step indexes it shows.
+The payoff, the italic line on the legend's right, gives the point away, so it comes in with the last step.
 
 The numbers on 04 come from src/deck_facts.py (Harbor Business Travel, Sep 2026 vs Sep 2025, ops.decomposition):
 harbor_volume_usd, harbor_mix_usd and harbor_share_usd, shown in $ thousands to one decimal.
@@ -220,6 +221,9 @@ def build(d, motion=False) -> str:
             y += LOOP
     life_bottom = y + 16
     assert life_bottom <= 644, f"{d['file']}: sequence runs to {life_bottom}"
+    rule_y = life_bottom + 8  # the legend strip's rule; its keys and the payoff sit on one baseline under it
+    assert rule_y + 20 + aa.TEXT_DESCENT * 14 <= aa.STAGE_BOTTOM, f"{d['file']}: the legend runs under the deck's footer"
+    payoff = text(VW - 40, rule_y + 20, d["payoff"], size=14, fill=aa.INK, family=aa.SANS, anchor="end", italic=True)
 
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag=d["tag"]) if "tag" in d else aa.brand()]
     out.append('<defs>'
@@ -285,10 +289,12 @@ def build(d, motion=False) -> str:
     for i, markup, left, right in labels:  # no label mask may sit over a lifeline
         assert not any(left - 6 < x < right + 6 for x in lifelines), f"{d['file']}: label over a lifeline: {markup[-80:]}"
         marks["labels"].append((i, markup))
-    if motion:  # one item per group, its marks in the static paint order; every step lands in exactly one group
+    if motion:  # one item per group, its marks in the static paint order; every step lands in exactly one group, and the payoff with the last
         assert sorted(i for _, idxs in d["groups"] for i in idxs) == list(range(len(d["steps"]))), f"{d['file']}: groups must cover every step once"
+        last = len(d["groups"])
         for n, (words, idxs) in enumerate(d["groups"], 1):
-            out.append(aa.motion_item(n, words, [m for part in marks.values() for i, m in part if i in idxs]))
+            shown = [m for part in marks.values() for i, m in part if i in idxs]
+            out.append(aa.motion_item(n, f"{words}. {d['payoff']}" if n == last else words, shown + ([payoff] if n == last else [])))
     else:
         out += [m for part in marks.values() for _, m in part]
 
@@ -297,18 +303,17 @@ def build(d, motion=False) -> str:
         out += actor_box(cx, w, icons, name, subs)
 
     # legend strip, with the one italic line on its right
-    ly = life_bottom + 12
-    out.append(f'<line x1="40" y1="{ly}" x2="{VW - 40}" y2="{ly}" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>')
+    out.append(f'<line x1="40" y1="{rule_y}" x2="{VW - 40}" y2="{rule_y}" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>')
     lx = 40
     for kind, words in d["legend"]:
         tone = aa.ACCENT if kind == "accent" else aa.MUTED
         head = "arrow-accent" if kind == "accent" else ("arrow-open" if kind == "async" else "arrow")
         dash = ' stroke-dasharray="5,4"' if kind in ("ret", "async") else ""
-        out.append(f'<line x1="{lx}" y1="{ly + 18}" x2="{lx + 28}" y2="{ly + 18}" stroke="{tone}" stroke-width="1.2"{dash} marker-end="url(#{head})"/>')
-        out.append(text(lx + 36, ly + 22, words, size=11, fill=aa.MUTED, family=aa.SANS))
+        out.append(f'<line x1="{lx}" y1="{rule_y + 16}" x2="{lx + 28}" y2="{rule_y + 16}" stroke="{tone}" stroke-width="1.2"{dash} marker-end="url(#{head})"/>')
+        out.append(text(lx + 36, rule_y + 20, words, size=11, fill=aa.MUTED, family=aa.SANS))
         lx += 36 + len(words) * 6 + 32
-    out.append(text(VW - 40, ly + 22, d["payoff"], size=14, fill=aa.INK, family=aa.SANS, anchor="end", italic=True))
-    assert ly + 22 <= VH - 40
+    if not motion:
+        out.append(payoff)
     return "\n        ".join(out)
 
 

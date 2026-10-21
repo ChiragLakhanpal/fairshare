@@ -6,15 +6,16 @@
 // brings in an item a press (its step is kept in a ref as well as in state, so a press applied in the same tick as the one
 // before it reads the step that one left); on an animated slide a press steps the framed diagram. Going forward a press
 // steps until the last step, and going back until step 0, and only then moves the deck. A slide arrives on step 0 going
-// forward and complete going back, after a reload, and on the way back from a demo; a jump from the notes window's outline
-// lands a backup slide complete and a slide of the path on step 0, whichever way it lies (outlineArrival). Under reduced
-// motion the diagram shows whole and counts as zero steps. The deck is the one source of truth for the notes window: it
-// applies each message the notes window sends as if it were pressed here, and posts its state (the slide, its step and its
-// number of steps, the path and the start of the talk) on mount, after every move and step, and after every message it
-// applies. The path (localStorage) and the start of the talk, set on the first move and dated back to the plan
-// (sessionStorage), outlive a reload and a demo jump. A demo button on a slide, or in the notes window, jumps into the app
-// in this tab (jump): the slide to come back to waits in sessionStorage for the app's link, and the deck clears it when it
-// opens again, or when the browser restores it from its cache.
+// forward and complete going back, after a reload, and on the way back from a demo, and an animated slide's diagram does
+// the same through the key its frame gets (arrivalKey); a jump from the notes window's outline lands a backup slide
+// complete and a slide of the path on step 0, whichever way it lies (outlineArrival). Under reduced motion the diagram
+// shows whole and counts as zero steps, and a frame that is not ready yet counts as zero steps too. The deck is the one
+// source of truth for the notes window: it applies each message the notes window sends as if it were pressed here, and
+// posts its state (the slide, its step and its number of steps, the path and the start of the talk) on mount, after every
+// move and step, and after every message it applies. The path (localStorage) and the start of the talk, set on the first
+// move and dated back to the plan (sessionStorage), outlive a reload and a demo jump. A demo button on a slide, or in the
+// notes window, jumps into the app in this tab (jump): the slide to come back to waits in sessionStorage for the app's
+// link, and the deck clears it when it opens again, or when the browser restores it from its cache.
 import { useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -23,7 +24,7 @@ import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
 import {
   arrivalStep, askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameInfo, frameState, fromHash, keyAction, KEYS,
-  outlineArrival, pressTarget, sendKey, stepCount, type Action, type Jump, type Msg, type PathName,
+  outlineArrival, pressTarget, sendKey, stepCount, type Action, type Arrival, type Jump, type Msg, type PathName,
 } from "../lib/deck";
 import { store } from "../lib/store";
 import { Notes } from "./Notes";
@@ -66,7 +67,7 @@ function Deck() {
     const first = slideOf(fromHash(slides, location.hash));
     return { id: first.id, step: arrivalStep(first, "load") };
   });
-  const [backward, setBackward] = useState(false);
+  const [arrival, setArrival] = useState<Arrival>("load"); // how the slide on the screen came on: the first one, by a load
   const [path, setPath] = useState<PathName>(() => (read(local, KEYS.path) === "short" ? "short" : "full"));
   const [startedAt, setStartedAt] = useState<number | null>(() => Number(read(session, KEYS.started)) || null);
   const [ready, setReady] = useState(false); // the channel to the notes window is open
@@ -93,7 +94,7 @@ function Deck() {
     if (next === from) return;
     const back = how ? how === "backward" : slides.indexOf(slideOf(next)) < slides.indexOf(slideOf(from));
     history.replaceState(null, "", `#${next}`);
-    setBackward(back);
+    setArrival(back ? "backward" : "forward");
     stand({ id: next, step: arrivalStep(slideOf(next), back ? "backward" : "forward") });
     if (startedAt === null) {
       const start = clockStart(slides, path, next, Date.now());
@@ -118,7 +119,10 @@ function Deck() {
       }
       const frame = frameRef.current;
       if (current.kind === "animated" && frame) {
-        const at = reduced ? null : frameState(frame); // null: not ready, unreadable, or reduced motion, so zero steps
+        // null: not ready, unreadable, or reduced motion, so zero steps. A frame gets ready a little while after its slide
+        // arrives, so a burst of presses that has only just reached a diagram finds no steps there and goes on to the next
+        // slide (present.spec.ts pins this).
+        const at = reduced ? null : frameState(frame);
         if (pressTarget(at?.current ?? 0, at?.count ?? 0, dir) === "diagram") {
           sendKey(frame, dir === 1 ? "ArrowRight" : "ArrowLeft");
           return;
@@ -182,13 +186,15 @@ function Deck() {
 
   // The way back is for one trip: once the deck is open again, by the app's link or by the browser's Back button (which
   // skips the link), it is cleared. A page the browser restores from its back/forward cache mounts nothing again, so that
-  // restore clears it too, and shows its slide complete, as a load would.
+  // restore clears it too, and shows its slide complete, as a load would: a native slide on its last step, and an animated
+  // slide's diagram by the End key.
   useEffect(() => {
     write(session, KEYS.ret, null);
     const onShow = (e: PageTransitionEvent) => {
       if (!e.persisted) return;
       write(session, KEYS.ret, null);
       stand({ id: here.current.id, step: arrivalStep(slideOf(here.current.id), "load") });
+      if (frameRef.current) sendKey(frameRef.current, "End");
     };
     addEventListener("pageshow", onShow);
     return () => removeEventListener("pageshow", onShow);
@@ -215,7 +221,7 @@ function Deck() {
   return (
     <div data-deck-ready={ready ? "" : undefined} className="fixed inset-0 grid place-items-center overflow-hidden bg-white">
       <div className="relative h-[720px] w-[1280px] overflow-hidden bg-white" style={{ zoom }}>
-        <SlideView key={slide.id} slide={slide} frame={frameInfo(slides, path, slide.id)} backward={backward} frameRef={frameRef} facts={facts} onDemo={jump} step={place.step} />
+        <SlideView key={slide.id} slide={slide} frame={frameInfo(slides, path, slide.id)} arrival={arrival} frameRef={frameRef} facts={facts} onDemo={jump} step={place.step} />
       </div>
     </div>
   );

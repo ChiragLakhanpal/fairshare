@@ -3,16 +3,20 @@
 // with its own top bar. An image slide is its PNG. A live slide is its thumb with the hairline page in a frame on top,
 // shown once the page has loaded (without its live readout or its logo, since the deck's frame draws one), so its motion
 // starts on arrival; a live slide with a byline also hides the page's caption, and draws its title and the byline at the
-// bottom instead. An animated slide is its thumb with the diagram's motion page in a frame on top, hidden until the page's
-// controller is ready; then the frame switches to embed mode (only the figure, fitted to the frame), gets Home or End
-// (arrivalKey), and shows. A frame that never gets ready, slow or blocked, leaves the thumb, and the deck counts it as zero
-// steps. A frame never takes the pointer or the focus, so the deck keeps every key press, and it exists only while its
-// slide shows. Figures fill the stage under the frame's strips; native slides are drawn in layouts.tsx, in the frame's
-// content box, at the step the deck hands down (the complete slide when it hands none). Every string goes through fill().
+// bottom instead. An animated slide is the diagram's motion page in a frame, hidden until the page's controller is ready;
+// then the frame switches to embed mode (only the figure, fitted to the frame, with every step it has not reached hidden
+// and without its own logo band), gets Home or End (arrivalKey), and shows. Until then the slide shows nothing of the
+// figure, so no step shows before its press. A frame that is still not ready after FRAME_FALLBACK_MS, slow or blocked,
+// gives way to the thumb under it, the finished figure, and the deck counts it as zero steps. A frame never takes the
+// pointer or the focus, so the deck keeps every key press, and it exists only while its slide shows. Figures fill the
+// stage under the frame's strips; native slides are drawn in layouts.tsx, in the frame's content box, at the step the deck
+// hands down (the complete slide when it hands none). Every string goes through fill().
 import { useReducedMotion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
 import { copy } from "../copy";
-import { arrivalKey, fill, sendKey, showsData, type DeckFacts, type FrameInfo, type Jump, type Slide } from "../lib/deck";
+import {
+  arrivalKey, fill, FRAME_FALLBACK_MS, sendKey, showsData, type Arrival, type DeckFacts, type FrameInfo, type Jump, type Slide,
+} from "../lib/deck";
 import { images, pages } from "./assets";
 import { DeckFrame } from "./Frame";
 import { NativeSlide } from "./layouts";
@@ -36,10 +40,11 @@ export function showPage(f: { readonly contentDocument: Document | null }, bylin
   }
 }
 
-export function SlideView({ slide, frame, backward, frameRef, facts, onDemo, step }: {
+export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, step }: {
   slide: Slide;
   frame: FrameInfo;
-  backward: boolean;
+  /** How the slide came on: an animated slide's diagram starts on its first step going forward, and whole going back or after a load. */
+  arrival: Arrival;
   frameRef: RefObject<HTMLIFrameElement | null>;
   facts: DeckFacts;
   onDemo: (demo: Jump) => void;
@@ -48,25 +53,28 @@ export function SlideView({ slide, frame, backward, frameRef, facts, onDemo, ste
 }) {
   const reduced = useReducedMotion();
   const [ready, setReady] = useState(false); // the animated frame's controller is ready
+  const [fallback, setFallback] = useState(false); // the animated frame missed FRAME_FALLBACK_MS, so the finished figure stands in
   const [shown, setShown] = useState(false); // the live frame's page has loaded
   const title = fill(slide.title, facts);
   const hasByline = slide.kind === "live" && !!slide.byline?.length;
 
   // Once per slide (Present keys SlideView by slide id, so a new slide is a new mount): poll the frame for as long as the
-  // slide is up, until its controller has run.
+  // slide is up, until its controller has run, and let the finished figure stand in once FRAME_FALLBACK_MS has passed
+  // without it.
   useEffect(() => {
     if (slide.kind !== "animated") return;
     const mounted = performance.now();
+    const late = setTimeout(() => setFallback(true), FRAME_FALLBACK_MS);
     const poll = setInterval(() => {
-      const frame = frameRef.current;
-      if (!frame) return;
+      const iframe = frameRef.current;
+      if (!iframe) return;
       try {
-        const doc = frame.contentDocument;
+        const doc = iframe.contentDocument;
         if (!doc?.querySelector("[data-motion-root]")?.classList.contains("motion-ready")) return;
         clearInterval(poll);
         doc.documentElement.setAttribute("data-embed", "");
-        const key = arrivalKey(backward, performance.now() - mounted, !!reduced);
-        sendKey(frame, key);
+        const key = arrivalKey(arrival, performance.now() - mounted, !!reduced);
+        sendKey(iframe, key);
         // End shows the whole figure: finish its parts' assembly, so the end state shows at once instead of replaying
         if (key === "End") {
           doc.getAnimations().forEach((a) => {
@@ -82,7 +90,10 @@ export function SlideView({ slide, frame, backward, frameRef, facts, onDemo, ste
       }
       setReady(true);
     }, POLL_MS);
-    return () => clearInterval(poll);
+    return () => {
+      clearInterval(poll);
+      clearTimeout(late);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -93,7 +104,15 @@ export function SlideView({ slide, frame, backward, frameRef, facts, onDemo, ste
       <DeckFrame info={frame} label={showsData(slide, facts) ? copy.deckFooterData : copy.deckFooter}>
         {slide.kind === "image" && <img src={images[slide.asset!]} alt={title} className={`${cover} object-contain`} draggable={false} />}
         {(slide.kind === "animated" || slide.kind === "live") && (
-          <img src={images[slide.thumb!]} alt={title} className={`${cover} object-contain`} draggable={false} />
+          <img
+            data-thumb=""
+            src={images[slide.thumb!]}
+            alt={title}
+            className={`${cover} object-contain`}
+            draggable={false}
+            // an animated slide's thumb is its finished figure: out of sight until the frame has missed FRAME_FALLBACK_MS
+            style={slide.kind === "animated" && !(fallback && !ready) ? { visibility: "hidden" } : undefined}
+          />
         )}
         {slide.kind === "animated" && (
           <iframe

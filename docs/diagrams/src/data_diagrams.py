@@ -212,8 +212,8 @@ def fair_share() -> str:
     cy = gy + GRID + 140
     out.append(text(ax, cy, f"With the made-up seat shares, an agency that sold every airline in proportion to its seats would give AA {fair}% here. Summit gives {share}%.",
                     size=14, weight=400, color=aa.INK, italic=True))
-    # legend strip
-    ly = VH - 40
+    # legend strip, its keys ending 8px above the bottom of the deck's stage
+    ly = aa.STAGE_BOTTOM - 16
     out.append(f'<line x1="{ax}" y1="{ly - 28}" x2="{VW - 40}" y2="{ly - 28}" stroke="{aa.RULE}" stroke-width="1"/>')
     out.append(eyebrow(ax, ly + 4, "Legend"))
     keys = [(seat, "aa", "AA seat"), (square, "aa", "$1 of every $100 to AA"), (square, "premium", "above fair share"),

@@ -151,7 +151,8 @@ def where_it_lives(P, parts, left, stack_left):
     xs = [left + PITCH * i + PITCH / 2 for i in range(len(PLATFORMS))]
     rows = {p.key: prism(P, p.rect, p.z, p.z + p.t)["anchor"][1] for p in parts}
     head = min(rows.values()) - 56
-    out = [f'<text x="{f(left)}" y="{f(head - 18)}" fill="{SK["muted"]}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">WHERE IT LIVES</text>']
+    # the heading sits 10px over the logos, which keeps it clear of the deck's header strip (y 0 to 64)
+    out = [f'<text x="{f(left)}" y="{f(head - 14)}" fill="{SK["muted"]}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">WHERE IT LIVES</text>']
     for (key, name), x in zip(PLATFORMS, xs):
         out.append(aa.icon(key, x - 11, head - 4, 22))
         out.append(f'<text x="{f(x)}" y="{f(head + 34)}" text-anchor="middle" fill="{SK["ink"]}" font-size="14" font-weight="600" font-family="{aa.SANS}">{name}</text>')
@@ -243,14 +244,16 @@ def build(motion: bool):
     stack, steps = stack_svg(P, parts, gap, col_x, FOCUS, lambda p, anchor, focal, animated: label(p, subs[p.key], anchor, col_x, focal, animated), motion)
     out = [f'<rect width="100%" height="100%" fill="{SK["paper"]}"/>'] + stack
     lives = where_it_lives(P, parts, left, ox + minx)
-    if motion:  # the dots line up with the exploded frame, so they arrive with the last step
-        out.append(f'<g data-motion-item data-step="{steps}" data-reveal aria-label="where each layer lives">{lives}</g>')
+    cy = VH - 45  # the caption's baseline, under the stack and above the bottom of the deck's stage
+    assert cy + aa.TEXT_DESCENT * 14 <= aa.STAGE_BOTTOM, "the caption runs under the deck's footer"
+    caption = (f'<text x="{left}" y="{cy}" fill="{SK["muted"]}" font-size="8" font-family="{aa.MONO}" letter-spacing="0.18em">{CAPTION[0]}</text>'
+               f'<text x="{left + 104}" y="{cy}" fill="{SK["ink"]}" font-size="14" font-family="{aa.SANS}" font-style="italic">{aa.esc(CAPTION[1])}</text>')
+    if motion:  # the dots line up with the exploded frame, so they arrive with the last step, and the caption, which gives the point away, with them
+        out.append(f'<g data-motion-item data-step="{steps}" data-reveal aria-label="where each layer lives, and what the focal checks layer does">'
+                   f'{lives}{caption}</g>')
     else:
-        out.append(lives)
+        out += [lives, caption]
     out.append(aa.brand())
-    cy = VH - 40
-    out.append(f'<text x="{left}" y="{cy}" fill="{SK["muted"]}" font-size="8" font-family="{aa.MONO}" letter-spacing="0.18em">{CAPTION[0]}</text>')
-    out.append(f'<text x="{left + 104}" y="{cy}" fill="{SK["ink"]}" font-size="14" font-family="{aa.SANS}" font-style="italic">{aa.esc(CAPTION[1])}</text>')
     return "\n        ".join(out), steps
 
 

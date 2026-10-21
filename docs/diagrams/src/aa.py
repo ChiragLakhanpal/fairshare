@@ -42,6 +42,10 @@ INK, MUTED, SOFT, ACCENT, NAVY, PAPER, PAPER2 = "#36495a", "#5a7181", "#566d7b",
 RULE, RULE_SOLID, ACCENT_TINT = "rgba(54,73,90,0.14)", "#d0dae0", "rgba(0,108,191,0.10)"
 SANS, MONO = "'Inter', system-ui, sans-serif", "'Geist Mono', ui-monospace, monospace"
 FONT_LINK = "https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Geist+Mono:wght@400;500;600&display=swap"
+# The /present deck draws its header over y 0 to 64 of a 1280 by 720 figure and its footer over y 690 to 720, so a figure it shows
+# keeps every mark from STAGE_TOP to STAGE_BOTTOM, the logo band aside. evals/test_figures_in_deck.py measures each mark, a text by
+# its font box: 1em over its baseline to TEXT_DESCENT under it.
+STAGE_TOP, STAGE_BOTTOM, TEXT_DESCENT = 64, 680, 0.3
 
 # face tones for the axonometry helpers, every value a profile role or an rgba() of one
 SKIN = dict(
@@ -112,13 +116,32 @@ def page(*, slug, title, desc, eyebrow, body, vw=1280, vh=720) -> str:
 
 
 # Embed mode for the /present deck. No script: verify-motion.py allows one per motion page (the controller) and lint-skin.py
-# rejects on* attributes, so the deck sets data-embed itself once the controller is ready, then sends Home or End.
+# rejects on* attributes, so the deck sets data-embed itself once the controller is ready, then sends Home or End. In the deck a
+# step the presenter has not reached shows nothing (the plugin's own reveal leaves it at .12, which still gives the end away), the
+# figure's logo band goes (the deck's frame draws the one logo), and the draw-in classes below play. evals/test_figures_in_deck.py
+# reads these rules in every animated page, so a change here means rebuilding them all.
 EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the controller is ready; only the figure shows, fitted to the frame */
     html[data-embed] body { margin: 0; padding: 0; min-height: 0; display: block; overflow: hidden; background: var(--color-paper); }
     html[data-embed] .eyebrow, html[data-embed] h1, html[data-embed] [data-motion-controls] { display: none !important; }
     html[data-embed] [data-motion-root] { width: 100vw; max-width: none; margin: 0; }
     html[data-embed] .diagram-container { overflow: hidden; }
     html[data-embed] [data-motion-root] svg { width: 100vw; min-width: 0; height: auto; display: block; }
+    html[data-embed] [data-brand="aa-logo"] { display: none; }
+    /* a step not reached yet is invisible, not faded; 01's slabs stay, assembled, and lift on each press. On step 0, where a
+       slide arrives, nothing fades: the deck shows the frame at once, so a fade would play out in front of the room */
+    html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]) { opacity: 0; }
+    html[data-embed] .motion-ready[data-frame="start"] [data-motion-item] { transition: none; }
+    /* draw-in for charts, once, when the deck switches the page to embed mode: a line (a path with pathLength="1") traces
+       left to right, a dot fades in after its line, and a bar grows from its baseline */
+    html[data-embed] .draw-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: aa-draw-line 900ms ease-out forwards; }
+    html[data-embed] .draw-dot { opacity: 0; animation: aa-draw-dot 300ms ease-out 900ms forwards; }
+    html[data-embed] .draw-bar { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); animation: aa-draw-bar 600ms ease-out forwards; }
+    @keyframes aa-draw-line { to { stroke-dashoffset: 0; } }
+    @keyframes aa-draw-dot { to { opacity: 1; } }
+    @keyframes aa-draw-bar { to { transform: scaleY(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      html[data-embed] .draw-line, html[data-embed] .draw-dot, html[data-embed] .draw-bar { animation: none; stroke-dashoffset: 0; opacity: 1; transform: none; }
+    }
 """
 
 # Extra CSS for animated(): items fade in where they stand instead of rising 8px into place.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrivalKey, fromHash, move, pressTarget, type Slide } from "./deck";
+import { arrivalKey, FRAME_FALLBACK_MS, fromHash, move, pressTarget, type Slide } from "./deck";
 
 const s = (id: string, part: Slide["part"], min: number, short?: number): Slide => ({ id, part, kind: "native", title: id, min, short, note: "" });
 export const S: Slide[] = [s("title", "open", 0.5, 0.5), s("ask", "modes", 3.5, 2.5), s("pipeline", "numbers", 1.5), s("system", "numbers", 2.25, 1.5),
@@ -49,13 +49,15 @@ describe("the animated handoff", () => {
     expect(pressTarget(0, 0, 1)).toBe("deck");
     expect(pressTarget(NaN, NaN, 1)).toBe("deck");
   });
-  it("arrives at step 0 going forward and at the end going back", () => {
-    expect(arrivalKey(false, 100, false)).toBe("Home");
-    expect(arrivalKey(true, 100, false)).toBe("End");
+  it("arrives at step 0 going forward, and at the end going back and after a load (a reload, or the way back from a demo)", () => {
+    expect(arrivalKey("forward", 100, false)).toBe("Home");
+    expect(arrivalKey("backward", 100, false)).toBe("End");
+    expect(arrivalKey("load", 100, false)).toBe("End");
   });
-  it("shows the end when the frame started late or motion is reduced", () => {
-    expect(arrivalKey(false, 2500, false)).toBe("End");
-    expect(arrivalKey(false, 100, true)).toBe("End");
+  it("shows the end when the frame got ready after the finished figure showed in its place, or motion is reduced", () => {
+    expect(arrivalKey("forward", FRAME_FALLBACK_MS - 1, false)).toBe("Home");
+    expect(arrivalKey("forward", FRAME_FALLBACK_MS + 1, false)).toBe("End");
+    expect(arrivalKey("forward", 100, true)).toBe("End");
   });
 });
 
@@ -856,7 +858,7 @@ describe("the frame's strips", () => {
 describe("a slide in its frame", () => {
   const byId = (id: string) => slides.find((s) => s.id === id)!;
   const view = (slide: Slide, frame: FrameInfo = frameInfo(slides, "full", slide.id), step?: number) =>
-    renderToStaticMarkup(createElement(SlideView, { slide, frame, backward: false, frameRef: { current: null }, facts, onDemo: () => {}, step }));
+    renderToStaticMarkup(createElement(SlideView, { slide, frame, arrival: "forward", frameRef: { current: null }, facts, onDemo: () => {}, step }));
 
   it("says Synthetic data on a slide that shows data, and the talk's title on one that does not", () => {
     expect(copy.deckFooter).toBe("Fairshare: sales answers you can check");
@@ -869,6 +871,12 @@ describe("a slide in its frame", () => {
     const html = view(byId("ask-still"));
     expect(html).not.toContain("data-frame");
     expect(html).not.toContain("/aa-logo.svg");
+  });
+  it("keeps an animated slide's finished figure out of sight until its frame has had FRAME_FALLBACK_MS to get ready, and a live slide's still in view", () => {
+    const thumb = (html: string) => html.match(/<img[^>]*data-thumb[^>]*>/)?.[0] ?? "";
+    expect(thumb(view(byId("pipeline")))).toMatch(/visibility:\s*hidden/);
+    expect(thumb(view(byId("query-opener")))).not.toBe("");
+    expect(thumb(view(byId("query-opener")))).not.toMatch(/visibility:\s*hidden/);
   });
   it("draws a native slide and a figure inside the frame", () => {
     for (const id of ["problem", "revenue"]) expect(view(byId(id)), id).toContain('data-frame="header"');

@@ -186,9 +186,13 @@ export function stepCount(s: Slide): number {
   }
 }
 
+/** How a slide comes onto the screen: a press or a jump forward, one back, or the page loading on it (a reload, or the way back from a
+ * demo). */
+export type Arrival = "forward" | "backward" | "load";
+
 /** The step a stepped slide arrives on: 0 going forward, so the title shows alone, and the last step going back or when the page loads on
  * the slide (a reload, or the way back from a demo), so the slide shows complete. */
-export function arrivalStep(s: Slide, how: "forward" | "backward" | "load"): number {
+export function arrivalStep(s: Slide, how: Arrival): number {
   return how === "forward" ? 0 : stepCount(s);
 }
 
@@ -198,15 +202,17 @@ export function outlineArrival(s: Slide): "forward" | "backward" {
   return s.part === "backup" ? "backward" : "forward";
 }
 
-/** A frame that becomes ready this long after its slide arrived started late: the presenter has been talking over the
- * whole figure (the PNG under the frame), so it stays whole. */
-const LATE_MS = 2000;
+/** How long an animated slide waits for its frame's controller before it shows the finished figure (its thumb, the static
+ * page's PNG) in the frame's place. Until then the slide shows nothing of the figure, so no step shows before its press. A
+ * frame that gets ready after that has had the room looking at the whole figure, so it arrives whole (arrivalKey). */
+export const FRAME_FALLBACK_MS = 3000;
 
 /** The key a framed diagram gets when its slide arrives: Home (step 0, which also stops the reveal from playing on its
- * own) going forward, and End (the whole figure) going back, after a late start, and under reduced motion, where Home
- * would still hide most of the figure because the controller's keys ignore reduced motion. */
-export function arrivalKey(backward: boolean, elapsedMs: number, reduced: boolean): "Home" | "End" {
-  return backward || reduced || elapsedMs > LATE_MS ? "End" : "Home";
+ * own) going forward, and End (the whole figure) going back, after a load (a reload, or the way back from a demo), once
+ * the finished figure has shown in the frame's place (FRAME_FALLBACK_MS), and under reduced motion, where Home would still
+ * hide most of the figure because the controller's keys ignore reduced motion. */
+export function arrivalKey(how: Arrival, elapsedMs: number, reduced: boolean): "Home" | "End" {
+  return how !== "forward" || reduced || elapsedMs > FRAME_FALLBACK_MS ? "End" : "Home";
 }
 
 function motionRoot(f: HTMLIFrameElement): HTMLElement | null {

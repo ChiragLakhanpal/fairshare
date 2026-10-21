@@ -1,6 +1,6 @@
 import { chromium, expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { slides } from "../src/deck/slides";
-import { onPath } from "../src/lib/deck";
+import { FRAME_FALLBACK_MS, onPath } from "../src/lib/deck";
 
 const FONTS = /fonts\.(googleapis|gstatic)\.com/;
 test.beforeEach(async ({ context }) => {
@@ -45,8 +45,15 @@ const burst = (notes: Page, action: "next" | "prev", n: number) =>
     channel.close();
   }, { action, n });
 
+// Every motion item of the framed diagram: its step, and its opacity as the deck shows it.
+const itemStates = (page: Page) =>
+  page.frameLocator("iframe[data-slide-frame]").locator("[data-motion-item]")
+    .evaluateAll((els) => els.map((el) => ({ step: Number(el.getAttribute("data-step")), opacity: getComputedStyle(el).opacity })));
+
 test("an animated slide takes as many presses as it has steps, then the deck moves", async ({ page }) => {
-  await page.goto("/present#system");
+  await openSlide(page, "stack-opener");
+  await page.keyboard.press("ArrowRight"); // a slide arrives on its first step going forward
+  await expect(page).toHaveURL(/#system$/);
   await expect(ready(page)).toBeVisible();
   await expect(root(page)).toHaveAttribute("data-step-current", "0");
   const count = Number(await root(page).getAttribute("data-step-count"));
@@ -63,13 +70,60 @@ test("an animated slide takes as many presses as it has steps, then the deck mov
   await expect(root(page)).toHaveAttribute("data-step-current", String(count - 1));
 });
 
-test("a frame that never starts shows the figure and moves the deck on the first press", async ({ page, context }) => {
+test("a frame that never starts shows the finished figure only after FRAME_FALLBACK_MS, and the first press moves the deck", async ({ page, context }) => {
   // only the frame's page: in dev the same file is also served as the ?url import module
   await context.route(/-animated[^/]*\.html/, (r) => (r.request().resourceType() === "document" ? r.abort() : r.continue()));
+  const before = Date.now();
   await page.goto("/present#system");
-  await expect(page.getByRole("img", { name: "The system" })).toBeVisible();
-  await page.keyboard.press("ArrowRight");
+  await expect(slideAt(page, "system")).toBeVisible();
+  const thumb = slideAt(page, "system").locator("img[data-thumb]");
+  await expect(thumb, "nothing of the figure before the fallback").toBeHidden();
+  await expect(thumb).toBeVisible({ timeout: FRAME_FALLBACK_MS + 5000 });
+  expect(Date.now() - before, "the finished figure waits for the fallback").toBeGreaterThanOrEqual(FRAME_FALLBACK_MS);
+  await page.keyboard.press("ArrowRight"); // a frame that is not ready counts as zero steps
   await expect(page).not.toHaveURL(/#system$/);
+});
+
+test("an animated slide shows nothing of its figure before its frame is ready, and once ready no step it has not reached", async ({ page, context }) => {
+  // hold the frame's page back, so the time before the frame is ready can be looked at
+  let release = () => {};
+  const held = new Promise<void>((done) => (release = done));
+  await context.route(/06-data-pipeline-animated[^/]*\.html/, async (r) => {
+    if (r.request().resourceType() === "document") await held;
+    await r.continue();
+  });
+  await openSlide(page, "elevator-opener");
+  await page.keyboard.press("ArrowRight");
+  await expect(slideAt(page, "pipeline")).toBeVisible();
+  await expect(page.locator("iframe[data-slide-frame]")).not.toHaveAttribute("data-ready", "1");
+  await expect(slideAt(page, "pipeline").locator("img[data-thumb]"), "no finished figure before the frame is ready").toBeHidden();
+  release();
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", "0");
+  for (const item of await itemStates(page)) expect(item.opacity, `step ${item.step} before its press`).toBe("0"); // invisible, not faded
+  await expect(page.frameLocator("iframe[data-slide-frame]").locator('[data-brand="aa-logo"]'), "the deck's frame draws the one logo").toBeHidden();
+  await page.keyboard.press("ArrowRight");
+  await expect(root(page)).toHaveAttribute("data-step-current", "1");
+  await expect.poll(async () => (await itemStates(page)).filter((i) => i.step === 1).map((i) => i.opacity)).toEqual(["1"]);
+  for (const item of await itemStates(page)) if (item.step > 1) expect(item.opacity, `step ${item.step} before its press`).toBe("0");
+});
+
+test("arriving back on an animated slide shows its whole figure, on its last step", async ({ page }) => {
+  await openSlide(page, "sieve-opener");
+  await page.keyboard.press("ArrowLeft");
+  await expect(page).toHaveURL(/#moved$/);
+  await expect(ready(page)).toBeVisible();
+  const count = (await root(page).getAttribute("data-step-count"))!;
+  await expect(root(page)).toHaveAttribute("data-step-current", count);
+  expect((await itemStates(page)).map((i) => i.opacity).every((o) => o === "1"), "every step shows").toBe(true);
+});
+
+test("a load on an animated slide, a reload or the way back from a demo, shows its whole figure, and the first press moves on", async ({ page }) => {
+  await openSlide(page, "pipeline");
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", (await root(page).getAttribute("data-step-count"))!);
+  await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#row$/);
 });
 
 test("with reduced motion an animated slide shows the whole figure and the first press moves the deck", async ({ page }) => {
@@ -145,7 +199,8 @@ test("keys the notes window sends in a burst are applied in order, through a sli
 
 test("a burst that goes through a diagram's steps and into the next slide's points applies each key once", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
-  await page.goto("/present#pipeline");
+  await openSlide(page, "elevator-opener");
+  await page.keyboard.press("ArrowRight"); // onto the diagram, on its first step
   await expect(ready(page)).toBeVisible();
   await expect(root(page)).toHaveAttribute("data-step-current", "0");
   const steps = Number(await root(page).getAttribute("data-step-count"));
@@ -155,6 +210,18 @@ test("a burst that goes through a diagram's steps and into the next slide's poin
   await expectAt(page, "row", 1);
   await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "row");
   await expect(notes.getByText(`Point 1 of ${await stepsOf(page, "row")}`, { exact: true })).toBeVisible();
+});
+
+// A frame gets ready some time after its slide arrives, so a burst that has only just reached a diagram finds no steps there and goes on to
+// the next slide, as a press on a frame that never gets ready does (Present.tsx, act).
+test("a burst that reaches a diagram before its frame is ready counts no steps there, and moves on", async ({ page, context }) => {
+  await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
+  await openSlide(page, "ask"); // a load lands complete, so the next key moves on
+  const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "ask");
+  await burst(notes, "next", 2); // onto director, whose frame cannot be ready between two queued keys, and off it
+  await expect(page).toHaveURL(/#riffle-opener$/);
+  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "riffle-opener");
 });
 
 test("keys that come before the deck has drawn the one before still take the place that one left", async ({ page }) => {
@@ -369,6 +436,38 @@ test("a deck the browser restores from its cache spends the way back too, and sh
     await page.goto("/");
     await expect(page.locator("#ask")).toBeVisible();
     await expect(back(page)).toHaveCount(0);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("an animated slide the browser restores from its cache shows its whole figure, as a load does", async ({ baseURL }) => {
+  type Kept = { kept?: string };
+  const browser = await chromium.launch({ channel: "chromium", ignoreDefaultArgs: ["--disable-back-forward-cache"], args: ["--enable-features=BackForwardCache"] });
+  try {
+    const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 } });
+    await context.route(FONTS, (r) => r.abort());
+    await mockApp(context);
+    const page = await context.newPage();
+    await page.goto("/present#stack-opener");
+    await expect(page.locator("[data-deck-ready]")).toBeAttached();
+    await page.keyboard.press("ArrowRight"); // system arrives on its first step
+    await expect(ready(page)).toBeVisible();
+    await page.keyboard.press("ArrowRight");
+    await expect(root(page)).toHaveAttribute("data-step-current", "1");
+    const count = (await root(page).getAttribute("data-step-count"))!;
+    expect(Number(count), "more than one step, so the figure left on its first step is not already whole").toBeGreaterThan(1);
+    await page.evaluate(() => { (window as unknown as Kept).kept = "the same page"; }); // a page that loads again loses it
+    await page.goto("/"); // the deck's tab goes to the app, as a demo jump does
+    await expect(page.locator("#ask")).toBeVisible();
+    await page.goBack({ waitUntil: "commit" }); // a restore from the cache fires no load event
+    await expect.poll(() => page.evaluate(() => (window as unknown as Kept).kept ?? null).catch(() => null), { message: "the browser restored the deck from its cache" }).toBe("the same page");
+    // Playwright does not attach to the frames of a restored page, so the deck's own document reads the figure's place
+    const place = () => page.evaluate(() => {
+      const r = document.querySelector<HTMLIFrameElement>("iframe[data-slide-frame]")?.contentDocument?.querySelector<HTMLElement>("[data-motion-root]");
+      return r ? `${r.dataset.stepCurrent} of ${r.dataset.stepCount}` : null;
+    });
+    await expect.poll(place).toBe(`${count} of ${count}`);
   } finally {
     await browser.close();
   }
