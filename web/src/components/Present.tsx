@@ -8,23 +8,24 @@
 // steps until the last step, and going back until step 0, and only then moves the deck. A slide arrives on step 0 going
 // forward and complete going back, after a reload, and on the way back from a demo, and an animated slide's diagram does
 // the same through the key its frame gets (arrivalKey); a jump from the notes window's outline lands a backup slide
-// complete and a slide of the path on step 0, whichever way it lies (outlineArrival). Under reduced motion the diagram
-// shows whole and counts as zero steps, and a frame that is not ready yet counts as zero steps too. The deck is the one
+// complete and a slide of the path on step 0, whichever way it lies (outlineArrival). Under reduced motion a native slide
+// and a diagram still step, with nothing moving. A frame that is not ready yet counts as zero steps. The deck is the one
 // source of truth for the notes window: it applies each message the notes window sends as if it were pressed here, and
 // posts its state (the slide, its step and its number of steps, the path and the start of the talk) on mount, after every
-// move and step, and after every message it applies. The path (localStorage) and the start of the talk, set on the first
-// move and dated back to the plan (sessionStorage), outlive a reload and a demo jump. A demo button on a slide, or in the
-// notes window, jumps into the app in this tab (jump): the slide to come back to waits in sessionStorage for the app's
-// link, and the deck clears it when it opens again, or when the browser restores it from its cache.
-import { useReducedMotion } from "motion/react";
+// move and step, and after every message it applies. On an animated slide the step and the steps are its diagram's, read
+// from the frame (framePoint): zero steps until the frame is ready, which posts the state again, and then after each key
+// the frame gets. The path (localStorage) and the start of the talk, set on the first move and dated back to the plan
+// (sessionStorage), outlive a reload and a demo jump. A demo button on a slide, or in the notes window, jumps into the app
+// in this tab (jump): the slide to come back to waits in sessionStorage for the app's link, and the deck clears it when it
+// opens again, or when the browser restores it from its cache.
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import facts from "../deck/facts.json";
 import { SlideView } from "../deck/SlideView";
 import { slides } from "../deck/slides";
 import {
-  arrive, arrivalStep, askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameInfo, frameState, fromHash, keyAction, KEYS,
-  outlineArrival, pressTarget, sendKey, stepCount, type Action, type Arrival, type Jump, type Msg, type PathName,
+  arrive, arrivalStep, askQuestion, blurAfterClick, CHANNEL, clockStart, destination, fill, frameInfo, framePoint, frameState, fromHash, keyAction,
+  KEYS, outlineArrival, pressTarget, sendKey, stepCount, type Action, type Arrival, type Jump, type Msg, type PathName,
 } from "../lib/deck";
 import { store } from "../lib/store";
 import { Notes } from "./Notes";
@@ -60,7 +61,6 @@ export function Present() {
 }
 
 function Deck() {
-  const reduced = useReducedMotion();
   // the first render after a load shows its slide complete: a reload, and the way back from a demo, which loads the deck
   // again
   const [place, setPlace] = useState<Place>(() => {
@@ -72,6 +72,7 @@ function Deck() {
   const [startedAt, setStartedAt] = useState<number | null>(() => Number(read(session, KEYS.started)) || null);
   const [ready, setReady] = useState(false); // the channel to the notes window is open
   const [applied, setApplied] = useState(0); // counts the messages applied, so each one posts the state even if nothing moved
+  const [framed, setFramed] = useState(0); // counts the times the framed diagram got ready or stepped, so each one posts the state
   const [zoom, setZoom] = useState(fit);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const channel = useRef<BroadcastChannel | null>(null);
@@ -119,12 +120,13 @@ function Deck() {
       }
       const frame = frameRef.current;
       if (current.kind === "animated" && frame) {
-        // null: not ready, unreadable, or reduced motion, so zero steps. A frame gets ready a little while after its slide
-        // arrives, so a burst of presses that has only just reached a diagram finds no steps there and goes on to the next
-        // slide (present.spec.ts pins this).
-        const at = reduced ? null : frameState(frame);
+        // null: not ready or unreadable, so zero steps. A frame gets ready a little while after its slide arrives, so a
+        // burst of presses that has only just reached a diagram finds no steps there and goes on to the next slide
+        // (present.spec.ts pins this).
+        const at = frameState(frame);
         if (pressTarget(at?.current ?? 0, at?.count ?? 0, dir) === "diagram") {
           sendKey(frame, dir === 1 ? "ArrowRight" : "ArrowLeft");
+          setFramed((n) => n + 1);
           return;
         }
       }
@@ -215,13 +217,24 @@ function Deck() {
   }, []);
 
   useEffect(() => {
-    channel.current?.postMessage({ t: "state", id: place.id, path, startedAt, step: place.step, steps: stepCount(slide) } satisfies Msg);
-  }, [place, path, startedAt, applied]);
+    const { step, steps } = slide.kind === "animated" ? framePoint(frameState(frameRef.current)) : { step: place.step, steps: stepCount(slide) };
+    channel.current?.postMessage({ t: "state", id: place.id, path, startedAt, step, steps } satisfies Msg);
+  }, [place, path, startedAt, applied, framed]);
 
   return (
     <div data-deck-ready={ready ? "" : undefined} className="fixed inset-0 grid place-items-center overflow-hidden bg-white">
       <div className="relative h-[720px] w-[1280px] overflow-hidden bg-white" style={{ zoom }}>
-        <SlideView key={slide.id} slide={slide} frame={frameInfo(slides, path, slide.id)} arrival={arrival} frameRef={frameRef} facts={facts} onDemo={jump} step={place.step} />
+        <SlideView
+          key={slide.id}
+          slide={slide}
+          frame={frameInfo(slides, path, slide.id)}
+          arrival={arrival}
+          frameRef={frameRef}
+          facts={facts}
+          onDemo={jump}
+          onReady={() => setFramed((n) => n + 1)}
+          step={place.step}
+        />
       </div>
     </div>
   );

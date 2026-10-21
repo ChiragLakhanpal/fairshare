@@ -50,14 +50,13 @@ describe("the animated handoff", () => {
     expect(pressTarget(NaN, NaN, 1)).toBe("deck");
   });
   it("arrives at step 0 going forward, and at the end going back and after a load (a reload, or the way back from a demo)", () => {
-    expect(arrivalKey("forward", 100, false)).toBe("Home");
-    expect(arrivalKey("backward", 100, false)).toBe("End");
-    expect(arrivalKey("load", 100, false)).toBe("End");
+    expect(arrivalKey("forward", 100)).toBe("Home");
+    expect(arrivalKey("backward", 100)).toBe("End");
+    expect(arrivalKey("load", 100)).toBe("End");
   });
-  it("shows the end when the frame got ready after the finished figure showed in its place, or motion is reduced", () => {
-    expect(arrivalKey("forward", FRAME_FALLBACK_MS - 1, false)).toBe("Home");
-    expect(arrivalKey("forward", FRAME_FALLBACK_MS + 1, false)).toBe("End");
-    expect(arrivalKey("forward", 100, true)).toBe("End");
+  it("shows the end when the frame got ready after the finished figure showed in its place", () => {
+    expect(arrivalKey("forward", FRAME_FALLBACK_MS - 1)).toBe("Home");
+    expect(arrivalKey("forward", FRAME_FALLBACK_MS + 1)).toBe("End");
   });
 });
 
@@ -136,6 +135,10 @@ describe("slides.ts", () => {
       expect(images[s.thumb!], `${s.id} thumb`).toBeTruthy();
     }
   }));
+  it("bundles only the images a slide shows, as its picture or as the thumb under its frame", () => {
+    const shown = new Set(slides.flatMap((s) => [s.asset, s.thumb]).filter(Boolean));
+    expect(Object.keys(images).filter((k) => !shown.has(k)), "PNGs in the build that no slide shows").toEqual([]);
+  });
   it("has no em or en dashes", () => slides.forEach((s) => texts(s).forEach((t) => expect(t, s.id).not.toMatch(/[\u2013\u2014]/))));
   it("names no interviewer", () => slides.forEach((s) => texts(s).forEach((t) => blocked.forEach((n) => expect(t.toLowerCase().includes(n), s.id).toBe(false)))));
   it("tags every Azure possibility and nothing built", () => {
@@ -619,23 +622,23 @@ describe("what the frame draws", () => {
   // the logo only: what the first and last slides of the path get, and the base the other cases change. The tracker's segments have tests of
   // their own, at the end.
   type Parts = Omit<FrameInfo, "segments">;
-  const frame = (over: Partial<Parts> = {}): Parts => ({ bare: false, tracker: false, topic: null, inTopic: null, number: null, footer: false, backup: false, ...over });
+  const frame = (over: Partial<Parts> = {}): Parts => ({ bare: false, tracker: false, topic: null, number: null, footer: false, backup: false, ...over });
   const parts = (path: PathName, id: string): Parts => {
     const { segments: _, ...rest } = frameInfo(F, path, id);
     return rest;
   };
 
-  it("lights the topic of a topic slide, with its place among that topic's slides on the path and its number on the path", () => {
-    expect(parts("full", "problem")).toEqual(frame({ tracker: true, topic: "steps", inTopic: { at: 1, of: 1 }, number: { at: 3, of: 11 }, footer: true }));
-    expect(parts("full", "what")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 1, of: 2 }, number: { at: 4, of: 11 }, footer: true }));
-    expect(parts("full", "ask")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 2, of: 2 }, number: { at: 5, of: 11 }, footer: true }));
-    expect(parts("full", "limits")).toEqual(frame({ tracker: true, topic: "checks", inTopic: { at: 2, of: 2 }, number: { at: 9, of: 11 }, footer: true }));
-    expect(parts("full", "start")).toEqual(frame({ tracker: true, topic: "aa", inTopic: { at: 1, of: 1 }, number: { at: 10, of: 11 }, footer: true }));
+  it("lights the topic of a topic slide, with its number on the path", () => {
+    expect(parts("full", "problem")).toEqual(frame({ tracker: true, topic: "steps", number: { at: 3, of: 11 }, footer: true }));
+    expect(parts("full", "what")).toEqual(frame({ tracker: true, topic: "modes", number: { at: 4, of: 11 }, footer: true }));
+    expect(parts("full", "ask")).toEqual(frame({ tracker: true, topic: "modes", number: { at: 5, of: 11 }, footer: true }));
+    expect(parts("full", "limits")).toEqual(frame({ tracker: true, topic: "checks", number: { at: 9, of: 11 }, footer: true }));
+    expect(parts("full", "start")).toEqual(frame({ tracker: true, topic: "aa", number: { at: 10, of: 11 }, footer: true }));
   });
   it("counts only the slides on the path that is on", () => {
-    expect(parts("full", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 2, of: 2 }, number: { at: 7, of: 11 }, footer: true }));
-    // pipeline is off the short path, so system is the only slide of its topic on it
-    expect(parts("short", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 1, of: 1 }, number: { at: 6, of: 8 }, footer: true }));
+    expect(parts("full", "system")).toEqual(frame({ tracker: true, topic: "numbers", number: { at: 7, of: 11 }, footer: true }));
+    // pipeline is off the short path, so the short path numbers system sixth
+    expect(parts("short", "system")).toEqual(frame({ tracker: true, topic: "numbers", number: { at: 6, of: 8 }, footer: true }));
   });
   it("numbers the short path from 1 to its length, and the welcome and the thanks show no number", () => {
     const line = onPath(F, "short");
@@ -666,7 +669,7 @@ describe("what the frame draws", () => {
     expect(slides.filter((s) => frameInfo(slides, "full", s.id).bare).map((s) => s.id)).toEqual(["ask-still", "precall-still"]);
     slides.filter((s) => s.still).forEach((s) => expect(s.kind, s.id).toBe("image"));
   });
-  it("lights the topic of a slide the path leaves out, but gives it no place and no number", () => {
+  it("lights the topic of a slide the path leaves out, but gives it no number", () => {
     expect(parts("short", "pipeline")).toEqual(frame({ tracker: true, topic: "numbers", footer: true }));
     expect(parts("short", "limits")).toEqual(frame({ tracker: true, topic: "checks", footer: true }));
   });
@@ -691,13 +694,14 @@ describe("what the frame draws", () => {
         expect(all, `${path} ${x.id}`).toHaveLength(topical.length);
         expect(all.filter((g) => g === "passed"), `${path} ${x.id}`).toHaveLength(i);
         expect(all.filter((g) => g === "current"), `${path} ${x.id}`).toHaveLength(1);
-        expect(f.segments[x.part as Topic][f.inTopic!.at - 1], `${path} ${x.id}`).toBe("current");
+        const place = onPath(slides, path).filter((y) => y.part === x.part).indexOf(x);
+        expect(f.segments[x.part as Topic][place], `${path} ${x.id}: its own segment`).toBe("current");
       });
     }
   });
 });
 
-import { arrivalStep, showsData, stepCount, type Facts, type Native, type Result, type Tile } from "./deck";
+import { arrivalStep, framePoint, showsData, stepCount, type Facts, type Native, type Result, type Tile } from "./deck";
 
 describe("native steps", () => {
   const native = (n: Native): Slide => ({ ...s("x", "steps", 1), native: n });
@@ -747,6 +751,13 @@ describe("the notes window's line for a slide with steps", () => {
     expect(copy.notesPoint(2, 3)).toBe("Point 2 of 3");
     expect(copy.notesPoint(0, 3)).toBe("Point 0 of 3");
     expect(copy.notesPoint(4, 4)).not.toMatch(/[\u2013\u2014]/);
+  });
+  it("counts a diagram's points from its frame, and none before the frame is ready or when it cannot be read", () => {
+    expect(framePoint({ current: 2, count: 4 })).toEqual({ step: 2, steps: 4 });
+    expect(framePoint({ current: 0, count: 4 })).toEqual({ step: 0, steps: 4 });
+    expect(framePoint({ current: 9, count: 4 })).toEqual({ step: 4, steps: 4 });
+    expect(framePoint(null)).toEqual({ step: 0, steps: 0 }); // not ready yet, or unreadable
+    expect(framePoint({ current: NaN, count: NaN })).toEqual({ step: 0, steps: 0 });
   });
 });
 

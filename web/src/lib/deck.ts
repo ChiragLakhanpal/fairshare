@@ -82,14 +82,13 @@ export function outlineParts(slides: Slide[]): Part[] {
 export type Segment = "passed" | "current" | "later";
 
 /** What the frame draws around a slide. bare: nothing at all, not even the logo (a still). tracker: the five topic names across the top, with
- * topic lit and inTopic marking which of that topic's slides on the path is showing; segments holds a mark for each topic's slides on the path,
- * in order. footer: the line along the bottom, with the slide's number on the path that is on (null off it, and on the first and last slides)
- * or, when backup is true, the word Backup in its place. */
+ * topic lit; segments holds a mark for each topic's slides on the path, in order, the one showing marked current. footer: the line along the
+ * bottom, with the slide's number on the path that is on (null off it, and on the first and last slides) or, when backup is true, the word
+ * Backup in its place. */
 export type FrameInfo = {
   bare: boolean;
   tracker: boolean;
   topic: Topic | null;
-  inTopic: { at: number; of: number } | null;
   segments: Record<Topic, Segment[]>;
   number: { at: number; of: number } | null;
   footer: boolean;
@@ -98,9 +97,9 @@ export type FrameInfo = {
 
 /** The frame for a slide, on the path that is on. The first and last slides of the path (the welcome and the thanks) get the logo only, an open
  * slide after the first (the agenda) the footer without the tracker, a backup slide the tracker with no topic lit and the footer, and a still
- * nothing. The place in the topic and the number count the slides on the path, so a slide the path leaves out keeps its topic lit and has
- * neither. The segments mark the path's slides by their place in the deck: the ones before this slide passed, this one current, the rest
- * later; a backup slide sits outside the path, so every segment is later. An unknown id takes the first slide. */
+ * nothing. The number counts the slides on the path, so a slide the path leaves out keeps its topic lit and has none. The segments mark the
+ * path's slides by their place in the deck: the ones before this slide passed, this one current, the rest later; a slide the path leaves out
+ * marks none current, and a backup slide sits outside the path, so every segment is later. An unknown id takes the first slide. */
 export function frameInfo(slides: Slide[], path: PathName, id: string): FrameInfo {
   const s = slides.find((x) => x.id === id) ?? slides[0];
   const backup = s.part === "backup";
@@ -108,16 +107,13 @@ export function frameInfo(slides: Slide[], path: PathName, id: string): FrameInf
   const here = slides.indexOf(s);
   const mark = (x: Slide): Segment => (x === s ? "current" : !backup && slides.indexOf(x) < here ? "passed" : "later");
   const segments = Object.fromEntries(TOPIC_ORDER.map((t) => [t, line.filter((x) => x.part === t).map(mark)])) as Record<Topic, Segment[]>;
-  if (s.still) return { bare: true, tracker: false, topic: null, inTopic: null, segments, number: null, footer: false, backup: false };
+  if (s.still) return { bare: true, tracker: false, topic: null, segments, number: null, footer: false, backup: false };
   const at = line.indexOf(s);
   const ends = at >= 0 && (at === 0 || at === line.length - 1);
-  const topic = isTopic(s.part) ? s.part : null;
-  const group = line.filter((x) => x.part === s.part);
   return {
     bare: false,
     tracker: !ends && s.part !== "open" && s.part !== "close",
-    topic,
-    inTopic: topic && at >= 0 ? { at: group.indexOf(s) + 1, of: group.length } : null,
+    topic: isTopic(s.part) ? s.part : null,
     segments,
     number: at >= 0 && !ends ? { at: at + 1, of: line.length } : null,
     footer: !ends,
@@ -208,11 +204,11 @@ export function outlineArrival(s: Slide): "forward" | "backward" {
 export const FRAME_FALLBACK_MS = 3000;
 
 /** The key a framed diagram gets when its slide arrives: Home (step 0, which also stops the reveal from playing on its
- * own) going forward, and End (the whole figure) going back, after a load (a reload, or the way back from a demo), once
- * the finished figure has shown in the frame's place (FRAME_FALLBACK_MS), and under reduced motion, where Home would still
- * hide most of the figure because the controller's keys ignore reduced motion. */
-export function arrivalKey(how: Arrival, elapsedMs: number, reduced: boolean): "Home" | "End" {
-  return how !== "forward" || reduced || elapsedMs > FRAME_FALLBACK_MS ? "End" : "Home";
+ * own) going forward, and End (the whole figure) going back, after a load (a reload, or the way back from a demo), and once
+ * the finished figure has shown in the frame's place (FRAME_FALLBACK_MS). Reduced motion changes nothing here: the figure
+ * steps as a native slide does, with nothing moving (aa.EMBED_CSS in docs/diagrams/src/aa.py). */
+export function arrivalKey(how: Arrival, elapsedMs: number): "Home" | "End" {
+  return how !== "forward" || elapsedMs > FRAME_FALLBACK_MS ? "End" : "Home";
 }
 
 function motionRoot(f: HTMLIFrameElement): HTMLElement | null {
@@ -228,6 +224,13 @@ export function frameState(f: HTMLIFrameElement | null): { current: number; coun
   if (!f || f.getAttribute("data-ready") !== "1") return null;
   const root = motionRoot(f);
   return root ? { current: Number(root.dataset.stepCurrent), count: Number(root.dataset.stepCount) } : null;
+}
+
+/** What the notes window counts on an animated slide: the framed diagram's step of its steps (frameState), or zero steps before the frame is
+ * ready and when it cannot be read, as pressTarget counts them. */
+export function framePoint(at: { current: number; count: number } | null): { step: number; steps: number } {
+  const steps = at && at.count > 0 ? at.count : 0; // NaN > 0 is false
+  return { step: at && at.current > 0 ? Math.min(at.current, steps) : 0, steps };
 }
 
 /** A key for the framed diagram's controller, which listens on its [data-motion-root], not on the document: a keydown
@@ -452,7 +455,7 @@ export function clock(min: number): string {
 /** The BroadcastChannel between the deck and its notes window. The deck is the one source of truth: the notes window
  * sends keys, outline jumps, the path, a clock reset, demo requests and a hello when it opens, and the deck applies each
  * and answers with its state: the slide on the screen, how many of its items show (step) of how many it has (steps, 0 on a
- * slide with none), the path and the start of the talk. */
+ * slide with none; on an animated slide the diagram's, from framePoint), the path and the start of the talk. */
 export const CHANNEL = "fairshare-deck";
 export type Msg =
   | { t: "state"; id: string; path: PathName; startedAt: number | null; step: number; steps: number }

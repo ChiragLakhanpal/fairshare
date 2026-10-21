@@ -11,7 +11,6 @@
 // pointer or the focus, so the deck keeps every key press, and it exists only while its slide shows. Figures fill the
 // stage under the frame's strips; native slides are drawn in layouts.tsx, in the frame's content box, at the step the deck
 // hands down (the complete slide when it hands none). Every string goes through fill().
-import { useReducedMotion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
 import { copy } from "../copy";
 import {
@@ -40,7 +39,7 @@ export function showPage(f: { readonly contentDocument: Document | null }, bylin
   }
 }
 
-export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, step }: {
+export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, onReady, step }: {
   slide: Slide;
   frame: FrameInfo;
   /** How the slide came on: an animated slide's diagram starts on its first step going forward, and whole going back or after a load. */
@@ -48,10 +47,11 @@ export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, step
   frameRef: RefObject<HTMLIFrameElement | null>;
   facts: DeckFacts;
   onDemo: (demo: Jump) => void;
+  /** Called once an animated slide's frame is ready and has had its key, so the deck can say where its diagram stands. */
+  onReady?: () => void;
   /** How many of a native slide's items show; none shows them all. */
   step?: number;
 }) {
-  const reduced = useReducedMotion();
   const [ready, setReady] = useState(false); // the animated frame's controller is ready
   const [fallback, setFallback] = useState(false); // the animated frame missed FRAME_FALLBACK_MS, so the finished figure stands in
   const [shown, setShown] = useState(false); // the live frame's page has loaded
@@ -74,11 +74,12 @@ export function SlideView({ slide, frame, arrival, frameRef, facts, onDemo, step
         if (!doc?.querySelector("[data-motion-root]")?.classList.contains("motion-ready")) return;
         clearInterval(poll);
         doc.documentElement.setAttribute("data-embed", "");
-        arrive(iframe, arrivalKey(arrival, performance.now() - mounted, !!reduced));
+        arrive(iframe, arrivalKey(arrival, performance.now() - mounted));
       } catch {
         return; // a blocked frame cannot be read, or the frame went away: it never gets ready, and after FRAME_FALLBACK_MS the finished figure stands in
       }
       setReady(true);
+      onReady?.();
     }, POLL_MS);
     return () => {
       clearInterval(poll);

@@ -2,13 +2,14 @@
 // when it opens it says hello on the channel, the deck answers with its state, and it shows whatever state the deck
 // posts. Every key, outline click, path switch, clock reset and demo request goes to the deck, which applies it as if it
 // were pressed there and posts its state back; this window never posts a state, so nothing echoes. It shows the slide on
-// the screen at its step, with the point it is on ("Point 2 of 3" on a native slide with steps), and the next one complete
-// (native and image slides drawn small, live and animated ones as their thumbs), the note in large type, the talk time
-// with the drift and the checkpoints, and the outline of every slide, grouped by part, backup included (a part with no
-// slide gets no heading). A click in the outline sends the deck to that slide, which lands a backup slide complete and a
-// slide of the path on its first step (outlineArrival in lib/deck.ts). It also calls api.agencies() when it opens and
-// every eight minutes: one small query, never cached, that keeps the SQL warehouse awake, because the warehouse stops
-// after ten idle minutes. Under the demo buttons it says when the last ping got through.
+// the screen at its step, with the point it is on ("Point 2 of 3" on a native slide with steps, and on a diagram once its
+// frame is ready), and the next one complete (native and image slides drawn small, live and animated ones as their
+// thumbs), the note in large type, the talk time with the drift and the checkpoints, and the outline of every slide,
+// grouped by part, backup included (a part with no slide gets no heading). A click in the outline sends the deck to that
+// slide, which lands a backup slide complete and a slide of the path on its first step (outlineArrival in lib/deck.ts).
+// It also calls api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL
+// warehouse awake, because the warehouse stops after ten idle minutes. Under the demo buttons it says when the last ping
+// got through.
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { images } from "../deck/assets";

@@ -300,7 +300,7 @@ main path at about 36 minutes and the short path at about 11; the React deck, AA
 - `thanks` stays up through the questions, where the old spec kept `start` up.
 - The data checks slide stays in topic 3 under a new title.
 - The welcome slide gives the role in AA's own words from the posting, so it picks no level.
-- Native steps under reduced motion still step, without the movement.
+- Native and figure steps under reduced motion still step, without the movement.
 - What counts as one thing, earlier things receding as the next arrives, and the caps of five short lines or four
   detailed things, which split `numbers` and `evals` into two slides each and leave four checks on the main path.
 - The figures' darker text colors count as the AA theme, and the frame uses them too, so nothing gets re-skinned.

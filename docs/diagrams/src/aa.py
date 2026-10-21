@@ -119,7 +119,8 @@ def page(*, slug, title, desc, eyebrow, body, vw=1280, vh=720) -> str:
 # rejects on* attributes, so the deck sets data-embed itself once the controller is ready, then sends Home or End. In the deck a
 # step the presenter has not reached shows nothing (the plugin's own reveal leaves it at .12, which still gives the end away), the
 # figure's logo band goes (the deck's frame draws the one logo), the draw-in classes below play, and an item marked data-recede (a note,
-# a card, a callout) leads while it is the current step and recedes once a later one arrives, all but a text marked data-keep.
+# a card, a callout) leads while it is the current step and recedes once a later one arrives, all but a text marked data-keep. Under
+# reduced motion the steps still step, as a native slide's do, with nothing moving.
 # evals/test_figures_in_deck.py reads these rules in every animated page, so a change here means rebuilding them all.
 EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the controller is ready; only the figure shows, fitted to the frame */
     html[data-embed] body { margin: 0; padding: 0; min-height: 0; display: block; overflow: hidden; background: var(--color-paper); }
@@ -133,10 +134,9 @@ EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the contro
     html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]) { opacity: 0; }
     html[data-embed] .motion-ready[data-frame="start"] [data-motion-item] { transition: none; }
     /* draw-in for charts, once, when the deck switches the page to embed mode: a line (a path with pathLength="1") traces
-       left to right, a dot fades in after its line, and a bar grows from its baseline */
+       left to right, and a dot fades in after its line */
     html[data-embed] .draw-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: aa-draw-line 900ms ease-out forwards; }
     html[data-embed] .draw-dot { opacity: 0; animation: aa-draw-dot 300ms ease-out 900ms forwards; }
-    html[data-embed] .draw-bar { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); animation: aa-draw-bar 600ms ease-out forwards; }
     /* the newest item leads: the words of an item marked data-recede are ink while it is the current step and go back to the muted text once
        a later step arrives, and a mark in it marked data-lead (a card's outline, drawn with no stroke) is outlined in blue only while it is
        current, as a native slide's newest tile is, all over the plugin's step time. A text marked data-keep (a value drawn in the accent, a
@@ -147,9 +147,14 @@ EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the contro
     html[data-embed] .motion-ready [data-motion-item][data-recede].is-current [data-lead] { stroke-opacity: 1; }
     @keyframes aa-draw-line { to { stroke-dashoffset: 0; } }
     @keyframes aa-draw-dot { to { opacity: 1; } }
-    @keyframes aa-draw-bar { to { transform: scaleY(1); } }
+    /* under reduced motion the steps still step, with nothing moving. The plugin's own rule there shows every item and stands 01's layers
+       where their lift takes them, so an item not reached yet stays unseen over it, and a layer of 01 shows its name only once its press
+       comes. A step appears at once, with no fade, and a chart shows drawn */
     @media (prefers-reduced-motion: reduce) {
-      html[data-embed] .draw-line, html[data-embed] .draw-dot, html[data-embed] .draw-bar { animation: none; stroke-dashoffset: 0; opacity: 1; transform: none; }
+      html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]),
+      html[data-embed] .motion-ready [data-part]:not(.is-visible) .part-label { opacity: 0 !important; }
+      html[data-embed] .motion-ready [data-motion-item], html[data-embed] .motion-ready [data-motion-item] * { transition: none !important; }
+      html[data-embed] .draw-line, html[data-embed] .draw-dot { animation: none; stroke-dashoffset: 0; opacity: 1; }
     }
 """
 

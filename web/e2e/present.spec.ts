@@ -411,12 +411,66 @@ test("a load on an animated slide, a reload or the way back from a demo, shows i
   await expect(page).toHaveURL(/#row$/);
 });
 
-test("with reduced motion an animated slide shows the whole figure and the first press moves the deck", async ({ page }) => {
+// Native and figure steps under reduced motion still step, without the movement. A press is looked at in the same task as the key, before
+// the page can paint a frame: a step that faded in, however briefly, would still be part way, and its fade would still be playing.
+type Look = { step: number; items: { step: number; opacity: string }[]; names: { step: number; opacity: string }[]; layers: string[]; playing: number };
+const lookAt = (page: Page, key?: "ArrowRight") => page.evaluate((key) => {
+  if (key) dispatchEvent(new KeyboardEvent("keydown", { key, cancelable: true }));
+  const doc = document.querySelector<HTMLIFrameElement>("iframe[data-slide-frame]")!.contentDocument!;
+  const css = (el: Element) => doc.defaultView!.getComputedStyle(el);
+  const motion = [...doc.querySelectorAll("[data-motion-item]")];
+  return {
+    step: Number(doc.querySelector<HTMLElement>("[data-motion-root]")!.dataset.stepCurrent),
+    items: motion.map((el) => ({ step: Number(el.getAttribute("data-step")), opacity: css(el).opacity })),
+    names: motion.filter((el) => el.querySelector(".part-label")).map((el) => ({ step: Number(el.getAttribute("data-step")), opacity: css(el.querySelector(".part-label")!).opacity })),
+    layers: motion.filter((el) => el.hasAttribute("data-part")).map((el) => css(el).transform),
+    playing: doc.getAnimations().filter((a) => a.playState !== "finished").length,
+  };
+}, key) as Promise<Look>;
+test("with reduced motion a figure still steps: it arrives on its first step, a press brings exactly its step with nothing moving, and the press after the last moves the deck", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/present#system");
+  await openSlide(page, "seats"); // a load lands complete, so the next press moves on
+  await page.keyboard.press("ArrowRight"); // revenue arrives going forward
+  await expect(page).toHaveURL(/#revenue$/);
   await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", "0");
+  const arrived = await lookAt(page);
+  expect(arrived.items.map((i) => i.opacity), "no step shows before its press").toEqual(arrived.items.map(() => "0"));
+  expect(arrived.playing, "nothing draws in or fades").toBe(0);
+  const figure = page.frameLocator("iframe[data-slide-frame]");
+  expect(await figure.locator("path.draw-line").evaluateAll((els) => els.map((el) => getComputedStyle(el).strokeDashoffset)), "the lines show drawn").toEqual(["0px", "0px"]);
+  const count = Number(await root(page).getAttribute("data-step-count"));
+  for (let step = 1; step <= count; step++) {
+    const look = await lookAt(page, "ArrowRight");
+    expect(look.step).toBe(step);
+    expect(look.items.map((i) => i.opacity), `exactly step ${step}, whole the moment the press lands`).toEqual(look.items.map((i) => (i.step <= step ? "1" : "0")));
+    expect(look.playing, `nothing fades or moves on press ${step}`).toBe(0);
+  }
   await page.keyboard.press("ArrowRight");
-  await expect(page).not.toHaveURL(/#system$/);
+  await expect(page).toHaveURL(/#checks$/);
+});
+
+// 01's layers lift on each press, which is movement, so under reduced motion they stand where the lift would take them from the start, and each
+// press brings that layer's name instead, the way a step that only fades in does.
+test("with reduced motion 01's layers stand still and each press brings the next layer's name", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openSlide(page, "stack-opener");
+  await page.keyboard.press("ArrowRight"); // system arrives going forward
+  await expect(page).toHaveURL(/#system$/);
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", "0");
+  const arrived = await lookAt(page);
+  expect(arrived.layers.length, "the four layers that lift").toBe(4);
+  expect(arrived.layers, "every layer stands still").toEqual(arrived.layers.map(() => "none"));
+  expect(arrived.names.map((n) => n.opacity), "and no layer's name shows yet").toEqual(arrived.names.map(() => "0"));
+  const count = Number(await root(page).getAttribute("data-step-count"));
+  for (let step = 1; step <= count; step++) {
+    const look = await lookAt(page, "ArrowRight");
+    expect(look.step).toBe(step);
+    expect(look.layers, `press ${step}: nothing moves`).toEqual(arrived.layers);
+    expect(look.names.map((n) => n.opacity), `press ${step} names its layer, at once`).toEqual(look.names.map((n) => (n.step <= step ? "1" : "0")));
+    expect(look.playing, `nothing fades or moves on press ${step}`).toBe(0);
+  }
 });
 
 test("the notes window follows the deck, drives it, keeps the warehouse awake, and resyncs after a reload", async ({ page, context }) => {
@@ -492,21 +546,38 @@ test("keys the notes window sends in a burst are applied in order, through one s
   await expect(point(evals - 1, evals)).toBeVisible();
 });
 
-test("a burst that goes through a diagram's steps and into the next slide's points lands mid-slide and applies each key once", async ({ page, context }) => {
+// The notes window counts a diagram's points as it counts a native slide's: from the moment its frame is ready, which comes a little after the
+// slide arrives, and after every key the frame gets.
+test("a burst that goes through a diagram's steps and into the next slide's points lands mid-slide and applies each key once, and the notes window counts the diagram's points", async ({ page, context }) => {
   await context.route("**/api/agencies", (r) => r.fulfill({ json: [] }));
-  await openSlide(page, "seats");
-  await page.keyboard.press("ArrowRight"); // onto revenue, on its first step
+  await openSlide(page, "seats"); // a load lands complete, so the next key moves on
+  const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
+  const now = notes.locator("[data-now]");
+  await expect(now).toHaveAttribute("data-now", "seats");
+  const point = (k: number, n: number) => notes.getByText(`Point ${k} of ${n}`, { exact: true });
+  await notes.keyboard.press("ArrowRight"); // onto revenue, on its first step, before its frame is ready
+  await expect(now).toHaveAttribute("data-now", "revenue");
   await expect(ready(page)).toBeVisible();
   await expect(root(page)).toHaveAttribute("data-step-current", "0");
   const steps = Number(await root(page).getAttribute("data-step-count"));
+  expect(steps, "a diagram with a step to land on in the middle").toBeGreaterThan(2);
+  await expect(point(0, steps), "the frame got ready, so the notes window counts its points").toBeVisible();
+  await burst(notes, "next", 2); // two of the diagram's steps
+  await expect(root(page)).toHaveAttribute("data-step-current", "2");
+  await expect(point(2, steps)).toBeVisible();
   const checks = pointsOf("checks");
   expect(checks, "checks has a point to land on in the middle").toBeGreaterThan(2);
-  const [notes] = await Promise.all([context.waitForEvent("page"), page.keyboard.press("p")]);
-  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "revenue");
-  await burst(notes, "next", steps + 1 + 2); // every step of the diagram, the move to the next slide, and two of its points
+  await burst(notes, "next", steps - 2 + 1 + 2); // the rest of the diagram's steps, the move to the next slide, and two of its points
   await expectAt(page, "checks", 2);
-  await expect(notes.locator("[data-now]")).toHaveAttribute("data-now", "checks");
-  await expect(notes.getByText(`Point 2 of ${checks}`, { exact: true })).toBeVisible();
+  await expect(now).toHaveAttribute("data-now", "checks");
+  await expect(point(2, checks)).toBeVisible();
+  await burst(notes, "prev", 2 + 1); // its two points, and the move back onto the diagram, which arrives whole
+  await expect(now).toHaveAttribute("data-now", "revenue");
+  await expect(ready(page)).toBeVisible();
+  await expect(point(steps, steps)).toBeVisible();
+  await notes.keyboard.press("ArrowLeft"); // one of the diagram's steps back
+  await expect(root(page)).toHaveAttribute("data-step-current", String(steps - 1));
+  await expect(point(steps - 1, steps)).toBeVisible();
 });
 
 // A frame gets ready some time after its slide arrives, so a burst that has only just reached a diagram finds no steps there and goes on to

@@ -70,8 +70,8 @@ on arrival: it comes in an entry at a time, each with the pieces it marks, and t
 | `15-at-aa-animated.html` | 7 | presses 1 to 3 bring one kind of piece each under the layers' names, with its entry in the legend: what runs today (seven pieces, with the legend's rule and its heading), what is built but not deployed (one) and what waits on AA's Microsoft account (four); presses 4 to 7 bring the AA feed beside each made-up table, hardest first: the agency's sales with the note on why they are the hardest, the seat capacity, the bookings with the agreements, and the CRM with the goals (on arrival the five layers at rest as on `01`'s static page, their names, the headings and the made-up tables show, and no piece, legend entry or feed does) |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
-reduced motion, or with no JavaScript, the whole figure shows at once. A figure that prints values from the data says
-"synthetic data" in its logo band, and its animated page says it too.
+reduced motion, or with no JavaScript, the whole figure shows at once on its own; in the deck it still steps (see "Under reduced
+motion" below). A figure that prints values from the data says "synthetic data" in its logo band, and its animated page says it too.
 
 ### In the deck: embed mode
 
@@ -91,12 +91,15 @@ which every animated page carries, so a change to it means rebuilding all twelve
   covers y 0 to 64 of the figure's 1280 by 720 view box, where its band sat, and its footer y 690 to 720, so every figure the deck
   shows keeps its content between y 64 and y 680, in both the animated page and the static one. `evals/test_figures_in_deck.py`
   holds it to that.
-- **Charts draw in once,** when the frame shows, through three classes. `draw-line`, on a path with `pathLength="1"`, traces it left
-  to right over 900ms. `draw-dot` fades a mark in over 300ms, after a 900ms delay, so it follows the line. `draw-bar` grows a bar
-  from its baseline over 600ms. `11` uses the first two: each line traces itself, and its dots and its years come in after it. No
-  figure uses `draw-bar` yet. Under reduced motion, on a backward arrival, after a load and after the browser restores the deck from
-  its cache, a chart shows drawn: the deck sends End and finishes every animation and transition in the page (`arrive` in
-  `web/src/lib/deck.ts`), so nothing plays out in front of the room.
+- **Charts draw in once,** when the frame shows, through two classes. `draw-line`, on a path with `pathLength="1"`, traces it left
+  to right over 900ms. `draw-dot` fades a mark in over 300ms, after a 900ms delay, so it follows the line. `11` uses both: each line
+  traces itself, and its dots and its years come in after it. On a backward arrival, after a load and after the browser restores the
+  deck from its cache, a chart shows drawn: the deck sends End and finishes every animation and transition in the page (`arrive` in
+  `web/src/lib/deck.ts`), so nothing plays out in front of the room. Under reduced motion a chart shows drawn on every arrival.
+- **Under reduced motion the steps still step,** as a native slide's do, with nothing moving. The plugin's own rule for reduced motion
+  shows every item and stands `01`'s layers where their lift takes them. In the deck an item not reached yet stays unseen over that
+  rule, a press brings its step whole and at once, with no fade, and on `01` the layers stand still while each press brings the next
+  layer's name. The deck sends Home or End as it does with motion on (`arrivalKey` in `web/src/lib/deck.ts`).
 - **The newest item leads.** An item marked `data-recede` (the notes on `11`, the cards on `09a` and `09b`, the note under the chart
   and the two callouts on `12`, every step on `15`) has its words in ink while its press is the current one, and in the muted text
   once the next press comes. A mark in it marked `data-lead` (a card's outline on `09a` and `09b`) is outlined in blue only while its

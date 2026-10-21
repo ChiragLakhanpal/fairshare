@@ -2,11 +2,12 @@
 
 The deck's frame covers y 0 to 64 of a figure's 1280 by 720 view box with its header and y 690 to 720 with its footer, so every figure the deck shows
 keeps its marks between y 64 and y 680; the logo band at the top is hidden in the deck. In the deck's embed mode (aa.EMBED_CSS, baked into every
-animated page when it is built) an item the controller has not reached shows nothing, and whatever gives a figure's point away (a legend entry that
-names the focal item, a caption, a payoff line) comes in with the step that brings in its item. A figure's structure (its axes, headings, actors and
-frame) shows on arrival, and a chart's lines draw then; its notes come one per press. An item marked data-recede leads in ink while it is the current
-step and recedes to the muted text once a later one arrives (aa.EMBED_CSS again), so the newest note or card leads; a text in it marked data-keep (a
-value drawn in the accent) keeps the color it is drawn in. These read the generated pages; rebuild them with the commands in docs/diagrams/README.md.
+animated page when it is built) an item the controller has not reached shows nothing, under reduced motion too, where a step still comes a press at a
+time with nothing moving, and whatever gives a figure's point away (a legend entry that names the focal item, a caption, a payoff line) comes in with
+the step that brings in its item. A figure's structure (its axes, headings, actors and frame) shows on arrival, and a chart's lines draw then; its
+notes come one per press. An item marked data-recede leads in ink while it is the current step and recedes to the muted text once a later one arrives
+(aa.EMBED_CSS again), so the newest note or card leads; a text in it marked data-keep (a value drawn in the accent) keeps the color it is drawn in.
+These read the generated pages; rebuild them with the commands in docs/diagrams/README.md.
 """
 import ast
 import json
@@ -360,18 +361,50 @@ def test_in_the_deck_an_item_marked_to_recede_leads_in_ink_while_current_and_goe
     assert not unscoped, f"a rule that recolors every word of a receding item would take a kept value's color too: {unscoped}"
 
 
+def media_rules(css: str, query: str) -> dict[str, str]:
+    """The rules inside every @media block of a stylesheet with this query, as {selector: declarations}."""
+    css, out = re.sub(r"/\*.*?\*/", "", css, flags=re.S), {}
+    for m in re.finditer(r"@media\s*" + re.escape(query) + r"\s*\{", css):
+        depth, end = 1, m.end()
+        while depth:
+            depth += {"{": 1, "}": -1}.get(css[end], 0)
+            end += 1
+        out.update({s: body for sels, body in rules(css[m.end():end - 1]) for s in sels})
+    return out
+
+
 def test_the_draw_in_classes_play_once_in_the_deck_and_not_under_reduced_motion():
-    # for the charts: a line traces left to right over 900ms, a dot fades in after its line, a bar grows from its baseline over 600ms
+    # for the charts: a line traces left to right over 900ms, and a dot fades in after its line
     page = html("06-data-pipeline-animated")
     css = "".join(re.findall(r"<style>(.*?)</style>", page, re.S))
     play = {s: body for sels, body in rules(css) for s in sels}
-    for cls, timing in (("draw-line", "900ms ease-out forwards"), ("draw-dot", "300ms ease-out 900ms forwards"), ("draw-bar", "600ms ease-out forwards")):
+    for cls, timing in (("draw-line", "900ms ease-out forwards"), ("draw-dot", "300ms ease-out 900ms forwards")):
         body = play.get(f"html[data-embed] .{cls}", "")
         assert re.search(rf"animation:\s*aa-{cls}\s+{timing}", body), f".{cls} plays once, only in the deck: {body!r}"
         assert "infinite" not in body
-    reduced = re.search(r"@media \(prefers-reduced-motion: reduce\) \{\s*html\[data-embed\] \.draw-line, html\[data-embed\] \.draw-dot, "
-                        r"html\[data-embed\] \.draw-bar \{ animation: none;", css)
-    assert reduced, "under reduced motion nothing draws in"
+        reduced = media_rules(css, "(prefers-reduced-motion: reduce)").get(f"html[data-embed] .{cls}", "")
+        assert re.search(r"animation:\s*none", reduced), f"under reduced motion .{cls} shows drawn, with nothing drawing in: {reduced!r}"
+
+
+@pytest.mark.parametrize("name", ANIMATED)
+def test_no_figure_carries_a_draw_in_class_none_of_them_uses(name):
+    page = html(f"{name}-animated")
+    assert "draw-bar" not in page, f"{name}: no figure draws a bar in, so the class and its keyframes are gone"
+
+
+@pytest.mark.parametrize("name", ANIMATED)
+def test_under_reduced_motion_a_figure_still_steps_in_the_deck_with_nothing_moving(name):
+    # The plugin's own reduced-motion rule shows every item at once, with opacity 1 !important, and stands 01's layers where their lift takes them.
+    # In the deck an item not reached yet stays unseen over that rule (more specific, and important too), a layer of 01 shows its name only once
+    # its press comes, and no step fades or slides, so a press brings its step whole and at once, as a native slide's does.
+    css = media_rules("".join(re.findall(r"<style>(.*?)</style>", html(f"{name}-animated"), re.S)), "(prefers-reduced-motion: reduce)")
+    important = lambda sel, prop, value: re.search(rf"(^|;)\s*{prop}\s*:\s*{value}\s*!important\s*(;|$)", css.get(sel, "").strip()) is not None  # noqa: E731
+    assert important("html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part])", "opacity", "0"), \
+        f"{name}: under reduced motion an item not reached yet stays unseen in the deck"
+    assert important("html[data-embed] .motion-ready [data-part]:not(.is-visible) .part-label", "opacity", "0"), \
+        f"{name}: under reduced motion a layer of 01 shows its name only once its press comes"
+    for sel in ("html[data-embed] .motion-ready [data-motion-item]", "html[data-embed] .motion-ready [data-motion-item] *"):
+        assert important(sel, "transition", "none"), f"{name}: under reduced motion a step appears at once, with no fade ({sel})"
 
 
 def test_02_names_the_verifier_in_its_legend_only_with_the_verifier():
