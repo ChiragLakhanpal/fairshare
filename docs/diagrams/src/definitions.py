@@ -3,15 +3,21 @@ the name, a small picture of the idea, one plain sentence, and where it lives (t
 every night against a SQL twin of the Power BI measure). A strip underneath tells the one time the nightly parity check
 caught a drift.
 
-    .venv/bin/python docs/diagrams/src/definitions.py   # writes docs/diagrams/09-definitions.html
+09a and 09b: the same seven numbers over two slides for the /present deck, three and then four, each card saying how its number
+is calculated in the spec's plain words beside its value for Harbor Business Travel in Sep 2026. Each page closes on where the
+numbers live and why that matters. On the animated pages a card's frame and name show on arrival, its words and its value come
+on its press, and in the deck the newest card leads while the earlier ones recede (aa.EMBED_CSS); the close is the last press.
 
-The only data numbers printed are the counts of the Oct 12 replay (the drift story). They are dated facts in deck_facts.py,
-so a refreshed app/cache/kpi_parity.csv cannot change this figure.
+    .venv/bin/python docs/diagrams/src/definitions.py   # writes 09-definitions.html, and 09a and 09b, each static and animated
+
+09 prints only the counts of the Oct 12 replay (the drift story). They are dated facts in deck_facts.py, so a refreshed
+app/cache/kpi_parity.csv cannot change this figure. 09a and 09b print the values of deck_facts.py's Harbor facts, and
+check_claims() asserts on every build that they add up the way the cards say.
 """
 from __future__ import annotations
 
 import aa
-from deck_facts import DATED
+from deck_facts import DATED, display, fact
 
 VW, VH = 1280, 720
 NO_TWIN = {"pace_pct"}  # the one number with no SQL twin, so no Power BI mark on its card
@@ -30,11 +36,12 @@ def tabler(name, x, y, size=20, color=aa.INK):
             f'<g {STROKE_ICON.format(c=color)}>{TABLER[name]}</g></svg>')
 
 
-def text(x, y, s, size=13, color=aa.INK, weight=None, family=None, anchor=None, italic=False):
+def text(x, y, s, size=13, color=aa.INK, weight=None, family=None, anchor=None, italic=False, attrs=""):
+    """One line of text; attrs, when given, starts with a space."""
     w = f' font-weight="{weight}"' if weight else ""
     a = f' text-anchor="{anchor}"' if anchor else ""
     i = ' font-style="italic"' if italic else ""
-    return f'<text x="{x}" y="{y}" fill="{color}" font-size="{size}"{w}{i} font-family="{family or aa.SANS}"{a}>{aa.esc(s)}</text>'
+    return f'<text x="{x}" y="{y}" fill="{color}" font-size="{size}"{w}{i} font-family="{family or aa.SANS}"{a}{attrs}>{aa.esc(s)}</text>'
 
 
 def wrap(s, max_px, size=13, em=0.57):
@@ -50,6 +57,25 @@ def wrap(s, max_px, size=13, em=0.57):
     lines.append(cur)
     assert len(lines) <= 2, f"too long for its card: {s!r}"
     return lines
+
+
+SMALL = {"a", "an", "the", "of", "on", "in", "by", "to", "and", "how", "what"}
+
+
+def balance(s, max_px, size, em):
+    """One line if it fits, or two as even as they can be on an Inter width estimate: a break after a comma or a full stop wins a little,
+    and a break after a small word such as "the" loses a little."""
+    fits = lambda line: len(line) * size * em <= max_px  # noqa: E731
+    if fits(s):
+        return [s]
+    words, best = s.split(), None
+    for i in range(1, len(words)):
+        a, b = " ".join(words[:i]), " ".join(words[i:])
+        cost = max(len(a), len(b)) - (12 if a.endswith((",", ".")) else 0) + (12 if words[i - 1].lower() in SMALL else 0)
+        if fits(a) and fits(b) and (best is None or cost < best[0]):
+            best = (cost, [a, b])
+    assert best, f"too long for two lines: {s!r}"
+    return best[1]
 
 
 def replay() -> tuple[int, int]:
@@ -206,7 +232,104 @@ TITLE = "The seven numbers"
 DESC = ("Visual glossary of the seven fairshare numbers, AA revenue, AA share, fair share, the share gap in points and dollars, "
         "year over year change and pace against goal, each defined once in the metric view; six are checked every night against a SQL twin of the Power BI measure.")
 
+
+# ---------------------------------------------------------------- 09a and 09b: the seven numbers over two stepped slides
+
+NUMBERS = [  # (key in ops.kpi_definitions, name, how it is calculated in the spec's plain words, the fact for Harbor in Sep 2026, its unit)
+    ("aa_revenue", "AA revenue", "AA revenue is AA's revenue on the rows in question.", "harbor_revenue_sep26_usd", ""),
+    ("aa_share", "AA share", "AA share is AA revenue divided by everything the agency sold on the same routes, all airlines together.",
+     "harbor_share_sep26", ""),
+    ("fair_share", "Fair share", "Fair share is AA's share of the seats on each route, weighted by how much the agency sold there. "
+                                 "The seat shares are made up.", "harbor_fair_share_sep26", ""),
+    ("share_gap_pts", "Share gap in points", "The share gap in points is AA share minus fair share.", "harbor_gap_pts_sep26", " points"),
+    ("share_gap_usd", "Share gap in dollars", "The share gap in dollars is AA revenue minus what fair share would have brought in.",
+     "harbor_gap_usd_sep26", ""),
+    ("yoy_revenue_pct", "Year over year", "Year over year compares AA revenue with the same month last year.", "harbor_yoy_sep26", ""),
+    ("pace_pct", "Pace", "Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported.",
+     "harbor_pace_sep26", "%"),  # pace_pct is a percent of the goal so far; the fact shows it bare, as the notes say it
+]
+EXAMPLE = "Harbor, Sep 2026"  # whose values the cards print: the agency and month the Ask demo and figure 08 are about
+WHERE = ("Six of the seven numbers are measures in the metric view gold.sales_metrics, worked out from the gold tables when a query runs, "
+         "so any grouping gives the right ratio. Pace is stored in gold.agency_pace, because its goal is set per agency and year.",
+         "Genie, the dashboard and Ask read them from that one metric view, so their numbers agree.")
+PAGES = [  # slug, title, the numbers on the page
+    ("09a-numbers-share", "Three of the seven numbers, and what goes into each", NUMBERS[:3]),
+    ("09b-numbers-gaps", "The other four numbers, and what goes into each", NUMBERS[3:]),
+]
+CARDS_TOP, CARDS_BOTTOM, CARD_X, CARD_W = 168, 526, 40, 1200    # the cards fill the same band on both pages
+NAME_X, DEF_X, DEF_W, VALUE_X = 64, 320, 680, 1216               # the name, how it is calculated, and the value, right aligned
+EM, EM_BOLD = 0.5, 0.55  # Inter's advance per character at 400 and 600, a little over what a browser measures here (0.47 to 0.50, 0.48 to 0.54)
+NAME_SIZE, DEF_SIZE, DEF_LEADING, VALUE_SIZE = 22, 20, 27, 26
+WHERE_Y, WHERE_H, WHERE_SIZE, WHERE_LEADING = 544, 128, 17, 24  # the close, under the cards and over the deck's footer
+
+
+def check_claims() -> None:
+    """What the cards say about Harbor's numbers, checked on every build so a rebuilt lakehouse cannot quietly change the story: the gap in
+    points is AA share minus fair share, the two gaps point the same way, and year over year matches the two Septembers figure 08 starts
+    and ends on."""
+    share, fair, gap = fact("harbor_share_sep26"), fact("harbor_fair_share_sep26"), fact("harbor_gap_pts_sep26")
+    assert abs(share - fair - gap) <= 0.1 + 1e-9, f"the share gap in points should be AA share minus fair share: {share} - {fair} against {gap}"
+    assert (gap < 0) == (fact("harbor_gap_usd_sep26") < 0), "the share gap in dollars should point the same way as the gap in points"
+    now, prior = fact("harbor_revenue_sep26_usd"), fact("harbor_revenue_sep25_usd")
+    assert abs(100 * (now - prior) / prior - fact("harbor_yoy_sep26")) <= 0.1, "year over year should match Harbor's two Septembers"
+
+
+def numbers_page(title: str, cards, motion: bool = False) -> str:
+    """One page of the seven numbers. Structure shows on arrival: the title, the heading over the values, and each card's frame and name.
+    With motion, each card's words and value are one press, marked to recede once the next comes, and where the numbers live is the
+    last press; without it, every mark at once."""
+    out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
+    out.append(text(40, 100, title, 16, aa.INK, 600))
+    # the heading over the values, as the deck's native slides set a label: 12px mono, upper case, tracked
+    out.append(text(VALUE_X, CARDS_TOP - 16, EXAMPLE.upper(), 12, aa.MUTED, 500, aa.MONO, "end").replace("<text ", '<text letter-spacing="0.14em" ', 1))
+    gap = 14 if len(cards) < 4 else 10
+    h = (CARDS_BOTTOM - CARDS_TOP - gap * (len(cards) - 1)) / len(cards)
+    for k, (key, name, words, fact_key, unit) in enumerate(cards):
+        y = CARDS_TOP + k * (h + gap)
+        cy = y + h / 2
+        out.append(f'<g data-card="{key}"><rect x="{CARD_X}" y="{y:g}" width="{CARD_W}" height="{h:g}" rx="6" fill="#ffffff" stroke="{aa.RULE_SOLID}" stroke-width="1"/>'
+                   + text(NAME_X, f"{cy + 8:g}", name, NAME_SIZE, aa.INK, 600, attrs=f' data-name="{key}"') + "</g>")
+        lines = balance(words, DEF_W, DEF_SIZE, EM)
+        first = cy - (len(lines) - 1) * DEF_LEADING / 2 + 7
+        assert first - DEF_SIZE > y + 6 and first + (len(lines) - 1) * DEF_LEADING + aa.TEXT_DESCENT * DEF_SIZE < y + h - 6, f"{name}: its words overflow the card"
+        value = display(fact_key) + unit
+        assert NAME_X + len(name) * NAME_SIZE * EM_BOLD < DEF_X - 8 and VALUE_X - len(value) * VALUE_SIZE * EM_BOLD > DEF_X + DEF_W + 8, \
+            f"{name}: its name or its value runs into how it is calculated"
+        # on the animated page, the card's outline again with no stroke: in the deck it is blue while this card is the newest, as a native
+        # slide's newest tile is
+        marks = [f'<rect x="{CARD_X}" y="{y:g}" width="{CARD_W}" height="{h:g}" rx="6" fill="none" stroke="none" stroke-width="1.5" data-lead/>'] if motion else []
+        marks += [text(DEF_X, f"{first + i * DEF_LEADING:g}", line, DEF_SIZE, aa.INK, attrs=f' data-def="{key}"') for i, line in enumerate(lines)]
+        marks.append(text(VALUE_X, f"{cy + 9:g}", value, VALUE_SIZE, aa.INK, 600, anchor="end", attrs=f' data-value="{key}"'))
+        out.append(aa.motion_item(k + 1, f"{name}. {words} {EXAMPLE}: {value}.", marks, recede=True) if motion else "\n        ".join(marks))
+    # where the numbers live and why that matters, on a quiet band under the cards: the last press, and the last word on the page
+    assert WHERE_Y + WHERE_H <= aa.STAGE_BOTTOM - 4, "the close runs under the deck's footer"
+    close = [f'<rect x="{CARD_X}" y="{WHERE_Y}" width="{CARD_W}" height="{WHERE_H}" rx="6" fill="{aa.PAPER2}"/>',
+             aa.icon("databricks", NAME_X, WHERE_Y + 22, 20, aa.MUTED)]
+    where, why = WHERE
+    assert len(why) * WHERE_SIZE * EM_BOLD <= VALUE_X - 100, "why the numbers matter runs past the band"
+    lines = [(line, 400) for line in balance(where, VALUE_X - 100, WHERE_SIZE, EM)] + [(why, 600)]
+    base = WHERE_Y + (WHERE_H - (len(lines) - 1) * WHERE_LEADING) / 2 + 6
+    assert base - WHERE_SIZE > WHERE_Y + 8 and base + (len(lines) - 1) * WHERE_LEADING + aa.TEXT_DESCENT * WHERE_SIZE < WHERE_Y + WHERE_H - 8, "the close overflows its band"
+    close += [text(100, f"{base + i * WHERE_LEADING:g}", line, WHERE_SIZE, aa.INK, weight, attrs=" data-where") for i, (line, weight) in enumerate(lines)]
+    out.append(aa.motion_item(len(cards) + 1, f"Where the numbers live. {where} {why}", close) if motion else "\n        ".join(close))
+    return "\n        ".join(out)
+
+
+def numbers_desc(cards) -> str:
+    named = [name if name.startswith("AA") else name[0].lower() + name[1:] for _, name, *_ in cards]
+    said = (f"{', '.join(named[:-1])} and {named[-1]}, each beside how it is calculated and its value for Harbor Business Travel in Sep 2026, "
+            "then where the seven numbers live: six as measures in the metric view gold.sales_metrics and pace in gold.agency_pace, read by Genie, the dashboard and Ask.")
+    return said[0].upper() + said[1:]
+
+
 if __name__ == "__main__":
     html = aa.page(slug="09-definitions", title=TITLE, desc=DESC, eyebrow="fairshare · the data", body=build())
     (aa.OUT / "09-definitions.html").write_text(html, encoding="utf-8")
     print("wrote 09-definitions.html")
+    check_claims()
+    for slug, title, cards in PAGES:
+        common = dict(title=title, desc=numbers_desc(cards), eyebrow="fairshare · the data", vw=VW, vh=VH)
+        (aa.OUT / f"{slug}.html").write_text(aa.page(slug=slug, body=numbers_page(title, cards), **common), encoding="utf-8")
+        page = aa.animated(slug=f"{slug}-animated", body=numbers_page(title, cards, motion=True), steps=len(cards) + 1, css=aa.FADE_ONLY, **common)
+        (aa.OUT / f"{slug}-animated.html").write_text(page, encoding="utf-8")
+        print(f"wrote {slug}.html and {slug}-animated.html")

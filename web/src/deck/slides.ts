@@ -142,9 +142,14 @@ export const slides: Slide[] = [
     note: "Four of the eight, a press each. The first one's count already leaves out Sunbelt's missing months. They all pass, and the other four are in the backup. Next, the {kpis} numbers.",
   },
   {
-    id: "numbers", part: "numbers", kind: "image", title: "The seven numbers", min: 1.75, data: true,
-    asset: "export/09-definitions.png",
-    note: "Shares are like batting averages, add up hits and at-bats, never average the averages. In Q3 the {agencies} shares average {avg_of_shares_q3}, but the share of the total is {share_of_total_q3}. Ask where AA's fair share differs, mine's made up.",
+    id: "numbers", part: "numbers", kind: "animated", title: "Three of the seven numbers, and what goes into each", min: 1, data: true,
+    asset: "09a-numbers-share-animated.html", thumb: "export/09a-numbers-share.png",
+    note: "Three of the seven, a press each, Harbor's September as the example. Fair share runs on my made-up seats. Last press, shares get worked out at query time, like batting averages, never average the averages. Then the other four.",
+  },
+  {
+    id: "gaps", part: "numbers", kind: "animated", title: "The other four numbers, and what goes into each", min: 1, data: true,
+    asset: "09b-numbers-gaps-animated.html", thumb: "export/09b-numbers-gaps.png",
+    note: "The other four, a press each. Harbor's under fair share in points and dollars, and down on last September. Pace only counts months an agency reported. Last press, same metric view. Then every agency against fair share.",
   },
   {
     id: "share-fair", part: "numbers", kind: "image", title: "AA share against fair share, Q3 2026", min: 1, data: true,

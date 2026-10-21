@@ -86,6 +86,20 @@ def test_harbor_share_matches_the_metric_view():
     assert list(mv["pct"]) == [v["harbor_share_sep25"]["value"], v["harbor_share_sep26"]["value"]]
 
 
+def test_harbors_september_on_the_numbers_cards_is_what_the_metric_view_says():
+    """The numbers and gaps slides print each number for Harbor in Sep 2026. Six are the metric view's measures, so each must equal the value the
+    metric view itself returned on Databricks (the parity file, newest run); pace comes from gold.agency_pace, which has no measure to compare."""
+    mv = db.query(f"""SELECT kpi, mv_value FROM read_csv('{ROOT / "app/cache/kpi_parity.csv"}')
+                      WHERE agency = 'Harbor Business Travel' AND sales_month = DATE '2026-09-01' AND twin_version IN ('v1', 'v2')
+                      QUALIFY ROW_NUMBER() OVER (PARTITION BY kpi ORDER BY run_at DESC) = 1""")
+    got = dict(zip(mv["kpi"], mv["mv_value"]))
+    v = {k: f["value"] for k, f in deck_facts.collect()["facts"].items()}
+    assert (round(got["aa_revenue"]), round(100 * got["aa_share"], 1), round(100 * got["fair_share"], 1)) == \
+        (v["harbor_revenue_sep26_usd"], v["harbor_share_sep26"], v["harbor_fair_share_sep26"])
+    assert (round(got["share_gap_pts"], 1), round(got["share_gap_usd"]), round(100 * got["yoy_revenue_pct"], 1)) == \
+        (v["harbor_gap_pts_sep26"], v["harbor_gap_usd_sep26"], v["harbor_yoy_sep26"])
+
+
 def test_keys_are_placeholders_and_the_text_has_no_long_dashes():
     """A slide writes {key}, so a key is snake_case and names one number, in facts or in the dated section but never both.
     The copy rule (no em or en dashes) covers every sentence the deck can print from the file."""

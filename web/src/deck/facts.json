@@ -1348,6 +1348,24 @@
    "sql": "SELECT ROUND(d.fair_share_effect) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
    "value": 2420
   },
+  "harbor_fair_share_sep26": {
+   "display": "40.1%",
+   "grain": "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one per route) weighted by what Harbor sold.",
+   "sql": "SELECT ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-09-01'",
+   "value": 40.1
+  },
+  "harbor_gap_pts_sep26": {
+   "display": "-5.9",
+   "grain": "Harbor Business Travel, Sep 2026, all routes together: AA share minus fair share, in points. Fair share comes from made-up seat shares.",
+   "sql": "SELECT ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-09-01'",
+   "value": -5.9
+  },
+  "harbor_gap_usd_sep26": {
+   "display": "-$56,961",
+   "grain": "Harbor Business Travel, Sep 2026, all routes together: AA revenue minus the revenue fair share would bring. Fair share comes from made-up seat shares.",
+   "sql": "SELECT ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nJOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-09-01'",
+   "value": -56961
+  },
   "harbor_mar26_chg_usd": {
    "display": "-$194,698",
    "grain": "Harbor Business Travel, Mar 2026: the change in AA revenue against Mar 2025.",
@@ -1413,6 +1431,12 @@
    "grain": "Harbor Business Travel, Sep 2025 to Sep 2026: the part of the change from selling more or less travel overall.",
    "sql": "SELECT ROUND(d.volume_effect) AS value\nFROM aa_demo.ops.decomposition d\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = d.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND d.sales_month = DATE '2026-09-01'",
    "value": 32836
+  },
+  "harbor_yoy_sep26": {
+   "display": "-16.4%",
+   "grain": "Harbor Business Travel, Sep 2026, all routes together: the change in AA revenue against Sep 2025, as a percent.",
+   "sql": "SELECT ROUND(100 * (SUM(CASE WHEN s.sales_month = DATE '2026-09-01' THEN s.aa_revenue END)\n                    - SUM(CASE WHEN s.sales_month = DATE '2025-09-01' THEN s.aa_revenue END))\n                 / NULLIF(SUM(CASE WHEN s.sales_month = DATE '2025-09-01' THEN s.aa_revenue END), 0), 1) AS value\nFROM aa_demo.gold.fact_agency_sales_monthly s\nJOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id\nWHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month IN (DATE '2025-09-01', DATE '2026-09-01')",
+   "value": -16.4
   },
   "kpis": {
    "display": "7",

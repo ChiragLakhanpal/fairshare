@@ -1,7 +1,7 @@
 # Diagrams for the presentation
 
 American Airlines colors and fonts from the app's own theme, with the official AA logo in the corner of every image. Each
-diagram is a live HTML page, and every figure's slide image is in `export/` (2560 by 1440, 16:9). Seven of them also come as an
+diagram is a live HTML page, and every figure's slide image is in `export/` (2560 by 1440, 16:9). Nine of them also come as an
 animated page that steps forward one idea at a time. The deck at `/present` (the app's presentation mode, in
 `web/src/deck/`) shows the figures as slides and steps the animated pages with its arrow keys. Two other PNGs sit in
 `export/`: the stills, which are screenshots of the running app, not figures (see "The two stills").
@@ -12,7 +12,7 @@ animated page that steps forward one idea at a time. The deck at `/present` (the
 |---|---|---|
 | Title | `hairline/title-b-airliner.html` (the chosen one; A and C stay as alternates) | |
 | The system | `hairline/stack.html` | `01-system-exploded.html`: five layers and where each one lives (Databricks, AI Foundry, Microsoft). `01-system-exploded-animated.html` lifts one layer per arrow key. |
-| The data | `hairline/opener-elevator.html` | `06-data-pipeline.html` where the numbers come from, `10-coverage.html` every agency by every month, `11-revenue-by-month.html` AA revenue by month, `14-what-was-planted.html` what was planted in the data and what cleaning did, `09-definitions.html` the seven numbers, `07-fair-share.html` what fair share means, `12-share-vs-fair.html` AA share against fair share for each agency, `08-why-it-moved.html` why a number moved |
+| The data | `hairline/opener-elevator.html` | `06-data-pipeline.html` where the numbers come from, `10-coverage.html` every agency by every month, `11-revenue-by-month.html` AA revenue by month, `14-what-was-planted.html` what was planted in the data and what cleaning did, `09-definitions.html` the seven numbers on one page, `09a-numbers-share.html` and `09b-numbers-gaps.html` the same seven over two slides, each with how it is calculated, `07-fair-share.html` what fair share means, `12-share-vs-fair.html` AA share against fair share for each agency, `08-why-it-moved.html` why a number moved |
 | Trust | `hairline/opener-sieve.html` | `02-answer-checked.html`: what the account manager sees, and the checks behind the screen |
 | Delegate | `hairline/opener-riffle.html` | `03-delegate.html`: agents draft, a person decides, then Dynamics 365 and Outlook |
 | The value | `hairline/opener-query.html` | `04-journey-sales-director.html` and `05-journey-account-manager.html`: each step of the process as a sequence, with the real tools and tables |
@@ -23,9 +23,9 @@ There is no figure 13. `hairline/png/title-b.png` is the title slide image, and 
 
 ## The animated pages
 
-`01`, `02`, `04`, `05`, `06`, `08` and `11` also come as `<name>-animated.html`: the same figure as its static page, in
-diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays complete.
-Each step brings in one idea. On `01` each layer lifts clear; on the other six the marks only fade in, and nothing
+`01`, `02`, `04`, `05`, `06`, `08`, `09a`, `09b` and `11` also come as `<name>-animated.html`: the same figure as its static page,
+in diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays complete.
+Each step brings in one idea. On `01` each layer lifts clear; on the other eight the marks only fade in, and nothing
 moves. The logo band, the headers, lane labels or actors, the lifelines, axes or tier cards, a chart's lines, and the legend
 stay in place, except what gives the point away: the legend key that names the focal item or the check, a caption, a payoff
 line and a chart's notes come in with the step they belong to.
@@ -38,6 +38,8 @@ line and a chart's notes come in with the step they belong to.
 | `05-journey-account-manager-animated.html` | 7 | the nightly job's request, the fixed SQL, the writer's draft, the verifier with the legend key for the check, the waiting page and Monday's look, the approve branch, the reject branch and the payoff line |
 | `06-data-pipeline-animated.html` | 7 | the sources, then what bronze, silver, gold and the definitions hold, the readers, the one sentence on who can see what (the two headings and the four tier cards, each with its name and schema, show from the start) |
 | `08-why-it-moved-animated.html` | 5 | September 2025, volume, the shift between routes (mix) with its note, share with the callout and its legend key, September 2026 with the sum, each with the line that carries the total into it |
+| `09a-numbers-share-animated.html` | 4 | AA revenue, AA share and fair share, a card a press, each with how it is calculated and its value for Harbor in Sep 2026, then where the seven numbers live and why that matters (the title, the heading over the values, and each card's frame and name show from the start) |
+| `09b-numbers-gaps-animated.html` | 5 | the share gap in points, the share gap in dollars, year over year and pace, a card a press in the same way, then the same close |
 | `11-revenue-by-month-animated.html` | 4 | the band over March and April 2026 with each month's net change against 2025, then one note a press beside it: Sunbelt sent nothing, Harbor's AA revenue fell, the other agencies grew (the title, the axes, both lines with their years and the source line show from the start) |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
@@ -50,8 +52,10 @@ controller is ready, sets `data-embed` on the frame's `html` element, which hide
 the logo band, hides every step the controller has not reached (on its own a page keeps the plugin's faded look), and
 fits the figure to the frame (`EMBED_CSS` in `src/aa.py`), then sends Home or End and the arrow keys to the figure. A
 chart draws in once, when the frame shows: on `11` each line traces itself left to right over 900ms, and its dots and
-its year come in after it; under reduced motion, and on a backward arrival or a load, it shows drawn. On `11` the note
-on the current press is also in ink, and an earlier one recedes to the muted text. Which slide uses which page is in
+its year come in after it; under reduced motion, and on a backward arrival or a load, it shows drawn. The newest item
+leads: an item marked `data-recede` (the notes on `11`, the cards on `09a` and `09b`) has its words in ink while its press
+is the current one, and on `09a` and `09b` its card is outlined in blue, as a native slide's newest tile is; when the next
+press comes, its words recede to the muted text and the outline goes. Which slide uses which page is in
 `web/src/deck/slides.ts`. An animated page has no PNG of its own: the static page's export is its thumbnail, which the
 deck shows only when the frame is still not ready after `FRAME_FALLBACK_MS` (`web/src/lib/deck.ts`); until then the
 slide shows nothing of the figure. In the deck a figure keeps its content between y 64 and y 680, clear of the frame's
@@ -122,7 +126,7 @@ python3 docs/diagrams/src/swimlane.py                 # 03
 .venv/bin/python docs/diagrams/src/journeys.py        # 04, 05 (both versions)
 .venv/bin/python docs/diagrams/src/data_diagrams.py   # 06 (both versions), 07
 .venv/bin/python docs/diagrams/src/waterfall.py       # 08 (both versions)
-.venv/bin/python docs/diagrams/src/definitions.py     # 09
+.venv/bin/python docs/diagrams/src/definitions.py     # 09, and 09a and 09b (both versions)
 .venv/bin/python docs/diagrams/src/coverage.py        # 10
 .venv/bin/python docs/diagrams/src/revenue.py         # 11 (both versions)
 .venv/bin/python docs/diagrams/src/share_fair.py      # 12

@@ -118,8 +118,9 @@ def page(*, slug, title, desc, eyebrow, body, vw=1280, vh=720) -> str:
 # Embed mode for the /present deck. No script: verify-motion.py allows one per motion page (the controller) and lint-skin.py
 # rejects on* attributes, so the deck sets data-embed itself once the controller is ready, then sends Home or End. In the deck a
 # step the presenter has not reached shows nothing (the plugin's own reveal leaves it at .12, which still gives the end away), the
-# figure's logo band goes (the deck's frame draws the one logo), and the draw-in classes below play. evals/test_figures_in_deck.py
-# reads these rules in every animated page, so a change here means rebuilding them all.
+# figure's logo band goes (the deck's frame draws the one logo), the draw-in classes below play, and an item marked data-recede (a note,
+# a card) leads while it is the current step and recedes once a later one arrives. evals/test_figures_in_deck.py reads these rules in every
+# animated page, so a change here means rebuilding them all.
 EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the controller is ready; only the figure shows, fitted to the frame */
     html[data-embed] body { margin: 0; padding: 0; min-height: 0; display: block; overflow: hidden; background: var(--color-paper); }
     html[data-embed] .eyebrow, html[data-embed] h1, html[data-embed] [data-motion-controls] { display: none !important; }
@@ -136,6 +137,13 @@ EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the contro
     html[data-embed] .draw-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: aa-draw-line 900ms ease-out forwards; }
     html[data-embed] .draw-dot { opacity: 0; animation: aa-draw-dot 300ms ease-out 900ms forwards; }
     html[data-embed] .draw-bar { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); animation: aa-draw-bar 600ms ease-out forwards; }
+    /* the newest item leads: the words of an item marked data-recede are ink while it is the current step and go back to the muted text once
+       a later step arrives, and a mark in it marked data-lead (a card's outline, drawn with no stroke) is outlined in blue only while it is
+       current, as a native slide's newest tile is, all over the plugin's step time. On its own a page keeps the colors it is drawn in */
+    html[data-embed] .motion-ready [data-motion-item][data-recede] text { fill: var(--color-muted); transition: fill var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current text { fill: var(--color-ink); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede] [data-lead] { stroke: var(--color-accent); stroke-opacity: 0; transition: stroke-opacity var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current [data-lead] { stroke-opacity: 1; }
     @keyframes aa-draw-line { to { stroke-dashoffset: 0; } }
     @keyframes aa-draw-dot { to { opacity: 1; } }
     @keyframes aa-draw-bar { to { transform: scaleY(1); } }
@@ -193,12 +201,15 @@ def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def motion_item(step: int, label: str, marks) -> str:
+def motion_item(step: int, label: str, marks, recede: bool = False) -> str:
     """One step of an animated figure: its marks in a single group that the controller reveals together. The label is what
-    the controller announces ("Step 2 of 7: ..."), so it says in plain words what the step shows."""
+    the controller announces ("Step 2 of 7: ..."), so it says in plain words what the step shows. With recede, the step's words
+    lead in ink while it is the current one and go muted once a later step arrives, and its data-lead mark is outlined in blue
+    only while it is current, in the deck (EMBED_CSS)."""
     marks = list(marks)
     assert marks, f"motion step {step} holds no marks"
-    return f'<g data-motion-item data-step="{step}" aria-label="{esc(label)}">\n          ' + "\n          ".join(marks) + "\n        </g>"
+    mark = " data-recede" if recede else ""
+    return f'<g data-motion-item data-step="{step}"{mark} aria-label="{esc(label)}">\n          ' + "\n          ".join(marks) + "\n        </g>"
 
 
 # ---------------------------------------------------------------- brand and platform marks

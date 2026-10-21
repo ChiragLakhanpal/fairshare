@@ -112,15 +112,15 @@ describe("slides.ts", () => {
 });
 
 // The talk as the spec's table tells it: the main path in order, each slide with its part, its minutes and, on the short path, its minutes
-// there. row is split in two, row and seats, a minute each, and numbers keeps 1.75 minutes until gaps joins the path after it.
+// there. row is split in two, row and seats, a minute each, and the seven numbers take two slides, numbers and gaps, a minute each.
 const TALK: [id: string, part: Slide["part"], min: number, short?: number][] = [
   ["welcome", "open", 0.5, 0.5], ["agenda", "open", 0.5, 0.5],
   ["problem", "steps", 1, 1],
   ["what", "modes", 0.5, 0.5], ["query-opener", "modes", 0.25], ["ask", "modes", 3.5, 2.5], ["director", "modes", 1.25], ["riffle-opener", "modes", 0.25],
   ["delegate", "modes", 1.25], ["precall", "modes", 3, 2],
   ["stack-opener", "numbers", 0.25], ["system", "numbers", 2.25, 1.5], ["elevator-opener", "numbers", 0.25], ["pipeline", "numbers", 1.5],
-  ["row", "numbers", 1], ["seats", "numbers", 1], ["revenue", "numbers", 0.75], ["checks", "numbers", 1], ["numbers", "numbers", 1.75],
-  ["share-fair", "numbers", 1], ["moved", "numbers", 1.5],
+  ["row", "numbers", 1], ["seats", "numbers", 1], ["revenue", "numbers", 0.75], ["checks", "numbers", 1], ["numbers", "numbers", 1],
+  ["gaps", "numbers", 1], ["share-fair", "numbers", 1], ["moved", "numbers", 1.5],
   ["sieve-opener", "checks", 0.25], ["checked", "checks", 2], ["guardrails", "checks", 1.5], ["evals", "checks", 1, 1.5], ["evals-more", "checks", 1],
   ["limits", "checks", 1],
   ["at-aa", "aa", 1.5], ["azure", "aa", 0.75], ["start", "aa", 1, 1], ["know", "aa", 1],
@@ -189,6 +189,11 @@ describe("what the talk's slides hold", () => {
   it("steps through revenue by month on its animated page, with the static figure as its thumb, as a figure that prints data", () => {
     const r = byId("revenue");
     expect([r.kind, r.asset, r.thumb, r.data]).toEqual(["animated", "11-revenue-by-month-animated.html", "export/11-revenue-by-month.png", true]);
+  });
+  it("steps through the seven numbers on two animated pages, numbers and then gaps, as figures that print data", () => {
+    const shape = (id: string) => { const x = byId(id); return [x.kind, x.asset, x.thumb, x.data]; };
+    expect(shape("numbers")).toEqual(["animated", "09a-numbers-share-animated.html", "export/09a-numbers-share.png", true]);
+    expect(shape("gaps")).toEqual(["animated", "09b-numbers-gaps-animated.html", "export/09b-numbers-gaps.png", true]);
   });
   it("names four checks on the main path, under a title that does not say checks, and all eight in the backup", () => {
     const { keys } = layout("checks", "checks");

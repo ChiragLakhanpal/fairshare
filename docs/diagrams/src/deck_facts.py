@@ -237,6 +237,17 @@ def _agency_q3_facts() -> list[tuple[str, str, str, str]]:
     return out
 
 
+def _harbor_sep26(expr: str) -> str:
+    """Harbor Business Travel in Sep 2026 over all routes together, one number. Like _agency_q3, the metric view's definitions are
+    written out: fair share is AA's seat share (made up, one per route) weighted by what the agency sold on each route."""
+    return f"""
+        SELECT {expr} AS value
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+        WHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-09-01'"""
+
+
 def _corporate_low(corporate: str) -> str:
     """The lowest month of one corporate's bookings: fare times tickets, on the tickets booked in the month."""
     return f"""
@@ -395,6 +406,24 @@ FACTS: list[tuple[str, str, str, str]] = [
     ("harbor_share_sep26", _harbor_share("2026-09-01"), "pct", "Harbor Business Travel, Sep 2026: AA share, all routes together."),
     ("harbor_share_jun26", _harbor_share("2026-06-01"), "pct", "Harbor Business Travel, Jun 2026: AA share, all routes together."),
     ("harbor_share_jul26", _harbor_share("2026-07-01"), "pct", "Harbor Business Travel, Jul 2026: AA share, all routes together."),
+
+    # --- Harbor in Sep 2026, the example beside each definition on the numbers and gaps slides; harbor_revenue_sep26_usd, harbor_share_sep26
+    # and harbor_pace_sep26 are the other three
+    ("harbor_fair_share_sep26", _harbor_sep26("ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
+     "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one per route) weighted by what Harbor sold."),
+    ("harbor_gap_pts_sep26",
+     _harbor_sep26("ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pts",
+     "Harbor Business Travel, Sep 2026, all routes together: AA share minus fair share, in points. Fair share comes from made-up seat shares."),
+    ("harbor_gap_usd_sep26", _harbor_sep26("ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share))"), "usd_signed",
+     "Harbor Business Travel, Sep 2026, all routes together: AA revenue minus the revenue fair share would bring. Fair share comes from made-up seat shares."),
+    ("harbor_yoy_sep26", """
+        SELECT ROUND(100 * (SUM(CASE WHEN s.sales_month = DATE '2026-09-01' THEN s.aa_revenue END)
+                            - SUM(CASE WHEN s.sales_month = DATE '2025-09-01' THEN s.aa_revenue END))
+                         / NULLIF(SUM(CASE WHEN s.sales_month = DATE '2025-09-01' THEN s.aa_revenue END), 0), 1) AS value
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month IN (DATE '2025-09-01', DATE '2026-09-01')""", "pct",
+     "Harbor Business Travel, Sep 2026, all routes together: the change in AA revenue against Sep 2025, as a percent."),
 
     # --- the two months Sunbelt is missing from, what Harbor did in them, and what the other agencies did
     ("yoy_mar26", _yoy("03"), "pct", "Mar 2026, all agencies: AA revenue against Mar 2025."),

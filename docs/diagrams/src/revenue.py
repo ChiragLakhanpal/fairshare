@@ -11,7 +11,8 @@ the smallest text, in grey.
 
 The animated page is the same figure in steps for the /present deck. The title, the axes, the lines and the source line show on
 arrival, and in the deck the lines trace left to right while their dots and year labels follow (aa.EMBED_CSS). The band with
-its net change comes on the first press, then one note per press. The static page shows it all at once.
+its net change comes on the first press, then one note per press, and in the deck the newest note leads (aa.EMBED_CSS's recede
+hook). The static page shows it all at once.
 
 Every number comes from deck_facts.py or from this file's own queries on the same lakehouse; check_claims() asserts on every
 build what the notes say about the data.
@@ -33,12 +34,6 @@ NOTE_SIZE, NOTE_LEADING = 13, 19   # the notes beside the band: under the 16px t
 SOURCE_Y = 662               # the source line's baseline, the last line on the stage
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve")
 TITLE, EYEBROW = "AA revenue by month", "fairshare · the data"
-# The animated page's own rules, after the plugin's: its items fade in where they stand, and in the deck the note on the current
-# press leads in ink while an earlier one recedes to the muted text it is drawn in, over the plugin's step time. On its own the
-# page keeps every note muted, as the static page does.
-MOTION_CSS = (f"    {aa.FADE_ONLY}\n"
-              "    html[data-embed] .motion-ready [data-motion-item] [data-note] { transition: fill var(--motion-step) var(--motion-ease); }\n"
-              "    html[data-embed] .motion-ready [data-motion-item].is-current [data-note] { fill: var(--color-ink); }\n")
 
 
 def text(x, y, s, *, size=12, weight=400, fill=aa.INK, mono=False, anchor="start", attrs=""):
@@ -163,14 +158,14 @@ def build(by_year, holes, shares, motion=False) -> str:
         m = max(by_year[year])
         out.append(text(f"{x(m) + 12:.1f}", f"{y(by_year[year][m]) + 4:.1f}", str(year), weight=600, fill=color, mono=True, attrs=follow))
     # steps 2 to 4: what made the change, one note per press, beside the band and clear of the lines' highest points to its right,
-    # in the muted text of a note (in the deck the newest one leads, MOTION_CSS)
+    # in the muted text of a note (in the deck the newest one leads in ink, through aa.EMBED_CSS's recede hook)
     nx = band_x + band_w + 16
     said = notes(by_year)
     peak = min(y(v) for yr in years for m, v in by_year[yr].items() if x(m) > nx) - 4.75  # a dot's top, with its stroke
     assert label_y + (len(said) - 1) * NOTE_LEADING + aa.TEXT_DESCENT * NOTE_SIZE + 6 <= peak, "the notes run into the lines"
     for k, (key, sentence) in enumerate(said):
         mark = text(f"{nx:.1f}", label_y + k * NOTE_LEADING, sentence, size=NOTE_SIZE, fill=aa.MUTED, attrs=f' data-note="{key}"')
-        out.append(aa.motion_item(k + 2, sentence, [mark]) if motion else mark)
+        out.append(aa.motion_item(k + 2, sentence, [mark], recede=True) if motion else mark)
     # where the lines come from: the smallest text, in grey, last
     assert SOURCE_Y + aa.TEXT_DESCENT * 11 <= aa.STAGE_BOTTOM, "the source line runs under the deck's footer"
     out.append(aa.icon("databricks", 40, SOURCE_Y - 11, 14, aa.MUTED))
@@ -190,6 +185,6 @@ if __name__ == "__main__":
     common = dict(title=TITLE, desc=desc(data[0], data[1]), eyebrow=EYEBROW, vw=VW, vh=VH)
     html = aa.page(slug="11-revenue-by-month", body=build(*data), **common)
     (aa.OUT / "11-revenue-by-month.html").write_text(html, encoding="utf-8")
-    html = aa.animated(slug="11-revenue-by-month-animated", body=build(*data, motion=True), steps=1 + len(notes(data[0])), css=MOTION_CSS, **common)
+    html = aa.animated(slug="11-revenue-by-month-animated", body=build(*data, motion=True), steps=1 + len(notes(data[0])), css=aa.FADE_ONLY, **common)
     (aa.OUT / "11-revenue-by-month-animated.html").write_text(html, encoding="utf-8")
     print("wrote 11-revenue-by-month.html and 11-revenue-by-month-animated.html")

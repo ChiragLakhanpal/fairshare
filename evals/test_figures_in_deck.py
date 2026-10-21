@@ -4,9 +4,11 @@ The deck's frame covers y 0 to 64 of a figure's 1280 by 720 view box with its he
 keeps its marks between y 64 and y 680; the logo band at the top is hidden in the deck. In the deck's embed mode (aa.EMBED_CSS, baked into every
 animated page when it is built) an item the controller has not reached shows nothing, and whatever gives a figure's point away (a legend entry that
 names the focal item, a caption, a payoff line) comes in with the step that brings in its item. A figure's structure (its axes, headings, actors and
-frame) shows on arrival, and a chart's lines draw then; its notes come one per press. These read the generated pages; rebuild them with the commands
-in docs/diagrams/README.md.
+frame) shows on arrival, and a chart's lines draw then; its notes come one per press. An item marked data-recede leads in ink while it is the current
+step and recedes to the muted text once a later one arrives (aa.EMBED_CSS again), so the newest note or card leads. These read the generated pages;
+rebuild them with the commands in docs/diagrams/README.md.
 """
+import json
 import re
 import sys
 from html.parser import HTMLParser
@@ -15,9 +17,14 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "docs/diagrams/src"))
+import aa  # noqa: E402
+from aa import MUTED  # noqa: E402  the figures' muted text
+
 DIAGRAMS = ROOT / "docs" / "diagrams"
+FACTS = json.loads((ROOT / "web/src/deck/facts.json").read_text(encoding="utf-8"))["facts"]
 ANIMATED = ["01-system-exploded", "02-answer-checked", "04-journey-sales-director", "05-journey-account-manager", "06-data-pipeline",
-            "08-why-it-moved", "11-revenue-by-month"]
+            "08-why-it-moved", "09a-numbers-share", "09b-numbers-gaps", "11-revenue-by-month"]
 # every page the deck shows a figure from: the animated pages in their frames, and the static pages whose PNGs are the thumbs and the backup slides
 SHOWN = [f"{n}-animated" for n in ANIMATED] + ANIMATED + ["07-fair-share", "14-what-was-planted"]
 TOP, BOTTOM = 64, 680
@@ -175,8 +182,6 @@ def test_the_measure_reads_paths_and_text_boxes():
 
 
 def test_the_builders_assert_the_same_stage():
-    sys.path.insert(0, str(ROOT / "docs/diagrams/src"))
-    import aa
     assert (aa.STAGE_TOP, aa.STAGE_BOTTOM, aa.TEXT_DESCENT) == (TOP, BOTTOM, DESCENT)
 
 
@@ -286,6 +291,38 @@ def test_in_the_deck_an_unreached_item_shows_nothing_and_the_logo_band_goes(name
     assert logo, f"{name}: the deck's frame draws the logo, so the figure's own logo band hides in the deck"
 
 
+@pytest.mark.parametrize("name", ANIMATED)
+def test_every_animated_page_carries_the_embed_css_as_aa_writes_it_today(name):
+    assert aa.EMBED_CSS in html(f"{name}-animated"), f"{name}: rebuild it, its embed CSS is not aa.EMBED_CSS"
+
+
+def css_of(name) -> dict[str, str]:
+    """A page's top-level rules as {selector: declarations}."""
+    return {s: body for sels, body in rules("".join(re.findall(r"<style>(.*?)</style>", html(name), re.S))) for s in sels}
+
+
+RECEDE = "html[data-embed] .motion-ready [data-motion-item][data-recede] text"
+LEAD = "html[data-embed] .motion-ready [data-motion-item][data-recede].is-current text"
+OUTLINE = "html[data-embed] .motion-ready [data-motion-item][data-recede] [data-lead]"
+OUTLINE_LEADS = "html[data-embed] .motion-ready [data-motion-item][data-recede].is-current [data-lead]"
+
+
+@pytest.mark.parametrize("name", ANIMATED)
+def test_in_the_deck_an_item_marked_to_recede_leads_in_ink_while_current_and_goes_muted_after(name):
+    # one hook for every figure: the words of an item marked data-recede are ink on its own press and muted once a later press comes, over the
+    # plugin's step time; outside the deck (no data-embed) they keep the color they are drawn in
+    css = css_of(f"{name}-animated")
+    fill = lambda body, var: re.search(rf"(^|;)\s*fill:\s*var\(--color-{var}\)\s*(;|$)", body.strip()) is not None  # noqa: E731
+    assert fill(css.get(RECEDE, ""), "muted") and re.search(r"transition:\s*fill var\(--motion-step\) var\(--motion-ease\)", css.get(RECEDE, "")), \
+        "an earlier item's words recede to the muted text over the step time"
+    assert fill(css.get(LEAD, ""), "ink"), "the current item's words lead in ink"
+    outline, leads = css.get(OUTLINE, ""), css.get(OUTLINE_LEADS, "")
+    assert re.search(r"stroke:\s*var\(--color-accent\)", outline) and re.search(r"stroke-opacity:\s*0\s*(;|$)", outline.strip()) \
+        and re.search(r"transition:\s*stroke-opacity var\(--motion-step\) var\(--motion-ease\)", outline), \
+        "a lead mark is blue but unseen until its item is current, and fades over the step time"
+    assert re.search(r"stroke-opacity:\s*1\s*(;|$)", leads.strip()), "the current item's lead mark shows its blue outline"
+
+
 def test_the_draw_in_classes_play_once_in_the_deck_and_not_under_reduced_motion():
     # for the charts: a line traces left to right over 900ms, a dot fades in after its line, a bar grows from its baseline over 600ms
     page = html("06-data-pipeline-animated")
@@ -363,7 +400,6 @@ def test_a_journey_shows_its_payoff_only_on_its_last_step(name):
 # ---------------------------------------------------------------- 11: revenue by month, a chart that draws itself
 
 REVENUE = "11-revenue-by-month"
-MUTED = "#5a7181"  # the figures' muted text (aa.MUTED)
 
 
 def year_lines(fig: Node) -> list[Node]:
@@ -437,14 +473,114 @@ def test_revenue_keeps_one_order_of_weight_title_then_notes_then_the_source(name
     assert size(source) == min(size(n) for n in words) and source.attrs["fill"] == MUTED, "the source line is the smallest text, and grey"
 
 
+def item_of(node: Node):
+    """The motion item a node sits in, or None."""
+    while node is not None and "data-motion-item" not in node.attrs:
+        node = node.parent
+    return node
+
+
 def test_revenue_lets_the_newest_note_lead_and_the_earlier_ones_recede():
     # a note is drawn in the muted text, as the static page and the plugin's own page show it; in the deck the note on the current press
-    # leads in ink, and when the next one comes it recedes to the muted text again
+    # leads in ink, and when the next one comes it recedes to the muted text again, through the hook every figure shares
     name = f"{REVENUE}-animated"
     notes = [n for n in figure(name).walk() if n.tag == "text" and "data-note" in n.attrs]
     assert len(notes) == 3 and {n.attrs["fill"] for n in notes} == {MUTED}
-    css = {s: body for sels, body in rules("".join(re.findall(r"<style>(.*?)</style>", html(name), re.S))) for s in sels}
-    lead = css.get("html[data-embed] .motion-ready [data-motion-item].is-current [data-note]", "")
-    assert re.search(r"(^|;)\s*fill:\s*var\(--color-ink\)", lead.strip()), "the note on the current press leads in ink"
-    ease = css.get("html[data-embed] .motion-ready [data-motion-item] [data-note]", "")
-    assert re.search(r"transition:\s*fill var\(--motion-step\)", ease), "and changes color over the plugin's step time"
+    assert all("data-recede" in item_of(n).attrs for n in notes), "each note's item is marked to recede"
+    assert not [s for s in css_of(name) if "data-note" in s], "the page keeps no recede rule of its own; the hook in aa.EMBED_CSS does it"
+
+
+# ---------------------------------------------------------------- 09a and 09b: the seven numbers over two slides, one card a press
+
+# Each page's numbers in order: the key in ops.kpi_definitions, the name on the card, how it is calculated in the plain words of the spec's
+# "Explainability fixes" section (docs/superpowers/specs/2026-10-20-deck-redesign-design.md), and the fact the card prints for Harbor in Sep 2026.
+NUMBERS = {
+    "09a-numbers-share": [
+        ("aa_revenue", "AA revenue", "AA revenue is AA's revenue on the rows in question.", "harbor_revenue_sep26_usd"),
+        ("aa_share", "AA share", "AA share is AA revenue divided by everything the agency sold on the same routes, all airlines together.",
+         "harbor_share_sep26"),
+        ("fair_share", "Fair share", "Fair share is AA's share of the seats on each route, weighted by how much the agency sold there. "
+                                     "The seat shares are made up.", "harbor_fair_share_sep26"),
+    ],
+    "09b-numbers-gaps": [
+        ("share_gap_pts", "Share gap in points", "The share gap in points is AA share minus fair share.", "harbor_gap_pts_sep26"),
+        ("share_gap_usd", "Share gap in dollars", "The share gap in dollars is AA revenue minus what fair share would have brought in.",
+         "harbor_gap_usd_sep26"),
+        ("yoy_revenue_pct", "Year over year", "Year over year compares AA revenue with the same month last year.", "harbor_yoy_sep26"),
+        ("pace_pct", "Pace", "Pace is revenue so far this year divided by the goal so far, counting only the months the agency reported.",
+         "harbor_pace_sep26"),
+    ],
+}
+NUMBER_PAGES = [n for page in NUMBERS for n in (page, f"{page}-animated")]
+# where the seven numbers live and why that matters, as the same spec words it; each page closes on it
+WHERE = ("Six of the seven numbers are measures in the metric view gold.sales_metrics, worked out from the gold tables when a query runs, "
+         "so any grouping gives the right ratio. Pace is stored in gold.agency_pace, because its goal is set per agency and year. "
+         "Genie, the dashboard and Ask read them from that one metric view, so their numbers agree.")
+
+
+def marked(fig: Node, part: str, key=None) -> list[Node]:
+    """The marks that carry data-<part>, or data-<part>="<key>"."""
+    return [n for n in fig.walk() if f"data-{part}" in n.attrs and (key is None or n.attrs[f"data-{part}"] == key)]
+
+
+def said(nodes) -> str:
+    """The words of a run of text lines, as one sentence."""
+    return " ".join(n.words().strip() for n in nodes)
+
+
+@pytest.mark.parametrize("page", NUMBERS)
+def test_a_numbers_page_brings_in_one_card_a_press_and_closes_on_where_the_numbers_live(page):
+    name = f"{page}-animated"
+    fig, cards = figure(name), NUMBERS[page]
+    items = sorted((n for n in fig.walk() if "data-motion-item" in n.attrs), key=lambda n: int(n.attrs["data-step"]))
+    assert step_count(name) == len(cards) + 1 and [int(n.attrs["data-step"]) for n in items] == list(range(1, len(cards) + 2)), \
+        "one item a press: a card for each number, then where the numbers live"
+    for step, (key, title, _, _) in enumerate(cards, 1):
+        frame, (heading,) = marked(fig, "card", key), marked(fig, "name", key)
+        assert frame and heading.words() == title and all(step_of(n) is None for n in frame + [heading]), \
+            f"{title}: its card's frame and its name are structure, so they show on arrival"
+        definition, value = marked(fig, "def", key), marked(fig, "value", key)
+        assert definition and len(value) == 1 and {step_of(n) for n in definition + value} == {step}, f"{title}: how it is calculated and its value are press {step}"
+        assert "data-recede" in item_of(value[0]).attrs, f"{title}: once the next press comes, the card recedes so the newest one leads"
+        (outline,) = marked(item_of(value[0]), "lead")
+        geometry = lambda n: [n.attrs[k] for k in ("x", "y", "width", "height")]  # noqa: E731
+        assert step_of(outline) == step and outline.attrs["stroke"] == "none" and geometry(outline) == geometry(frame[0].kids[0]), \
+            f"{title}: its press brings the card's outline again, unstroked, for the deck to draw in blue while the card is the newest"
+    where = marked(fig, "where")
+    assert where and {step_of(n) for n in where} == {len(cards) + 1}, "where the numbers live closes the page, on the last press"
+    assert "data-recede" not in item_of(where[0]).attrs, "the close is the last press, so it never recedes"
+    harbor = texts(fig, r"(?i)^harbor, sep 2026$")
+    assert len(harbor) == 1 and step_of(harbor[0]) is None, "the heading over the values names the agency and month they are for, on arrival"
+
+
+@pytest.mark.parametrize("name", NUMBER_PAGES)
+def test_each_card_says_how_its_number_is_calculated_and_prints_harbors_value_from_the_facts(name):
+    fig = figure(name)
+    for key, title, words, fact in NUMBERS[name.removesuffix("-animated")]:
+        assert said(marked(fig, "def", key)) == words, f"{title}: the spec's plain words"
+        (value,) = marked(fig, "value", key)
+        shown = FACTS[fact]["display"]
+        assert value.words().startswith(shown) and not re.search(r"\d", value.words()[len(shown):]), \
+            f"{title}: the card prints {fact} as the deck shows it ({shown!r}), with at most a unit word after it: {value.words()!r}"
+
+
+@pytest.mark.parametrize("name", NUMBER_PAGES)
+def test_each_numbers_page_closes_on_where_the_numbers_live_and_why_that_matters(name):
+    assert said(marked(figure(name), "where")) == WHERE
+
+
+@pytest.mark.parametrize("name", NUMBER_PAGES)
+def test_a_numbers_page_reads_from_the_back_of_the_room(name):
+    fig = figure(name)
+    size = lambda n: float(n.attrs["font-size"])  # noqa: E731
+    weight = lambda n: int(n.attrs.get("font-weight", 400))  # noqa: E731
+    defs, values, names, where = marked(fig, "def"), marked(fig, "value"), marked(fig, "name"), marked(fig, "where")
+    assert min(size(n) for n in defs + values) >= 18 and min(size(n) for n in where) >= 16, "the words a press brings in are big enough to read from the back"
+    assert all(weight(n) > weight(d) for n in names for d in defs), "a card's name is heavier than its definition"
+    assert not [n.words() for n in fig.walk() if n.tag == "text" and n.attrs.get("font-style") == "italic"], "no italic display type"
+
+
+def test_the_drift_strip_stays_on_the_glossary_and_off_the_two_numbers_pages():
+    assert texts(figure("09-definitions"), r"^HOW A DEFINITION STAYS HONEST$"), "09-definitions keeps building as it did"
+    for name in NUMBER_PAGES:
+        assert not re.search(r"STAYS HONEST|twin_sql_retired|kpi_parity", html(name)), f"{name} holds no part of the drift strip"

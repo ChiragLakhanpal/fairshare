@@ -150,6 +150,36 @@ test("revenue draws its two lines on arrival, then brings in the band and one no
   await expect(page).toHaveURL(/#checks$/);
 });
 
+test("the seven numbers come one card a press over numbers and gaps, the newest in ink, and each page closes on where they live", async ({ page }) => {
+  const [INK, MUTED] = ["rgb(54, 73, 90)", "rgb(90, 113, 129)"];
+  await openSlide(page, "checks"); // a load lands complete, so the next press moves on
+  for (const id of ["numbers", "gaps"]) {
+    await page.keyboard.press("ArrowRight"); // each arrives on its first step going forward
+    await expect(page).toHaveURL(new RegExp(`#${id}$`));
+    await expect(ready(page)).toBeVisible();
+    await expect(root(page)).toHaveAttribute("data-step-current", "0");
+    for (const item of await itemStates(page)) expect(item.opacity, `${id}: step ${item.step} before its press`).toBe("0");
+    const figure = page.frameLocator("iframe[data-slide-frame]");
+    const count = Number(await root(page).getAttribute("data-step-count"));
+    const cards = figure.locator("[data-motion-item][data-recede]");
+    await expect(cards, `${id}: a card a press, then the close`).toHaveCount(count - 1);
+    // each card's words as one color, and its blue outline: the card on the current press in ink and outlined, every other card muted
+    const fills = () => cards.evaluateAll((els) => els.map((el) => [...new Set([...el.querySelectorAll("text")].map((t) => getComputedStyle(t).fill))]));
+    const outlines = () => cards.evaluateAll((els) => els.map((el) => getComputedStyle(el.querySelector("[data-lead]")!).strokeOpacity));
+    for (let step = 1; step <= count; step++) {
+      await page.keyboard.press("ArrowRight");
+      await expect(root(page)).toHaveAttribute("data-step-current", String(step));
+      const shown = async () => (await itemStates(page)).every((i) => (i.step <= step ? i.opacity === "1" : i.opacity === "0"));
+      await expect.poll(shown, `${id}: one card a press, step ${step}`).toBe(true);
+      await expect.poll(fills, `${id}: the newest card leads, step ${step}`).toEqual(Array.from({ length: count - 1 }, (_, i) => [i + 1 === step ? INK : MUTED]));
+      await expect.poll(outlines, `${id}: only the newest card is outlined, step ${step}`).toEqual(Array.from({ length: count - 1 }, (_, i) => (i + 1 === step ? "1" : "0")));
+    }
+    await expect(figure.locator("[data-where]").first()).toContainText("Six of the seven numbers"); // the last press is where they live
+  }
+  await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#share-fair$/);
+});
+
 test("a load on an animated slide, a reload or the way back from a demo, shows its whole figure, and the first press moves on", async ({ page }) => {
   await openSlide(page, "pipeline");
   await expect(ready(page)).toBeVisible();

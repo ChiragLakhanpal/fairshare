@@ -43,8 +43,9 @@ def test_fair_share_has_no_qsi_synonym():
 
 # the figures that print data values (05 prints none); every one says so in its logo band, and so does each animated twin
 DATA_FIGURES = ["04-journey-sales-director", "04-journey-sales-director-animated", "06-data-pipeline", "06-data-pipeline-animated",
-                "07-fair-share", "08-why-it-moved", "08-why-it-moved-animated", "09-definitions", "10-coverage",
-                "11-revenue-by-month", "11-revenue-by-month-animated", "12-share-vs-fair", "14-what-was-planted"]
+                "07-fair-share", "08-why-it-moved", "08-why-it-moved-animated", "09-definitions", "09a-numbers-share", "09a-numbers-share-animated",
+                "09b-numbers-gaps", "09b-numbers-gaps-animated", "10-coverage", "11-revenue-by-month", "11-revenue-by-month-animated",
+                "12-share-vs-fair", "14-what-was-planted"]
 
 
 def test_every_data_figure_says_synthetic_data_in_its_logo_band():
