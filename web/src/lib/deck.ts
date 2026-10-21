@@ -34,10 +34,11 @@ export type Native =
   | { layout: "demo"; demo: Demo; lines: string[] };
 /** What fill() reads from facts.json: the display string of every fact and every dated fact. */
 export type Facts = { facts: Record<string, { display: string }>; dated: Record<string, { display: string }> };
-/** All of facts.json that a slide shows: the facts, plus the columns of each table and the basic checks. */
+/** All of facts.json that a slide shows: the facts, plus the columns of each table (each with an example that carries its unit) and the basic
+ * checks (each with a snake_case key and a why, one plain sentence on what the check guards against). */
 export type DeckFacts = Facts & {
   columns: Record<string, { name: string; meaning: string; example: string }[]>;
-  checks: { name: string; expected: unknown; actual: unknown; ok: boolean }[];
+  checks: { key: string; name: string; why: string; expected: unknown; actual: unknown; ok: boolean }[];
 };
 
 /** The topics in the order of the talk. */

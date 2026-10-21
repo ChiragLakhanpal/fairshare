@@ -3,50 +3,66 @@
   {
    "actual": 3000,
    "expected": 3000,
+   "key": "sales_row_count",
    "name": "Sales rows equal every agency, route and month, minus Sunbelt's two missing months",
-   "ok": true
+   "ok": true,
+   "why": "This check catches a load that adds or drops sales rows, because the count has to equal every agency, route and month that reported."
   },
   {
    "actual": 0,
    "expected": 0,
+   "key": "no_repeated_rows",
    "name": "One row per agency, route and month, with no repeats",
-   "ok": true
+   "ok": true,
+   "why": "This check finds an agency, route and month that has more than one row, because a sum would count those sales twice."
   },
   {
    "actual": 0,
    "expected": 0,
+   "key": "sales_have_seats",
    "name": "Every sales row has a seats row",
-   "ok": true
+   "ok": true,
+   "why": "This check finds a sales row with no seats row for its route and month, because the fair share calculation would leave that sale out."
   },
   {
    "actual": 0,
    "expected": 0,
+   "key": "no_empty_sales",
    "name": "No empty sales numbers",
-   "ok": true
+   "ok": true,
+   "why": "This check finds an empty sales number, because a sum skips it without an error and the share built from it would be wrong."
   },
   {
    "actual": 0,
    "expected": 0,
+   "key": "aa_within_market",
    "name": "AA is never above the market in revenue or passengers",
-   "ok": true
+   "ok": true,
+   "why": "This check catches columns that a load swapped, because the market numbers include AA and so cannot be lower than the AA numbers."
   },
   {
    "actual": "2026-09-01 and 2026-09-01",
    "expected": "2026-09-01 and 2026-09-01",
+   "key": "last_month",
    "name": "Both facts end in September 2026",
-   "ok": true
+   "ok": true,
+   "why": "This check catches a table that stops before the newest month, because fair share needs sales and seats for the same month."
   },
   {
    "actual": 4920.87,
    "expected": 4920.87,
+   "key": "duplicates_removed",
    "name": "Cleaning removed the duplicates' revenue",
-   "ok": true
+   "ok": true,
+   "why": "This check catches a cleaning step that removes more or less than the duplicate tickets, because the revenue it removes must equal their fares."
   },
   {
    "actual": 0,
    "expected": 0,
+   "key": "pace_month_count",
    "name": "Pace never counts more months than the calendar has",
-   "ok": true
+   "ok": true,
+   "why": "This check catches a pace calculation that counts a month twice, because the months an agency reported cannot be more than the months of the year so far."
   }
  ],
  "columns": {
@@ -64,13 +80,13 @@
     "type": "INT"
    },
    {
-    "example": "1310400",
+    "example": "$1,310,400",
     "meaning": "The AA revenue the agency is asked to reach by the end of the year, in dollars. Made up.",
     "name": "revenue_goal_usd",
     "type": "DOUBLE"
    },
    {
-    "example": "0.42",
+    "example": "42%",
     "meaning": "The share of its sales the agency is asked to send to AA, as a number between zero and one. Made up.",
     "name": "share_goal",
     "type": "DOUBLE"
@@ -90,43 +106,43 @@
     "type": "INT"
    },
    {
-    "example": "2026-05-01",
+    "example": "May 2026",
     "meaning": "The month this row is for.",
     "name": "sales_month",
     "type": "DATE"
    },
    {
-    "example": "148163.35",
+    "example": "$148,163.35",
     "meaning": "Dollars of AA revenue the agency sold in this month, all routes together.",
     "name": "aa_revenue",
     "type": "DOUBLE"
    },
    {
-    "example": "404963.43",
+    "example": "$404,963.43",
     "meaning": "AA revenue the agency sold from the start of the year through this month.",
     "name": "ytd_revenue",
     "type": "DOUBLE"
    },
    {
-    "example": "1310400",
+    "example": "$1,310,400",
     "meaning": "The agency's AA revenue goal for the whole year, in dollars.",
     "name": "revenue_goal_usd",
     "type": "DOUBLE"
    },
    {
-    "example": "327600",
+    "example": "$327,600",
     "meaning": "The part of the yearly goal that counts so far: one twelfth for every month the agency reported.",
     "name": "ytd_goal",
     "type": "DOUBLE"
    },
    {
-    "example": "123.6",
+    "example": "123.6%",
     "meaning": "Revenue so far divided by the goal so far, as a percent. One hundred means on pace.",
     "name": "pace_pct",
     "type": "DOUBLE"
    },
    {
-    "example": "30.9",
+    "example": "30.9%",
     "meaning": "Revenue so far divided by the goal for the whole year, as a percent.",
     "name": "attainment_pct",
     "type": "DOUBLE"
@@ -326,7 +342,7 @@
     "type": "STRING"
    },
    {
-    "example": "7290000",
+    "example": "$7,290,000",
     "meaning": "What the deal is worth, in dollars.",
     "name": "amount_usd",
     "type": "DOUBLE"
@@ -426,7 +442,7 @@
     "type": "DATE"
    },
    {
-    "example": "2400000",
+    "example": "$2,400,000",
     "meaning": "The dollars of travel the company has promised to buy each year.",
     "name": "annual_commitment_usd",
     "type": "DOUBLE"
@@ -478,13 +494,13 @@
     "type": "INT"
    },
    {
-    "example": "2026-09-01",
+    "example": "Sep 2026",
     "meaning": "The month of the sales, written as the first day of that month.",
     "name": "sales_month",
     "type": "DATE"
    },
    {
-    "example": "80582.47",
+    "example": "$80,582.47",
     "meaning": "Dollars of AA tickets the agency sold on this route in this month.",
     "name": "aa_revenue",
     "type": "DOUBLE"
@@ -496,7 +512,7 @@
     "type": "INT"
    },
    {
-    "example": "145829",
+    "example": "$145,829.00",
     "meaning": "Dollars of tickets the agency sold on this route in this month on all airlines, AA included.",
     "name": "market_revenue",
     "type": "DOUBLE"
@@ -558,7 +574,7 @@
     "type": "STRING"
    },
    {
-    "example": "239.25",
+    "example": "$239.25",
     "meaning": "The price of one ticket, in dollars.",
     "name": "fare_usd",
     "type": "DOUBLE"
@@ -590,25 +606,25 @@
     "type": "INT"
    },
    {
-    "example": "2026-09-01",
+    "example": "Sep 2026",
     "meaning": "The month of the seats, written as the first day of that month.",
     "name": "sales_month",
     "type": "DATE"
    },
    {
-    "example": "57075",
+    "example": "57,075",
     "meaning": "Seats AA flies on this route in this month. Made up.",
     "name": "aa_seats",
     "type": "BIGINT"
    },
    {
-    "example": "150000",
+    "example": "150,000",
     "meaning": "Seats all airlines fly on this route in this month. Made up.",
     "name": "total_seats",
     "type": "BIGINT"
    },
    {
-    "example": "0.3805",
+    "example": "38.05%",
     "meaning": "AA's seats divided by all seats on the route, which is the route's fair share. Made up: one base share per route, moved a little each month.",
     "name": "aa_seat_share",
     "type": "DOUBLE"
@@ -634,103 +650,103 @@
     "type": "INT"
    },
    {
-    "example": "2026-09-01",
+    "example": "Sep 2026",
     "meaning": "The month being compared with the same month one year earlier.",
     "name": "sales_month",
     "type": "DATE"
    },
    {
-    "example": "330114.49",
+    "example": "$330,114.49",
     "meaning": "AA revenue the agency sold in this month, in dollars.",
     "name": "revenue_now",
     "type": "DOUBLE"
    },
    {
-    "example": "394909.42",
+    "example": "$394,909.42",
     "meaning": "AA revenue the agency sold in the same month one year earlier.",
     "name": "revenue_prior",
     "type": "DOUBLE"
    },
    {
-    "example": "-64794.93",
+    "example": "-$64,794.93",
     "meaning": "The change in AA revenue: this month minus the same month a year earlier, in dollars.",
     "name": "delta_revenue",
     "type": "DOUBLE"
    },
    {
-    "example": "-16.4",
+    "example": "-16.4%",
     "meaning": "The same change as a percent of the year-earlier revenue.",
     "name": "delta_pct",
     "type": "DOUBLE"
    },
    {
-    "example": "964800.06",
+    "example": "$964,800.06",
     "meaning": "Dollars the agency sold on all airlines in this month.",
     "name": "market_now",
     "type": "DOUBLE"
    },
    {
-    "example": "890736.71",
+    "example": "$890,736.71",
     "meaning": "Dollars the agency sold on all airlines in the same month one year earlier.",
     "name": "market_prior",
     "type": "DOUBLE"
    },
    {
-    "example": "8.3",
+    "example": "8.3%",
     "meaning": "The change in the agency's all-airline sales, as a percent.",
     "name": "market_delta_pct",
     "type": "DOUBLE"
    },
    {
-    "example": "0.3422",
+    "example": "34.22%",
     "meaning": "AA's share of the agency's sales this month, as a number between zero and one.",
     "name": "aa_share_now",
     "type": "DOUBLE"
    },
    {
-    "example": "0.4434",
+    "example": "44.34%",
     "meaning": "AA's share of the agency's sales a year earlier, as a number between zero and one.",
     "name": "aa_share_prior",
     "type": "DOUBLE"
    },
    {
-    "example": "0.4012",
+    "example": "40.12%",
     "meaning": "Fair share this month: AA's seat share on the agency's routes, as a number between zero and one. The seat shares are made up.",
     "name": "fair_share_now",
     "type": "DOUBLE"
    },
    {
-    "example": "0.4013",
+    "example": "40.13%",
     "meaning": "Fair share a year earlier. The seat shares are made up.",
     "name": "fair_share_prior",
     "type": "DOUBLE"
    },
    {
-    "example": "32836.09",
+    "example": "$32,836.09",
     "meaning": "The part of the change that comes from the agency selling more or less travel overall.",
     "name": "volume_effect",
     "type": "DOUBLE"
    },
    {
-    "example": "-139.7",
+    "example": "-$139.70",
     "meaning": "The part of the change that comes from the agency moving sales between routes.",
     "name": "mix_effect",
     "type": "DOUBLE"
    },
    {
-    "example": "-97491.33",
+    "example": "-$97,491.33",
     "meaning": "The part of the change that comes from AA winning or losing share inside the routes.",
     "name": "share_effect",
     "type": "DOUBLE"
    },
    {
-    "example": "2419.72",
+    "example": "$2,419.72",
     "meaning": "The change that the made-up seat shares would have predicted. A side check, not part of the total.",
     "name": "fair_share_effect",
     "type": "DOUBLE"
    },
    {
-    "example": "0",
+    "example": "$0.00",
     "meaning": "What is left when volume, mix and share are added up and compared with the change. Zero means they add up exactly.",
     "name": "residual",
     "type": "DOUBLE"
@@ -942,6 +958,13 @@
    "note": "The day of the Genie run in genie_benchmark.",
    "source": "evals/results/2026-10-19T213612-genie-eval.json",
    "value": "2026-10-19"
+  },
+  "genie_benchmark_earlier": {
+   "date": "2026-10-19",
+   "display": "17 of 20",
+   "note": "Two runs on Oct 19, each 17 of 20, before five benchmark questions named their columns. The first missed q09, q10 and q17. The rerun, with nothing changed, missed q07, q10 and q11.",
+   "source": "evals/results/2026-10-19T211129-genie-eval.json and evals/results/2026-10-19T212948-genie-eval.json",
+   "value": 17
   },
   "harbor_runs": {
    "date": "2026-10-20",

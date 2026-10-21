@@ -7,7 +7,9 @@ sys.path.insert(0, str(ROOT))
 from fairshare import db  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "docs/diagrams/src"))
+import datetime  # noqa: E402
 import json  # noqa: E402
+import math  # noqa: E402
 import re  # noqa: E402
 import deck_facts  # noqa: E402
 
@@ -97,3 +99,104 @@ def test_keys_are_placeholders_and_the_text_has_no_long_dashes():
         assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", d["date"]), (k, d["date"])
     assert set(facts["facts"]) == set(keys)
     assert not re.search("[\u2013\u2014]", json.dumps({**facts, "dated": deck_facts.DATED}, ensure_ascii=False)), "an em or en dash is in the facts"
+
+
+# ---- units on the examples, a reason on every check, and Genie's earlier runs (the deck redesign, task 2)
+
+MONTH_ABBR = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+SHOWN_AS = {  # the kinds of unit, and the way a slide writes each
+    "usd": r"-?\$\d{1,3}(,\d{3})*",                    # $1,310,400: dollars that are always whole
+    "cents": r"-?\$\d{1,3}(,\d{3})*\.\d{2}",           # $80,582.47, -$64,794.93: dollars and cents
+    "percent": r"-?\d+(\.\d+)?%",                      # 123.6%: the column holds percent points already
+    "share": r"-?\d+(\.\d+)?%",                        # 38.05%: the column holds a fraction of one, 0.3805
+    "count": r"\d{1,3}(,\d{3})*",                      # 275 and 57,075: a separator from four digits
+    "month": rf"({'|'.join(MONTH_ABBR)}) \d{{4}}",     # Sep 2026
+}
+UNIT_OF = {  # the columns that carry a unit, by hand from their meanings; ids, years, days, names and flags show what is stored
+    "gold.fact_agency_sales_monthly": {"sales_month": "month", "aa_revenue": "cents", "aa_pax": "count", "market_revenue": "cents", "market_pax": "count"},
+    "gold.fact_market_capacity": {"sales_month": "month", "aa_seats": "count", "total_seats": "count", "aa_seat_share": "share"},
+    "gold.agency_goals": {"revenue_goal_usd": "usd", "share_goal": "share"},
+    "gold.agency_pace": {"sales_month": "month", "aa_revenue": "cents", "ytd_revenue": "cents", "revenue_goal_usd": "usd", "ytd_goal": "usd",
+                         "pace_pct": "percent", "attainment_pct": "percent", "months_reported": "count"},
+    "gold.contract_clauses": {"window_quarters": "count"},
+    "gold.crm_opportunities": {"amount_usd": "usd"},
+    "gold.fact_corporate_bookings": {"fare_usd": "cents", "ticket_count": "count"},
+    "gold.dim_corporate": {"annual_commitment_usd": "usd"},
+    "ops.decomposition": {"sales_month": "month", "revenue_now": "cents", "revenue_prior": "cents", "delta_revenue": "cents", "delta_pct": "percent",
+                          "market_now": "cents", "market_prior": "cents", "market_delta_pct": "percent", "aa_share_now": "share", "aa_share_prior": "share",
+                          "fair_share_now": "share", "fair_share_prior": "share", "volume_effect": "cents", "mix_effect": "cents",
+                          "share_effect": "cents", "fair_share_effect": "cents", "residual": "cents"},
+}
+
+
+def _says(example, kind):
+    """The value an example with a unit says, back in the scale the table stores it in: a fraction for a share, the first of the month."""
+    if kind == "month":
+        name, year = example.split()
+        return datetime.date(int(year), MONTH_ABBR.index(name) + 1, 1)
+    number = float(example.replace("$", "").replace(",", "").replace("%", ""))
+    return number / 100 if kind == "share" else number
+
+
+def test_the_row_slide_examples_carry_their_units():
+    """The row slide printed 80582.47, 0.3805 and 2026-09-01. Now money has a dollar sign, a share a percent sign, a count a separator from four digits, a month its name."""
+    sales = {c["name"]: c["example"] for c in STORED["columns"]["gold.fact_agency_sales_monthly"]}
+    seats = {c["name"]: c["example"] for c in STORED["columns"]["gold.fact_market_capacity"]}
+    assert (sales["aa_revenue"], sales["market_revenue"]) == ("$80,582.47", "$145,829.00")
+    assert (sales["aa_pax"], sales["market_pax"], sales["sales_month"]) == ("275", "500", "Sep 2026")
+    assert (seats["aa_seats"], seats["total_seats"], seats["aa_seat_share"], seats["sales_month"]) == ("57,075", "150,000", "38.05%", "Sep 2026")
+
+
+def test_every_example_carries_its_unit():
+    """Every money, share, count and month column of every table the deck shows writes its unit and still says the stored value (a share is
+    the fraction times a hundred). An id, a year, a day, a name, a flag or a missing value shows what is stored, so no id gets a separator."""
+    for table, (where, meanings) in deck_facts.COLUMNS.items():
+        raw = deck_facts.query(f"SELECT * FROM aa_demo.{table} WHERE {where}")[0]
+        shown = {c["name"]: c["example"] for c in STORED["columns"][table]}
+        assert set(shown) == set(meanings), table
+        for column, example in shown.items():
+            kind, stored, at = UNIT_OF.get(table, {}).get(column), raw[column], f"{table}.{column}: {example!r}"
+            if kind is None or stored is None:
+                assert example == deck_facts._example(stored), at
+                continue
+            assert re.fullmatch(SHOWN_AS[kind], example), at
+            said = _says(example, kind)
+            assert said == stored if kind == "month" else math.isclose(said, stored, rel_tol=0, abs_tol=1e-9), (at, said, stored)
+    assert set(UNIT_OF) <= set(deck_facts.COLUMNS) and all(set(c) <= set(deck_facts.COLUMNS[t][1]) for t, c in UNIT_OF.items()), "UNIT_OF names a column the deck does not show"
+
+
+BANNED_IN_COPY = ("additionally", "crucial", "delve", "enduring", "enhance", "fostering", "garner", "interplay", "intricate", "landscape", "pivotal",
+                  "showcase", "tapestry", "testament", "underscore", "vibrant")
+
+
+def test_every_check_has_a_key_and_a_plain_reason():
+    """The checks slide names each check by its key and prints its why, a sentence a sales director and a data lead both read. The copy rules
+    that a test can see: no digits, no em or en dash, no colon, semicolon or bracket, one whole sentence, none of the stock words or phrases,
+    no -ing tail, and the data is never called real."""
+    checks = STORED["checks"]
+    assert len(checks) == len(deck_facts.CHECKS)
+    assert all(set(c) == {"key", "name", "why", "expected", "actual", "ok"} for c in checks)
+    keys = [c["key"] for c in checks]
+    assert len(keys) == len(set(keys)), "a check key is used twice"
+    assert all(re.fullmatch(r"[a-z][a-z0-9]*(_[a-z0-9]+)*", k) for k in keys), f"check keys are snake_case: {keys}"
+    for c in checks:
+        why = c["why"]
+        assert isinstance(why, str) and re.fullmatch(r"[A-Z][^.]*\.", why), f"{c['key']}: one sentence that starts with a capital and ends with a period"
+        assert not re.search(r"\d", why), f"{c['key']}: a digit"
+        assert not re.search("[\u2013\u2014]", why), f"{c['key']}: an em or en dash"
+        assert not re.search(r"[:;()]", why), f"{c['key']}: a colon, semicolon or bracket"
+        assert not re.search(r"\b(?:" + "|".join(BANNED_IN_COPY) + ")", why, re.IGNORECASE), f"{c['key']}: a stock word"
+        assert not re.search(r"serves as|stands as|not just|not only", why, re.IGNORECASE), f"{c['key']}: a stock phrase"
+        assert not re.search(r",\s+\w+ing\b", why), f"{c['key']}: an -ing tail"
+        assert not re.search(r"\breal\b", why, re.IGNORECASE), f"{c['key']}: the data is made up, never call it real"
+
+
+def test_genie_earlier_runs_are_dated_from_their_result_files():
+    """The two Oct 19 runs that scored 17 of 20 before five benchmark questions named their columns. The value is checked against the files it cites."""
+    d = deck_facts.DATED["genie_benchmark_earlier"]
+    assert (d["value"], d["display"], d["date"]) == (17, "17 of 20", "2026-10-19")
+    for name in ("2026-10-19T211129-genie-eval.json", "2026-10-19T212948-genie-eval.json"):
+        assert f"evals/results/{name}" in d["source"], name
+        run = json.loads((ROOT / "evals/results" / name).read_text(encoding="utf-8"))
+        assert (run["correct"], run["n"]) == (d["value"], 20), name
+    assert STORED["dated"]["genie_benchmark_earlier"] == json.loads(json.dumps(d)), "rerun deck_facts.py"
