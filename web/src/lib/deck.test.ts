@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import { arrivalKey, fromHash, move, pressTarget, type Slide } from "./deck";
 
 const s = (id: string, part: Slide["part"], min: number, short?: number): Slide => ({ id, part, kind: "native", title: id, min, short, note: "" });
-export const S: Slide[] = [s("title", "first", 0.5, 0.5), s("ask", "first", 3.5, 2.5), s("pipeline", "data", 1.5), s("system", "built", 2.25, 1.5),
-  s("start", "proof", 1, 1), s("words", "backup", 0), s("dict-crm", "backup", 0)];
+export const S: Slide[] = [s("title", "open", 0.5, 0.5), s("ask", "modes", 3.5, 2.5), s("pipeline", "numbers", 1.5), s("system", "numbers", 2.25, 1.5),
+  s("start", "aa", 1, 1), s("words", "backup", 0), s("dict-crm", "backup", 0)];
+// A talk in miniature, for the frame and the clock's checkpoints: the welcome and the agenda, then the five topics (pipeline is off the short
+// path, and so is the whole of Checks and misses), the thanks, a still and a backup slide.
+const F: Slide[] = [s("welcome", "open", 0.5, 0.5), s("agenda", "open", 0.5, 0.5), s("problem", "steps", 1, 1), s("what", "modes", 0.5, 0.5),
+  s("ask", "modes", 3.5, 2.5), s("pipeline", "numbers", 1.5), s("system", "numbers", 2.25, 1.5), s("checked", "checks", 2), s("limits", "checks", 1),
+  s("start", "aa", 1, 1), s("thanks", "close", 0.25, 0.25), { ...s("ask-still", "backup", 0), kind: "image", still: true }, s("words", "backup", 0)];
 
 describe("move", () => {
   it("walks the full path and stops at both ends", () => {
@@ -104,7 +109,7 @@ describe("slides.ts", () => {
   });
 });
 
-import { checkpointPlan, drift, keyAction, nextPart, plannedStart } from "./deck";
+import { checkpointPlan, drift, keyAction, nextPart, plannedStart, TOPIC_ORDER, TOPICS } from "./deck";
 
 describe("keyAction", () => {
   it("maps clicker and keyboard keys, letters in either case", () => {
@@ -122,7 +127,8 @@ describe("keyAction", () => {
 
 describe("parts and the clock", () => {
   it("jumps to the first slide of the next part on the path", () => {
-    expect(nextPart(S, "full", "title")).toBe("pipeline");
+    expect(nextPart(S, "full", "title")).toBe("ask");
+    expect(nextPart(S, "full", "pipeline")).toBe("start"); // system is in the same part
     expect(nextPart(S, "short", "ask")).toBe("system");
     expect(nextPart(S, "full", "start")).toBe("start");
   });
@@ -131,9 +137,23 @@ describe("parts and the clock", () => {
     expect(plannedStart(S, "short", "system")).toBe(3);
   });
   it("says how far behind plan the talk is", () => expect(drift(S, "full", "ask", 1.5)).toBe(1));
-  it("puts the checkpoints where the spec says", () => {
-    expect(checkpointPlan(slides, "full")).toEqual([{ label: "precall done", planned: 28, by: 29 }, { label: "start", planned: 35.25, by: 36 }]);
-    expect(checkpointPlan(slides, "short")).toEqual([{ label: "ask done", planned: 4.5, by: 5 }, { label: "start", planned: 9.75, by: 11 }]);
+  it("puts one checkpoint at the end of each topic on the path, to be reached by the next whole minute", () => {
+    expect(checkpointPlan(F, "full")).toEqual([
+      { label: "Two slow steps", planned: 2, by: 2 }, { label: "Ask and Delegate", planned: 6, by: 6 }, { label: "Where the numbers come from", planned: 9.75, by: 10 },
+      { label: "Checks and misses", planned: 12.75, by: 13 }, { label: "Starting at AA", planned: 13.75, by: 14 },
+    ]);
+    // a topic ends at its last slide on the path that is on, and a topic with no slide on it has no checkpoint
+    expect(checkpointPlan(F, "short")).toEqual([
+      { label: "Two slow steps", planned: 2, by: 2 }, { label: "Ask and Delegate", planned: 5, by: 5 },
+      { label: "Where the numbers come from", planned: 6.5, by: 7 }, { label: "Starting at AA", planned: 7.5, by: 8 },
+    ]);
+  });
+  it("has a checkpoint for each of the five topics on both paths of the real deck", () => {
+    for (const path of ["full", "short"] as const) {
+      const plan = checkpointPlan(slides, path);
+      expect(plan.map((c) => c.label), path).toEqual(TOPIC_ORDER.map((t) => TOPICS[t].name));
+      plan.forEach((c) => expect(c.by, `${path} ${c.label}`).toBe(Math.ceil(c.planned)));
+    }
   });
 });
 
@@ -143,15 +163,17 @@ describe("where the keys go, and the notes window's clock", () => {
   it("sends Home and End to the main path's ends from anywhere, S to the next part, and the arrows along the path", () => {
     expect(destination(S, "short", "words", "first")).toBe("title");
     expect(destination(S, "full", "ask", "last")).toBe("start");
-    expect(destination(S, "full", "title", "part")).toBe("pipeline");
+    expect(destination(S, "full", "title", "part")).toBe("ask");
     expect(destination(S, "short", "ask", "next")).toBe("system");
     expect(destination(S, "full", "ask", "prev")).toBe("title");
     expect(keyAction({ key: "P" })).toBe("notes");
   });
   it("keeps S on a backup slide, and walks the real deck's parts", () => {
     expect(nextPart(S, "full", "words")).toBe("words");
-    expect(nextPart(slides, "full", "title")).toBe("elevator-opener");
-    expect(nextPart(slides, "short", "title")).toBe("system");
+    expect(nextPart(slides, "full", "title")).toBe("problem"); // the welcome is a part of its own
+    expect(nextPart(slides, "short", "title")).toBe("problem");
+    expect(nextPart(slides, "full", "problem")).toBe("what"); // the first topic ends and the second begins
+    expect(nextPart(slides, "short", "problem")).toBe("what");
   });
   it("shows the drift a slide arrived with until the slide runs past its minutes", () => {
     expect(liveDrift(S, "full", "ask", 1.5, 1.5)).toBe(1);
@@ -232,4 +254,196 @@ describe("the drift line's colour", () => {
     expect([30, 31, 120].map((s) => driftIsRed(s / 60))).toEqual([true, true, true]);
   });
   it("is never red when the talk is on time or ahead", () => expect([driftIsRed(0), driftIsRed(-0.5), driftIsRed(-10)]).toEqual([false, false, false]));
+});
+
+import { frameInfo, isTopic, PARTS, type FrameInfo } from "./deck";
+
+describe("the topics", () => {
+  it("are the five the talk is told in, word for word and in order", () => {
+    expect(TOPIC_ORDER).toEqual(["steps", "modes", "numbers", "checks", "aa"]);
+    expect(TOPIC_ORDER.map((t) => TOPICS[t])).toEqual([
+      { name: "Two slow steps", line: "What I heard in round one about share questions and pre-call packs." },
+      { name: "Ask and Delegate", line: "The app answers a share question and drafts a pre-call pack, live." },
+      { name: "Where the numbers come from", line: "The data behind the seven numbers, and why Harbor fell in September." },
+      { name: "Checks and misses", line: "How the app checks each number, what the tests found, and what it can't do yet." },
+      { name: "Starting at AA", line: "The same layers on AA's own data, and the first four steps." },
+    ]);
+  });
+  it("name the parts, in the order the notes window's outline lists them", () => {
+    expect(Object.keys(PARTS)).toEqual(["open", ...TOPIC_ORDER, "close", "backup"]);
+    expect(Object.values(PARTS)).toEqual(["Welcome", "Two slow steps", "Ask and Delegate", "Where the numbers come from", "Checks and misses", "Starting at AA", "Thank you", "Backup"]);
+  });
+  it("are told from the other parts", () => {
+    expect(TOPIC_ORDER.every(isTopic)).toBe(true);
+    expect((["open", "close", "backup"] as const).some(isTopic)).toBe(false);
+  });
+  it("hold to the content rules, as the slides do", () => {
+    Object.values(TOPICS).flatMap((t) => [t.name, t.line]).forEach((t) => {
+      expect(t).not.toMatch(/[\u2013\u2014]/);
+      expect(bareNumbers(t), t).toEqual([]);
+      blocked.forEach((n) => expect(t.toLowerCase().includes(n), t).toBe(false));
+    });
+  });
+});
+
+describe("what the frame draws", () => {
+  // the logo only: what the first and last slides of the path get, and the base the other cases change
+  const frame = (over: Partial<FrameInfo> = {}): FrameInfo => ({ bare: false, tracker: false, topic: null, inTopic: null, number: null, footer: false, backup: false, ...over });
+
+  it("lights the topic of a topic slide, with its place among that topic's slides on the path and its number on the path", () => {
+    expect(frameInfo(F, "full", "problem")).toEqual(frame({ tracker: true, topic: "steps", inTopic: { at: 1, of: 1 }, number: { at: 3, of: 11 }, footer: true }));
+    expect(frameInfo(F, "full", "what")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 1, of: 2 }, number: { at: 4, of: 11 }, footer: true }));
+    expect(frameInfo(F, "full", "ask")).toEqual(frame({ tracker: true, topic: "modes", inTopic: { at: 2, of: 2 }, number: { at: 5, of: 11 }, footer: true }));
+    expect(frameInfo(F, "full", "limits")).toEqual(frame({ tracker: true, topic: "checks", inTopic: { at: 2, of: 2 }, number: { at: 9, of: 11 }, footer: true }));
+    expect(frameInfo(F, "full", "start")).toEqual(frame({ tracker: true, topic: "aa", inTopic: { at: 1, of: 1 }, number: { at: 10, of: 11 }, footer: true }));
+  });
+  it("counts only the slides on the path that is on", () => {
+    expect(frameInfo(F, "full", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 2, of: 2 }, number: { at: 7, of: 11 }, footer: true }));
+    // pipeline is off the short path, so system is the only slide of its topic on it
+    expect(frameInfo(F, "short", "system")).toEqual(frame({ tracker: true, topic: "numbers", inTopic: { at: 1, of: 1 }, number: { at: 6, of: 8 }, footer: true }));
+  });
+  it("numbers the short path from 1 to its length, and the welcome and the thanks show no number", () => {
+    const line = onPath(F, "short");
+    expect(line).toHaveLength(8);
+    expect(line.map((x) => frameInfo(F, "short", x.id).number?.at ?? null)).toEqual([null, 2, 3, 4, 5, 6, 7, null]);
+    line.slice(1, -1).forEach((x) => expect(frameInfo(F, "short", x.id).number?.of, x.id).toBe(8));
+  });
+  it("numbers the real deck along the path that is on", () => {
+    for (const path of ["full", "short"] as const) {
+      const line = onPath(slides, path);
+      line.slice(1, -1).forEach((x, i) => expect(frameInfo(slides, path, x.id).number, `${path} ${x.id}`).toEqual({ at: i + 2, of: line.length }));
+    }
+  });
+  it("shows the logo only on the first and last slides of the path", () => {
+    for (const path of ["full", "short"] as const) for (const id of ["welcome", "thanks"]) expect(frameInfo(F, path, id), `${path} ${id}`).toEqual(frame());
+  });
+  it("shows the footer but no tracker on an open slide that is not the first", () => {
+    expect(frameInfo(F, "full", "agenda")).toEqual(frame({ number: { at: 2, of: 11 }, footer: true }));
+    expect(frameInfo(F, "short", "agenda")).toEqual(frame({ number: { at: 2, of: 8 }, footer: true }));
+  });
+  it("gives a backup slide the frame with no number and no topic lit, and a still no frame at all", () => {
+    expect(frameInfo(F, "full", "words")).toEqual(frame({ tracker: true, footer: true, backup: true }));
+    expect(frameInfo(F, "short", "words")).toEqual(frame({ tracker: true, footer: true, backup: true }));
+    expect(frameInfo(F, "full", "ask-still")).toEqual(frame({ bare: true, backup: true }));
+  });
+  it("lights the topic of a slide the path leaves out, but gives it no place and no number", () => {
+    expect(frameInfo(F, "short", "pipeline")).toEqual(frame({ tracker: true, topic: "numbers", footer: true }));
+    expect(frameInfo(F, "short", "limits")).toEqual(frame({ tracker: true, topic: "checks", footer: true }));
+  });
+  it("takes an unknown id for the first slide", () => expect(frameInfo(F, "full", "nope")).toEqual(frameInfo(F, "full", "welcome")));
+});
+
+import { arrivalStep, showsData, stepCount, type Facts, type Native, type Result, type Tile } from "./deck";
+
+describe("native steps", () => {
+  const native = (n: Native): Slide => ({ ...s("x", "steps", 1), native: n });
+  const tile = (head: string): Tile => ({ head, body: "A body." });
+  const result: Result = { head: "A test", body: "What it tests.", result: "What it found." };
+
+  it("counts a step for each line, tile, table, check, result and demo line", () => {
+    expect(stepCount(native({ layout: "statement", lines: ["One.", "Two.", "Three."] }))).toBe(3);
+    expect(stepCount(native({ layout: "tiles", tiles: [tile("A"), tile("B")] }))).toBe(2);
+    expect(stepCount(native({ layout: "table", tables: ["gold.dim_agency", "gold.dim_market"] }))).toBe(2);
+    expect(stepCount(native({ layout: "checks", keys: ["a", "b", "c", "d"] }))).toBe(4);
+    expect(stepCount(native({ layout: "results", items: [result, result, result] }))).toBe(3);
+    expect(stepCount(native({ layout: "demo", demo: { kind: "precall" }, lines: ["One.", "Two."] }))).toBe(2);
+  });
+  it("counts the question to the room as a step after the lines", () => {
+    expect(stepCount(native({ layout: "statement", lines: ["One.", "Two."], ask: "A question?" }))).toBe(3);
+    expect(stepCount(native({ layout: "statement", lines: [], ask: "A question?" }))).toBe(1);
+  });
+  it("counts the five topics for the agenda, and none for the checks shown at once or for the close", () => {
+    expect(stepCount(native({ layout: "agenda" }))).toBe(5);
+    expect(stepCount(native({ layout: "checks" }))).toBe(0);
+    expect(stepCount(native({ layout: "close", lines: ["Thank you.", "Questions?"] }))).toBe(0);
+  });
+  it("counts none on a figure, a live page or a slide with no layout", () => {
+    for (const kind of ["image", "live", "animated", "native"] as const) expect(stepCount({ ...s("fig", "steps", 1), kind }), kind).toBe(0);
+  });
+  it("arrives on step 0 going forward, and complete going back or on a load", () => {
+    const three = native({ layout: "statement", lines: ["One.", "Two.", "Three."] });
+    expect(arrivalStep(three, "forward")).toBe(0);
+    expect(arrivalStep(three, "backward")).toBe(3);
+    expect(arrivalStep(three, "load")).toBe(3);
+    expect(arrivalStep(native({ layout: "close", lines: ["Thank you."] }), "backward")).toBe(0);
+  });
+  it("hands a press to the slide until its last step, then to the deck, with pressTarget", () => {
+    const three = native({ layout: "statement", lines: ["One.", "Two.", "Three."] });
+    const count = stepCount(three);
+    // pressTarget calls a press that stays on the slide "diagram", whatever the slide holds
+    expect([0, 1, 2, 3].map((at) => pressTarget(at, count, 1))).toEqual(["diagram", "diagram", "diagram", "deck"]);
+    expect([0, 1, 2, 3].map((at) => pressTarget(at, count, -1))).toEqual(["deck", "diagram", "diagram", "diagram"]);
+    expect(pressTarget(arrivalStep(three, "backward"), count, 1)).toBe("deck"); // complete on arrival, so a forward press moves on
+    expect(pressTarget(arrivalStep(three, "forward"), count, -1)).toBe("deck"); // nothing shown yet, so a back press moves back
+  });
+});
+
+describe("a slide that shows data", () => {
+  const f: Facts = { facts: { rows: { display: "3,000" } }, dated: { when: { display: "Oct 19" } } };
+  const native = (n: Native, over: Partial<Slide> = {}): Slide => ({ ...s("x", "numbers", 1), native: n, ...over });
+  const byId = (id: string) => slides.find((x) => x.id === id)!;
+
+  it("is a table, the checks, or a figure marked as data", () => {
+    expect(showsData(native({ layout: "table", tables: ["gold.dim_agency"] }), f)).toBe(true);
+    expect(showsData(native({ layout: "checks" }), f)).toBe(true);
+    expect(showsData({ ...s("fig", "numbers", 1), kind: "image", data: true }, f)).toBe(true);
+  });
+  it("is native text that holds a fact, in any layout and in the title", () => {
+    expect(showsData(native({ layout: "statement", lines: ["{rows} rows."] }), f)).toBe(true);
+    expect(showsData(native({ layout: "statement", lines: ["One."], ask: "Why {rows}?" }), f)).toBe(true);
+    expect(showsData(native({ layout: "tiles", tiles: [{ head: "A", body: "{rows} rows." }] }), f)).toBe(true);
+    expect(showsData(native({ layout: "results", items: [{ head: "A", body: "B", result: "C", miss: "{rows} missed" }] }), f)).toBe(true);
+    expect(showsData(native({ layout: "close", lines: ["{rows}"] }), f)).toBe(true);
+    expect(showsData(native({ layout: "agenda" }, { title: "{rows} rows" }), f)).toBe(true);
+  });
+  it("is not a dated fact, a fact only in the note, or a figure that is not marked", () => {
+    expect(showsData(native({ layout: "statement", lines: ["Scored on {when}."] }), f)).toBe(false);
+    expect(showsData(native({ layout: "statement", lines: ["Plain words."] }, { note: "There are {rows} rows." }), f)).toBe(false);
+    expect(showsData({ ...s("fig", "numbers", 1), kind: "image" }, f)).toBe(false);
+    expect(showsData(native({ layout: "agenda" }), f)).toBe(false);
+  });
+  it("keeps the checks and the row slides of the deck on the synthetic data footer, and the problem slide off it", () => {
+    expect(showsData(byId("checks"), facts)).toBe(true);
+    expect(showsData(byId("row"), facts)).toBe(true);
+    expect(showsData(byId("problem"), facts)).toBe(false);
+  });
+});
+
+describe("the words a slide shows", () => {
+  const base: Slide = { ...s("x", "steps", 1), title: "T", note: "N" };
+  const native = (n: Native): Slide => ({ ...base, native: n });
+
+  it("lists a live slide's byline after its title", () => expect(texts({ ...base, kind: "live", byline: ["B1", "B2"] })).toEqual(["T", "B1", "B2", "N"]));
+  it("lists the question to the room after a statement's lines", () => {
+    expect(texts(native({ layout: "statement", lines: ["L1", "L2"], ask: "Q" }))).toEqual(["T", "L1", "L2", "Q", "N"]);
+    expect(texts(native({ layout: "statement", lines: ["L1"] }))).toEqual(["T", "L1", "N"]);
+  });
+  it("lists every field of every result, and a miss only where there is one", () => {
+    const items = [{ head: "H1", body: "B1", result: "R1", miss: "M1" }, { head: "H2", body: "B2", result: "R2" }];
+    expect(texts(native({ layout: "results", items }))).toEqual(["T", "H1", "B1", "R1", "M1", "H2", "B2", "R2", "N"]);
+  });
+  it("lists the closing lines, and nothing more for the agenda, whose words are the topics'", () => {
+    expect(texts(native({ layout: "close", lines: ["C1", "C2"] }))).toEqual(["T", "C1", "C2", "N"]);
+    expect(texts(native({ layout: "agenda" }))).toEqual(["T", "N"]);
+  });
+  it("still lists a table's keys, a tile's tag and the Ask demo's question", () => {
+    expect(texts(native({ layout: "table", tables: ["gold.dim_agency"] }))).toEqual(["T", "gold.dim_agency", "N"]);
+    expect(texts(native({ layout: "tiles", tiles: [{ head: "H", body: "B", tag: "Possibility" }] }))).toEqual(["T", "H", "B", "Possibility", "N"]);
+    expect(texts(native({ layout: "demo", demo: { kind: "ask", question: "Why?" }, lines: ["L"] }))).toEqual(["T", "Why?", "L", "N"]);
+  });
+});
+
+describe("the checks layout", () => {
+  const slide: Slide = { id: "fake-checks", part: "numbers", kind: "native", title: "A fixture", min: 0, note: "", native: { layout: "checks" } };
+
+  it("draws every check, and says the data is synthetic", () => {
+    const html = renderToStaticMarkup(createElement(NativeSlide, { slide, facts }));
+    facts.checks.filter((c) => !c.name.includes("'")).forEach((c) => expect(html).toContain(c.name)); // React escapes an apostrophe
+    expect(html).toContain("synthetic data");
+  });
+  it("draws the title and does not throw for a layout no slide uses yet", () => {
+    for (const native of [{ layout: "results", items: [] }, { layout: "agenda" }, { layout: "close", lines: ["Thank you."] }] as Native[]) {
+      expect(renderToStaticMarkup(createElement(NativeSlide, { slide: { ...slide, native }, facts })), native.layout).toContain("A fixture");
+    }
+  });
 });

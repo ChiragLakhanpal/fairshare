@@ -1,13 +1,14 @@
 // The deck's native slides, in the app's AA tokens under the same logo band as the figures: a statement, tiles (a
-// "Possibility" tile carries a chip), the columns of a table or the basic checks, and a live demo with its button. Every
-// string a slide carries goes through fill(), so its {placeholders} show the facts' display strings. A demo button hands its
-// demo to onDemo, which the deck answers by jumping into the app in its own tab (the notes window's small previews pass
-// none, so their buttons do nothing); the dashboard link needs no jump, because it only opens a new tab.
+// "Possibility" tile carries a chip), the columns of a table or the basic checks, and a live demo with its button. The
+// results, agenda and close layouts draw nothing yet. Every string a slide carries goes through fill(), so its
+// {placeholders} show the facts' display strings. A demo button hands its demo to onDemo, which the deck answers by
+// jumping into the app in its own tab (the notes window's small previews pass none, so their buttons do nothing); the
+// dashboard link needs no jump, because it only opens a new tab.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Check, ChevronRight, Close, External } from "../components/Icons";
 import { copy } from "../copy";
 import { api } from "../lib/api";
-import { fill, knownTables, placeholders, texts, type DeckFacts, type Demo, type Jump, type Slide, type Tile } from "../lib/deck";
+import { fill, knownTables, showsData, type DeckFacts, type Demo, type Jump, type Slide, type Tile } from "../lib/deck";
 import { REPORT_URL } from "./slides";
 
 /** The figures' mono face and muted ink (MONO and MUTED in docs/diagrams/src/aa.py). */
@@ -36,7 +37,7 @@ function LogoBand({ tag }: { tag: string }) {
 export function NativeSlide({ slide, facts, onDemo }: { slide: Slide; facts: DeckFacts; onDemo?: (demo: Jump) => void }) {
   const n = slide.native!;
   const f = (t: string) => fill(t, facts);
-  const data = n.layout === "table" || texts(slide).slice(0, -1).flatMap(placeholders).some((k) => Object.hasOwn(facts.facts, k));
+  const data = showsData(slide, facts);
   return (
     <div className="absolute inset-0 bg-white text-ink">
       <LogoBand tag={data ? copy.deckTagData : copy.deckTag} />
@@ -46,6 +47,7 @@ export function NativeSlide({ slide, facts, onDemo }: { slide: Slide; facts: Dec
           {n.layout === "statement" && <Statement lines={n.lines.map(f)} link={slide.id === "start" ? REPORT_URL : null} />}
           {n.layout === "tiles" && <Tiles tiles={n.tiles.map((t) => ({ ...t, head: f(t.head), body: f(t.body) }))} />}
           {n.layout === "table" && <Tables keys={n.tables} facts={facts} />}
+          {n.layout === "checks" && <Tables keys={["checks"]} facts={facts} />}
           {n.layout === "demo" && <DemoLayout demo={n.demo} question={n.demo.kind === "ask" ? f(n.demo.question) : null} lines={n.lines.map(f)} onDemo={onDemo} />}
         </div>
       </div>

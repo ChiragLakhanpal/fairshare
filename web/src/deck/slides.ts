@@ -1,9 +1,10 @@
-// The deck's slides in the order a talk walks them: the four parts of the main path, then the backup slides, which the
-// notes window's outline reaches. min is a slide's minutes on the main path, short its minutes on the short path (only
-// the slides on it have one). Assets and thumbs are keys of images and pages in assets.ts; the thumb is the PNG under a
-// live or animated frame. Every number is a {placeholder} that SlideView fills from facts.json, and deck.test.ts holds
-// every string here to the content rules. A still is a screenshot of the app, so it shows no part label. A note is what
-// the speaker says on the slide, under 40 words and in the way he talks; the notes window fills in its numbers.
+// The deck's slides in the order a talk walks them: the main path, then the backup slides, which the notes window's outline
+// reaches. A slide's part is the welcome (open), one of the five topics, the thanks (close) or backup. min is a slide's
+// minutes on the main path, short its minutes on the short path (only the slides on it have one). Assets and thumbs are keys
+// of images and pages in assets.ts; the thumb is the PNG under a live or animated frame. Every number is a {placeholder} that
+// SlideView fills from facts.json, and deck.test.ts holds every string here to the content rules. A still is a screenshot of
+// the app, so it shows no part label. A note is what the speaker says on the slide, under 40 words and in the way he talks;
+// the notes window fills in its numbers.
 import type { Slide } from "../lib/deck";
 
 /** Names of things that exist today. A tile tagged "Possibility" names none of them. */
@@ -15,12 +16,12 @@ export const REPORT_URL: string | null = null;
 export const slides: Slide[] = [
   // 1. The first answer
   {
-    id: "title", part: "first", kind: "live", title: "Fairshare: sales answers you can check", min: 0.5, short: 0.5,
+    id: "title", part: "open", kind: "live", title: "Fairshare: sales answers you can check", min: 0.5, short: 0.5,
     asset: "hairline/title-b-airliner.html", thumb: "hairline/png/title-b.png",
     note: "Name and one line on me. Before anyone asks, all the data here is made up, the agencies, the sales, the contracts, the seats and so on. Please stop me anywhere. Then what I heard in round one.",
   },
   {
-    id: "problem", part: "first", kind: "native", title: "Two slow steps today", min: 1, short: 1,
+    id: "problem", part: "steps", kind: "native", title: "Two slow steps today", min: 1, short: 1,
     native: {
       layout: "statement",
       lines: [
@@ -32,7 +33,7 @@ export const slides: Slide[] = [
     note: "So there are two slow steps, a share question turns into a ticket to sales BI, and account managers build pre-call packs by hand. Ask the sales director how long a pack takes today. Then what I built.",
   },
   {
-    id: "what", part: "first", kind: "native", title: "An app that answers sales questions with numbers you can check", min: 0.5, short: 0.5,
+    id: "what", part: "modes", kind: "native", title: "An app that answers sales questions with numbers you can check", min: 0.5, short: 0.5,
     native: {
       layout: "tiles",
       tiles: [
@@ -43,12 +44,12 @@ export const slides: Slide[] = [
     note: "It's one app with two modes. In Ask you type a question in plain words, and every number links to its query. Delegate drafts routine pages overnight for a person to approve. I'd like to show you Ask live.",
   },
   {
-    id: "query-opener", part: "first", kind: "live", title: "It starts with a question", min: 0.25,
+    id: "query-opener", part: "modes", kind: "live", title: "It starts with a question", min: 0.25,
     asset: "hairline/opener-query.html", thumb: "hairline/png/query.png",
     note: "It starts with a question, the kind that comes up in a Monday sales meeting. Let it play a few seconds.",
   },
   {
-    id: "ask", part: "first", kind: "native", title: "A live question in Ask", min: 3.5, short: 2.5,
+    id: "ask", part: "modes", kind: "native", title: "A live question in Ask", min: 3.5, short: 2.5,
     native: {
       layout: "demo",
       demo: { kind: "ask", question: "Why is Harbor Business Travel down in September?" },
@@ -61,96 +62,96 @@ export const slides: Slide[] = [
     note: "Click Ask it live, click the box, Enter, talk through the steps. Click the share effect, {harbor_share_usd}. Fair share is made up. A removed sentence likely had a rounded dollar figure. Past a minute, the still. Back: sidebar.",
   },
   {
-    id: "director", part: "first", kind: "animated", title: "Sales director: a question in the Monday meeting", min: 1.25,
+    id: "director", part: "modes", kind: "animated", title: "Sales director: a question in the Monday meeting", min: 1.25,
     asset: "04-journey-sales-director-animated.html", thumb: "export/04-journey-sales-director.png",
     note: "Behind that answer, one press per step. Genie ran the query as me, SQL split the change, the model wrote only the words, and the verifier checked every number. So where does the data come from?",
   },
 
   // 2. The data
   {
-    id: "elevator-opener", part: "data", kind: "live", title: "Four floors: as delivered, cleaned, ready to use, and defined once", min: 0.25,
+    id: "elevator-opener", part: "numbers", kind: "live", title: "Four floors: as delivered, cleaned, ready to use, and defined once", min: 0.25,
     asset: "hairline/opener-elevator.html", thumb: "hairline/png/elevator.png",
     note: "Part two, the data. Four floors, from the files as they came in up to each number defined once. Let it play.",
   },
   {
-    id: "pipeline", part: "data", kind: "animated", title: "Where the numbers come from", min: 1.5,
+    id: "pipeline", part: "numbers", kind: "animated", title: "Where the numbers come from", min: 1.5,
     asset: "06-data-pipeline-animated.html", thumb: "export/06-data-pipeline.png",
     note: "Four sources, and the seat shares are made up, one per route. Bronze is as delivered, silver cleaned, gold is {sales_rows} rows, one per agency, route and month. On top, {kpis} numbers, each defined once. Then one actual row.",
   },
   {
-    id: "row", part: "data", kind: "native", title: "One row each: Summit Travel Partners on DFW-ORD, Sep 2026", min: 1.75,
+    id: "row", part: "numbers", kind: "native", title: "One row each: Summit Travel Partners on DFW-ORD, Sep 2026", min: 1.75,
     native: { layout: "table", tables: ["gold.fact_agency_sales_monthly", "gold.fact_market_capacity"] },
     note: "AA revenue sits next to everything the agency sold on that route that month, and share is one divided by the other. The seat row is made up, it even says synthetic. Next, every agency by every month.",
   },
   {
-    id: "coverage", part: "data", kind: "image", title: "Every agency, every month", min: 0.75,
+    id: "coverage", part: "numbers", kind: "image", title: "Every agency, every month", min: 0.75,
     asset: "export/10-coverage.png",
     note: "{agency_months_present} of {agency_months_total} agency-months have rows. The holes are Sunbelt, which sent nothing in March and April 2026. Northstar's {northstar_zero_route} in {northstar_zero_month} is a true zero, they sold the route, just none on AA. Revenue shows them next.",
   },
   {
-    id: "revenue", part: "data", kind: "image", title: "AA revenue by month, 2025 against 2026", min: 0.75,
+    id: "revenue", part: "numbers", kind: "image", title: "AA revenue by month, 2025 against 2026", min: 0.75,
     asset: "export/11-revenue-by-month.png",
     note: "This year runs ahead of last except March and April, at {yoy_mar26} and {yoy_apr26}, and the axis doesn't start at zero. The dip is Sunbelt missing and Harbor falling, while the others grew. I planted both of those.",
   },
   {
-    id: "planted", part: "data", kind: "image", title: "What I planted, and what cleaning did", min: 2,
+    id: "planted", part: "numbers", kind: "image", title: "What I planted, and what cleaning did", min: 2,
     asset: "export/14-what-was-planted.png",
     note: "Sunbelt is a missing logbook page, Northstar's zero a page saying no flights today. Pace skips missing months, so Sunbelt's May went {sunbelt_pace_may26_before} to {sunbelt_pace_may26} of pace. Harbor's flagged since the CRM still says On track. Then the checks.",
   },
   {
-    id: "checks", part: "data", kind: "native", title: "The basic checks: what each should be, and what it is", min: 0.75,
-    native: { layout: "table", tables: ["checks"] },
+    id: "checks", part: "numbers", kind: "native", title: "The basic checks: what each should be, and what it is", min: 0.75,
+    native: { layout: "checks" },
     note: "{sales_rows} rows is {agencies} agencies by {routes} routes by {months} months, minus Sunbelt's {sunbelt_missing_rows} missing. Every check passes, and the same checks run as a test before every commit. Next, the {kpis} numbers.",
   },
   {
-    id: "numbers", part: "data", kind: "image", title: "The seven numbers", min: 1.5,
+    id: "numbers", part: "numbers", kind: "image", title: "The seven numbers", min: 1.5,
     asset: "export/09-definitions.png",
     note: "Shares are like batting averages, add up hits and at-bats, never average the averages. In Q3 the {agencies} shares average {avg_of_shares_q3}, but the share of the total is {share_of_total_q3}. Ask where AA's fair share differs, mine's made up.",
   },
   {
-    id: "share-fair", part: "data", kind: "image", title: "AA share against fair share, Q3 2026", min: 1,
+    id: "share-fair", part: "numbers", kind: "image", title: "AA share against fair share, Q3 2026", min: 1,
     asset: "export/12-share-vs-fair.png",
     note: "Fair share is about the same for everyone, since they all sell the same routes and the seat shares are made up. Lone Star's on top at {agency_q3_aa_share_lonestar}, FareHub's last at {agency_q3_aa_share_farehub}. Now why Harbor moved.",
   },
   {
-    id: "moved", part: "data", kind: "animated", title: "Why Harbor moved", min: 1.5,
+    id: "moved", part: "numbers", kind: "animated", title: "Why Harbor moved", min: 1.5,
     asset: "08-why-it-moved-animated.html", thumb: "export/08-why-it-moved.png",
     note: "Harbor went from {harbor_revenue_sep25_usd} to {harbor_revenue_sep26_usd}. Volume added {harbor_volume_usd}, mix barely moved, and share took {harbor_share_usd}, more than the whole drop. The made-up seat shares would have predicted {harbor_fair_share_effect_usd}, so seats don't explain it. Now what I built.",
   },
 
   // 3. What I built
   {
-    id: "stack-opener", part: "built", kind: "live", title: "Five layers under every answer", min: 0.25,
+    id: "stack-opener", part: "numbers", kind: "live", title: "Five layers under every answer", min: 0.25,
     asset: "hairline/stack.html", thumb: "hairline/png/stack.png",
     note: "Part three, what I built, five layers under every answer. Let it play, pointing does nothing in the deck.",
   },
   {
-    id: "system", part: "built", kind: "animated", title: "The system", min: 2.25, short: 1.5,
+    id: "system", part: "numbers", kind: "animated", title: "The system", min: 2.25, short: 1.5,
     asset: "01-system-exploded-animated.html", thumb: "export/01-system-exploded.png",
     note: "Five layers, one press each. The data's made up, Ask runs on Genie and Qwen3-Next, Delegate on Foundry writers. Blue is the checks: every number matched to a query, a person approves what goes out, traces on laptop runs.",
   },
   {
-    id: "sieve-opener", part: "built", kind: "live", title: "Every number passes through the checks", min: 0.25,
+    id: "sieve-opener", part: "checks", kind: "live", title: "Every number passes through the checks", min: 0.25,
     asset: "hairline/opener-sieve.html", thumb: "hairline/png/sieve.png",
     note: "Every number goes through the checks before you see it. Let it play.",
   },
   {
-    id: "checked", part: "built", kind: "animated", title: "How an answer gets checked", min: 2,
+    id: "checked", part: "checks", kind: "animated", title: "How an answer gets checked", min: 2,
     asset: "02-answer-checked-animated.html", thumb: "export/02-answer-checked.png",
     note: "The verifier is kind of a newspaper fact-checker with the source documents. A sentence whose number no query returned gets cut from the answer. Genie alone scored {genie_benchmark} in one run on {genie_benchmark_date}, after five questions named their columns.",
   },
   {
-    id: "riffle-opener", part: "built", kind: "live", title: "Pages wait for a person to decide", min: 0.25,
+    id: "riffle-opener", part: "modes", kind: "live", title: "Pages wait for a person to decide", min: 0.25,
     asset: "hairline/opener-riffle.html", thumb: "hairline/png/riffle.png",
     note: "That's Ask. The other mode is Delegate, where pages wait for a person to decide. Let it play.",
   },
   {
-    id: "delegate", part: "built", kind: "image", title: "Agents draft, people decide", min: 1.25,
+    id: "delegate", part: "modes", kind: "image", title: "Agents draft, people decide", min: 1.25,
     asset: "export/03-delegate.png",
     note: "Every night the job runs four agents. Fixed queries pull the facts, a Foundry writer drafts from only those, and the verifier checks every number. Nothing is logged or sent until a person approves. Let me open one.",
   },
   {
-    id: "precall", part: "built", kind: "native", title: "The pre-call pack the 6 am job wrote", min: 3, short: 2,
+    id: "precall", part: "modes", kind: "native", title: "The pre-call pack the 6 am job wrote", min: 3, short: 2,
     native: {
       layout: "demo",
       demo: { kind: "precall" },
@@ -163,7 +164,7 @@ export const slides: Slide[] = [
     note: "Open the pack, pick FareHub Online or Lone Star, the nightly job wrote it. Click a number for its rows, then Approve. If asked, fine means {tier_watch_band_pts} or more points from a tier line. Past a minute, the still.",
   },
   {
-    id: "built-how", part: "built", kind: "native", title: "How I built it", min: 1.25,
+    id: "built-how", part: "modes", kind: "native", title: "How I built it", min: 1.25,
     native: {
       layout: "tiles",
       tiles: [
@@ -178,7 +179,7 @@ export const slides: Slide[] = [
 
   // 4. Proof and next
   {
-    id: "measured", part: "proof", kind: "native", title: "What I measured, misses included", min: 1.75, short: 1.75,
+    id: "measured", part: "checks", kind: "native", title: "What I measured, misses included", min: 1.75, short: 1.75,
     native: {
       layout: "tiles",
       tiles: [
@@ -191,7 +192,7 @@ export const slides: Slide[] = [
     note: "I'll start with the misses. On {app_model_date} the App's model got {app_model_right} of {app_model_questions} right, and {app_model_gave_up_passed} answer that gave up still passed the verifier, because it had no numbers to check. Genie's {genie_benchmark} was one run, on {genie_benchmark_date}.",
   },
   {
-    id: "limits", part: "proof", kind: "native", title: "What it does not do yet", min: 1,
+    id: "limits", part: "checks", kind: "native", title: "What it does not do yet", min: 1,
     native: {
       layout: "statement",
       lines: [
@@ -205,7 +206,7 @@ export const slides: Slide[] = [
     note: "The biggest one is that it doesn't flag a single corporate's drop yet, though you can ask about one. The Foundry writers run today, and Ask as a hosted agent is built but not deployed. Then, how we'd know.",
   },
   {
-    id: "know", part: "proof", kind: "native", title: "How we would know it worked", min: 1,
+    id: "know", part: "aa", kind: "native", title: "How we would know it worked", min: 1,
     native: {
       layout: "tiles",
       tiles: [
@@ -218,12 +219,12 @@ export const slides: Slide[] = [
     note: "If it works, account managers come back the next week, prep time per call drops, fewer share questions become tickets, and drafts get approved with light edits. I'd time today first. Now, the same layers at AA.",
   },
   {
-    id: "at-aa", part: "proof", kind: "image", title: "The same layers at AA", min: 1.5,
+    id: "at-aa", part: "aa", kind: "image", title: "The same layers at AA", min: 1.5,
     asset: "export/15-at-aa.png",
     note: "At AA it's the same layers, each made-up table next to the feed that would replace it. The hardest is the agency's sales on other airlines, since AA only sees its own. The Microsoft pieces wait on AA's account.",
   },
   {
-    id: "azure", part: "proof", kind: "native", title: "Possibilities on Azure", min: 0.75,
+    id: "azure", part: "aa", kind: "native", title: "Possibilities on Azure", min: 0.75,
     native: {
       layout: "tiles",
       tiles: [
@@ -236,7 +237,7 @@ export const slides: Slide[] = [
     note: "Each of these is a possibility, tagged that way, and they all wait on AA's own Microsoft account. Teams would put the same questions where account managers already work. Then how I'd start.",
   },
   {
-    id: "start", part: "proof", kind: "native", title: "How I would start at AA", min: 1, short: 1,
+    id: "start", part: "aa", kind: "native", title: "How I would start at AA", min: 1, short: 1,
     native: {
       layout: "statement",
       lines: [

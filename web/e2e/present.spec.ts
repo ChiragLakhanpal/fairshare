@@ -277,7 +277,7 @@ test("a deck the browser restores from its cache spends the way back too", async
 test("the part label sits on an ordinary slide and stays off the two stills", async ({ page }) => {
   const label = (id: string, text: string) => page.locator(`[data-slide="${id}"]`).getByText(text, { exact: true });
   await page.goto("/present#coverage");
-  await expect(label("coverage", "The data")).toBeVisible();
+  await expect(label("coverage", "Where the numbers come from")).toBeVisible();
   await page.goto("about:blank"); // a change of hash alone would leave the deck where it is
   await page.goto("/present#ask-still");
   await expect(page.locator("[data-deck-ready]")).toBeAttached();
