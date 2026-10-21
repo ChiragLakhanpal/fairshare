@@ -2,10 +2,11 @@
 // when it opens it says hello on the channel, the deck answers with its state, and it shows whatever state the deck
 // posts. Every key, outline click, path switch, clock reset and demo request goes to the deck, which applies it as if it
 // were pressed there and posts its state back; this window never posts a state, so nothing echoes. It shows the slide on
-// the screen and the next one (native and image slides drawn small, live and animated ones as their thumbs), the note in
-// large type, the talk time with the drift and the checkpoints, and the outline of every slide, backup included. It also
-// calls api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL warehouse
-// awake, because the warehouse stops after ten idle minutes. Under the demo buttons it says when the last ping got through.
+// the screen at its step and the next one complete (native and image slides drawn small, live and animated ones as their
+// thumbs), the note in large type, the talk time with the drift and the checkpoints, and the outline of every slide,
+// backup included. It also calls api.agencies() when it opens and every eight minutes: one small query, never cached,
+// that keeps the SQL warehouse awake, because the warehouse stops after ten idle minutes. Under the demo buttons it says
+// when the last ping got through.
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { images } from "../deck/assets";
@@ -15,7 +16,7 @@ import { slides } from "../deck/slides";
 import { api } from "../lib/api";
 import {
   blurAfterClick, CHANNEL, checkpointPlan, clock, driftIsRed, fill, fromHash, keyAction, KEYS, liveDrift, move, onPath, PARTS, plannedStart,
-  type Msg, type Part, type PathName, type Slide,
+  stepCount, type Msg, type Part, type PathName, type Slide,
 } from "../lib/deck";
 import { Check } from "./Icons";
 
@@ -111,7 +112,8 @@ export function Notes() {
         )}
         <h2 className="t-label">{copy.notesNow}</h2>
         <div className="mt-2">
-          <Preview slide={slide} />
+          {/* the deck's step: until the deck posts it with its state, the complete slide */}
+          <Preview slide={slide} step={stepCount(slide)} />
         </div>
         <h1 className="mt-3 text-[17px] font-semibold leading-snug">{fill(slide.title, facts)}</h1>
         <p className="mt-4 text-[26px] leading-[1.4]">{fill(slide.note, facts)}</p>
@@ -222,10 +224,11 @@ function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg)
   );
 }
 
-/** A slide drawn small: native and image slides as the deck draws them, live and animated ones as the PNG under their
- * frame. It takes no focus and no clicks (inert), and it is hidden from screen readers and from Playwright's roles, which
- * do not read inert, so a demo slide's button here is never mistaken for this window's own. */
-function Preview({ slide }: { slide: Slide }) {
+/** A slide drawn small: native and image slides as the deck draws them, a native one at a step (complete when it gets
+ * none), live and animated ones as the PNG under their frame. It takes no focus and no clicks (inert), and it is hidden
+ * from screen readers and from Playwright's roles, which do not read inert, so a demo slide's button here is never
+ * mistaken for this window's own. */
+function Preview({ slide, step }: { slide: Slide; step?: number }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   useEffect(() => {
@@ -243,7 +246,7 @@ function Preview({ slide }: { slide: Slide }) {
       ) : (
         width > 0 && (
           <div className="absolute left-0 top-0 h-[720px] w-[1280px] origin-top-left" style={{ transform: `scale(${width / 1280})` }}>
-            <NativeSlide key={slide.id} slide={slide} facts={facts} />
+            <NativeSlide key={slide.id} slide={slide} facts={facts} step={step} />
           </div>
         )
       )}

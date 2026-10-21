@@ -8,14 +8,15 @@
 // (arrivalKey), and shows. A frame that never gets ready, slow or blocked, leaves the thumb, and the deck counts it as zero
 // steps. A frame never takes the pointer or the focus, so the deck keeps every key press, and it exists only while its
 // slide shows. Figures fill the stage under the frame's strips; native slides are drawn in layouts.tsx, in the frame's
-// content box. Every string goes through fill().
+// content box, at the step the deck hands down (the complete slide when it hands none). Every string goes through fill().
 import { useReducedMotion } from "motion/react";
 import { useEffect, useState, type RefObject } from "react";
 import { copy } from "../copy";
 import { arrivalKey, fill, sendKey, showsData, type DeckFacts, type FrameInfo, type Jump, type Slide } from "../lib/deck";
 import { images, pages } from "./assets";
 import { DeckFrame } from "./Frame";
-import { MUTED, NativeSlide } from "./layouts";
+import { NativeSlide } from "./layouts";
+import { MUTED } from "./ramp";
 
 const POLL_MS = 50;
 
@@ -35,13 +36,15 @@ export function showPage(f: { readonly contentDocument: Document | null }, bylin
   }
 }
 
-export function SlideView({ slide, frame, backward, frameRef, facts, onDemo }: {
+export function SlideView({ slide, frame, backward, frameRef, facts, onDemo, step }: {
   slide: Slide;
   frame: FrameInfo;
   backward: boolean;
   frameRef: RefObject<HTMLIFrameElement | null>;
   facts: DeckFacts;
   onDemo: (demo: Jump) => void;
+  /** How many of a native slide's items show; none shows them all. */
+  step?: number;
 }) {
   const reduced = useReducedMotion();
   const [ready, setReady] = useState(false); // the animated frame's controller is ready
@@ -117,7 +120,7 @@ export function SlideView({ slide, frame, backward, frameRef, facts, onDemo }: {
           />
         )}
         {hasByline && <Byline title={title} lines={slide.byline!.map((l) => fill(l, facts))} />}
-        {slide.kind === "native" && slide.native && <NativeSlide slide={slide} facts={facts} onDemo={onDemo} />}
+        {slide.kind === "native" && slide.native && <NativeSlide slide={slide} facts={facts} onDemo={onDemo} step={step} />}
       </DeckFrame>
     </div>
   );

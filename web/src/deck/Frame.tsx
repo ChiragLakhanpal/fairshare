@@ -8,7 +8,7 @@
 import type { ReactNode } from "react";
 import { copy } from "../copy";
 import { PARTS, TOPIC_ORDER, TOPICS, type FrameInfo, type Segment } from "../lib/deck";
-import { MONO, MUTED } from "./layouts";
+import { MONO, MUTED } from "./ramp";
 
 const SEGMENT: Record<Segment, string> = { passed: "bg-navy", current: "bg-blue", later: "bg-line-2" };
 // a cap-to-baseline box, so a strip's text sits on its baseline wherever the font puts its ascent

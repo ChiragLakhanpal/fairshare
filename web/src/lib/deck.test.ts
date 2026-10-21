@@ -217,12 +217,14 @@ import { knownTables } from "./deck";
 describe("a table slide's keys", () => {
   const tableKeys = (list: Slide[]) => list.flatMap((s) => (s.native?.layout === "table" ? s.native.tables.map((key) => ({ id: s.id, key })) : []));
   const unknown = (list: Slide[]) => tableKeys(list).filter(({ key }) => knownTables([key], facts.columns).length === 0).map(({ id, key }) => `${id}: ${key}`);
-  const named = ["checks", "gold.dim_agency", "gold.no_such_table"];
+  const named = ["gold.dim_market", "gold.no_such_table", "gold.dim_agency"];
   const fake: Slide = { id: "fake", part: "backup", kind: "native", title: "A fixture", min: 0, note: "", native: { layout: "table", tables: named } };
 
-  it("are the checks or a table that facts.json describes, on every slide of the deck", () => expect(unknown(slides)).toEqual([]));
+  it("are tables that facts.json describes, on every slide of the deck", () => expect(unknown(slides)).toEqual([]));
   it("catches a key that facts.json does not describe (a fixture, not the deck)", () => expect(unknown([fake])).toEqual(["fake: gold.no_such_table"]));
-  it("are skipped by the guard when unknown, in order", () => expect(knownTables(named, facts.columns)).toEqual(["checks", "gold.dim_agency"]));
+  it("are skipped by the guard when unknown, in order", () => expect(knownTables(named, facts.columns)).toEqual(["gold.dim_market", "gold.dim_agency"]));
+  // the checks have a layout of their own, so "checks" is no table key
+  it("do not take the checks", () => expect(knownTables(["checks"], facts.columns)).toEqual([]));
   it("do not stop a table slide from drawing, and the unknown one is left out", () => {
     const html = renderToStaticMarkup(createElement(NativeSlide, { slide: fake, facts }));
     expect(html).toContain("gold.dim_agency");
@@ -452,16 +454,198 @@ describe("the words a slide shows", () => {
   });
 });
 
-describe("the checks layout", () => {
-  const slide: Slide = { id: "fake-checks", part: "numbers", kind: "native", title: "A fixture", min: 0, note: "", native: { layout: "checks" } };
+import { BODY, DISPLAY, HEAD, LABEL, MISS, NOTE, STEP, TITLE, UNREACHED } from "../deck/ramp";
 
-  it("draws every check", () => {
-    const html = renderToStaticMarkup(createElement(NativeSlide, { slide, facts }));
-    facts.checks.filter((c) => !c.name.includes("'")).forEach((c) => expect(html).toContain(c.name)); // React escapes an apostrophe
+describe("the type ramp", () => {
+  const has = (cls: string, want: string) => want.split(" ").forEach((c) => expect(cls.split(" "), `${c} in ${cls}`).toContain(c));
+  it("holds the size, weight, leading and color of each kind of text on a native slide", () => {
+    has(TITLE, "text-[40px] font-semibold leading-[1.15] tracking-[-0.01em] text-navy");
+    has(BODY, "text-[28px] font-normal leading-[1.35] text-ink");
+    has(HEAD, "text-[28px] font-semibold leading-[1.35] text-ink");
+    has(NOTE, "text-[20px] font-normal leading-[1.45] text-[#5a7181]");
+    has(DISPLAY, "text-[56px] font-semibold leading-none text-[#006cbf]");
+    has(LABEL, "font-['Geist_Mono',ui-monospace,monospace] text-[12px] font-medium uppercase tracking-[0.14em] text-[#5a7181]");
+    has(MISS, "text-[20px] font-normal leading-[1.45] text-red");
   });
-  it("draws the title and does not throw for a layout no slide uses yet", () => {
-    for (const native of [{ layout: "results", items: [] }, { layout: "agenda" }, { layout: "close", lines: ["Thank you."] }] as Native[]) {
-      expect(renderToStaticMarkup(createElement(NativeSlide, { slide: { ...slide, native }, facts })), native.layout).toContain("A fixture");
+  it("brings an item in from 8px below and recedes its text to the muted color, in 320ms, and moves nothing under reduced motion", () => {
+    has(STEP, "duration-[320ms] ease-out motion-reduce:transition-none [&[data-receded]_*]:text-[#5a7181]");
+    has(UNREACHED, "invisible opacity-0 translate-y-[8px]");
+  });
+});
+
+// A native slide drawn on its own, without the frame, at a step or (with none) complete.
+const drawNative = (slide: Slide, step?: number) => renderToStaticMarkup(createElement(NativeSlide, { slide, facts, step }));
+// The items a press brings in, one opening tag each (the elements with a data-step): its step, whether it is hidden from assistive tech,
+// current or receded, and its classes.
+type StepItem = { n: number; hidden: boolean; current: boolean; receded: boolean; classes: string[] };
+function stepItems(html: string): StepItem[] {
+  return [...html.matchAll(/<[a-z]+\s[^>]*\bdata-step="(\d+)"[^>]*>/g)].map(([tag, n]) => ({
+    n: Number(n),
+    hidden: tag.includes('aria-hidden="true"'),
+    current: tag.includes('data-current=""'),
+    receded: tag.includes('data-receded=""'),
+    classes: (/\sclass="([^"]*)"/.exec(tag)?.[1] ?? "").split(/\s+/),
+  }));
+}
+// The words a viewer can see and a screen reader can reach: the text outside every element marked aria-hidden="true", with React's
+// comment markers dropped and its escapes read back.
+const VOID = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+const ENTITIES: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#x27;": "'" };
+function visibleText(html: string): string {
+  const hidden: boolean[] = [];
+  let out = "";
+  for (const [, close, name, attrs, text] of html.replace(/<!--.*?-->/g, "").matchAll(/<(\/?)([a-zA-Z][\w-]*)([^>]*)>|([^<]+)/g)) {
+    const under = hidden.at(-1) ?? false;
+    if (text !== undefined) {
+      if (!under) out += text.replace(/&[#\w]+;/g, (e) => ENTITIES[e] ?? e);
+      continue;
+    }
+    out += " "; // a tag ends a word
+    if (close) hidden.pop();
+    else if (!VOID.has(name) && !attrs.endsWith("/")) hidden.push(under || attrs.includes('aria-hidden="true"'));
+  }
+  return out.replace(/\s+/g, " ");
+}
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** A stepped slide at every step from 0 to its count. Every item is drawn at every step, in order, so an item holds its place before it
+ * arrives. At step k the first k show; the rest are hidden from assistive tech and carry the invisible style (never display: none);
+ * item k is current and the ones before it have receded. With no step the slide is complete. */
+function expectSteps(slide: Slide) {
+  const count = stepCount(slide);
+  const unreached = UNREACHED.split(" ");
+  expect(count, slide.id).toBeGreaterThan(0);
+  for (let k = 0; k <= count; k++) {
+    const items = stepItems(drawNative(slide, k));
+    expect(items.map((i) => i.n), `step ${k}`).toEqual(Array.from({ length: count }, (_, i) => i + 1));
+    for (const it of items) {
+      const at = `item ${it.n} at step ${k}`;
+      const shown = it.n <= k;
+      expect(it.hidden, at).toBe(!shown);
+      expect(unreached.filter((c) => it.classes.includes(c)), at).toEqual(shown ? [] : unreached);
+      expect(it.classes, at).not.toContain("hidden");
+      expect(it.current, at).toBe(it.n === k);
+      expect(it.receded, at).toBe(it.n < k);
+    }
+  }
+  expect(drawNative(slide)).toBe(drawNative(slide, count));
+}
+
+describe("native layouts, one item a press", () => {
+  const nat = (native: Native): Slide => ({ id: "fixture", part: "backup", kind: "native", title: "A fixture", min: 0, note: "", native });
+  const tile = (head: string, tag?: "Possibility"): Tile => ({ head, body: `${head} in a sentence.`, tag });
+
+  it("bring a statement's lines in one a press, and the question to the room last, set apart in a callout", () => {
+    const slide = nat({ layout: "statement", lines: ["The first line.", "The second line."], ask: "A question for the room?" });
+    expectSteps(slide);
+    const zero = drawNative(slide, 0);
+    expect(zero).toContain("The first line."); // drawn, so it holds its place
+    expect(visibleText(zero)).not.toContain("The first line.");
+    expect(visibleText(zero)).toContain("A fixture"); // the title shows on arrival
+    const one = visibleText(drawNative(slide, 1));
+    expect(one).toContain("The first line.");
+    expect(one).not.toContain("The second line.");
+    const html = drawNative(slide);
+    const ask = stepItems(html).at(-1)!;
+    expect(ask.n).toBe(3);
+    expect(ask.classes).toEqual(expect.arrayContaining(["bg-tint", "border-l-4", "border-blue"]));
+    expect(html.indexOf("A question for the room?")).toBeGreaterThan(html.lastIndexOf("</ul>"));
+  });
+  it("hold a step outside the slide's steps to its first or last, and say on the slide's root where it stands", () => {
+    const slide = nat({ layout: "statement", lines: ["One.", "Two."] });
+    expect(drawNative(slide, 9)).toBe(drawNative(slide, 2));
+    expect(drawNative(slide, -1)).toBe(drawNative(slide, 0));
+    expect(drawNative(slide, 1)).toContain('data-step-current="1" data-step-count="2"');
+  });
+  it("bring tiles in one a press, a possibility with its label", () => {
+    const slide = nat({ layout: "tiles", tiles: [tile("Alpha"), tile("Beta", "Possibility"), tile("Gamma"), tile("Delta")] });
+    expectSteps(slide);
+    const two = visibleText(drawNative(slide, 2));
+    expect(two).toContain("Beta in a sentence.");
+    expect(two).toContain("Possibility");
+    expect(two).not.toContain("Gamma");
+  });
+  it("bring a table slide's tables in one a press, and keep only the columns it names", () => {
+    expectSteps(nat({ layout: "table", tables: ["gold.dim_agency", "gold.dim_market"] }));
+    const tables = ["gold.fact_agency_sales_monthly", "gold.fact_market_capacity"];
+    const html = drawNative(nat({ layout: "table", tables, columns: ["aa_revenue", "aa_seat_share"] }));
+    expect(html).toContain(">aa_revenue<");
+    expect(html).toContain(">aa_seat_share<");
+    for (const name of ["agency_id", "market_id", "sales_month", "aa_pax", "total_seats", "source"]) expect(html, name).not.toContain(`>${name}<`);
+    expect(visibleText(html)).toContain("$80,582.47"); // the example, with its unit
+    expect(visibleText(drawNative(nat({ layout: "table", tables })))).toContain("total_seats"); // and every column with none named
+  });
+  it("bring the checks a slide names in one a press, in its order, each with what it guards against", () => {
+    const keys = ["sales_have_seats", "no_repeated_rows"];
+    const slide = nat({ layout: "checks", keys });
+    expectSteps(slide);
+    const text = visibleText(drawNative(slide));
+    for (const c of facts.checks) {
+      expect(text.includes(c.name), c.key).toBe(keys.includes(c.key));
+      expect(text.includes(c.why), c.key).toBe(keys.includes(c.key));
+    }
+    const name = (key: string) => facts.checks.find((c) => c.key === key)!.name;
+    expect(text.indexOf(name("sales_have_seats"))).toBeLessThan(text.indexOf(name("no_repeated_rows")));
+  });
+  it("show all eight checks at once when the slide names none", () => {
+    const html = drawNative(nat({ layout: "checks" }), 0);
+    expect(stepItems(html)).toEqual([]);
+    expect(facts.checks).toHaveLength(8);
+    facts.checks.forEach((c) => expect(visibleText(html), c.key).toContain(c.name));
+  });
+  it("bring results in one a press: the head, the body, the result as a display number and the miss in red", () => {
+    const items: Result[] = [
+      { head: "Head one", body: "Who grades one.", result: "20 of 20", miss: "The miss of one." },
+      { head: "Head two", body: "Who grades two.", result: "15 of 20" },
+    ];
+    const slide = nat({ layout: "results", items });
+    expectSteps(slide);
+    const html = drawNative(slide);
+    const styled = (cls: string, text: string) => expect(html, `${text} in ${cls}`).toMatch(new RegExp(`class="[^"]*${esc(cls)}[^"]*">${esc(text)}<`));
+    styled(HEAD, "Head one");
+    styled(NOTE, "Who grades one.");
+    styled(DISPLAY, "20 of 20");
+    styled(MISS, "The miss of one.");
+    styled(DISPLAY, "15 of 20");
+    expect(html.match(new RegExp(esc(MISS), "g"))).toHaveLength(1); // the second result has no miss
+  });
+  it("bring the agenda's five topics in one a press, each with its line", () => {
+    const slide = nat({ layout: "agenda" });
+    expectSteps(slide);
+    expect(stepCount(slide)).toBe(TOPIC_ORDER.length);
+    const all = visibleText(drawNative(slide));
+    TOPIC_ORDER.forEach((t) => {
+      expect(all).toContain(TOPICS[t].name);
+      expect(all).toContain(TOPICS[t].line);
+    });
+    const two = visibleText(drawNative(slide, 2));
+    expect(two).toContain(TOPICS.modes.line);
+    expect(two).not.toContain(TOPICS.numbers.name);
+  });
+  it("show the close at once, with no steps", () => {
+    const html = drawNative(nat({ layout: "close", lines: ["Thank you.", "Questions are welcome."] }), 0);
+    expect(stepItems(html)).toEqual([]);
+    expect(visibleText(html)).toContain("Thank you.");
+    expect(visibleText(html)).toContain("Questions are welcome.");
+  });
+  it("show a demo's button from step 0, and bring its lines in one a press", () => {
+    const ask = nat({ layout: "demo", demo: { kind: "ask", question: "Why is it down?" }, lines: ["Watch the split.", "Click a number."] });
+    expectSteps(ask);
+    const zero = visibleText(drawNative(ask, 0));
+    expect(zero).toContain(copy.askLive);
+    expect(zero).toContain("Why is it down?");
+    expect(zero).not.toContain("Watch the split.");
+    expect(visibleText(drawNative(nat({ layout: "demo", demo: { kind: "precall" }, lines: ["One."] }), 0))).toContain(copy.openPrecall);
+  });
+  it("draw the title, and do not throw, for a layout with nothing in it", () => {
+    for (const native of [{ layout: "results", items: [] }, { layout: "tiles", tiles: [] }, { layout: "statement", lines: [] }] as Native[]) {
+      expect(visibleText(drawNative(nat(native))), native.layout).toContain("A fixture");
+    }
+  });
+  it("draw every native slide of the deck at its first step and complete", () => {
+    for (const s of slides.filter((x) => x.native)) {
+      expect(() => drawNative(s, 0), s.id).not.toThrow();
+      expect(visibleText(drawNative(s)), s.id).toContain(fill(s.title, facts));
     }
   });
 });
@@ -519,8 +703,8 @@ describe("the frame's strips", () => {
 
 describe("a slide in its frame", () => {
   const byId = (id: string) => slides.find((s) => s.id === id)!;
-  const view = (slide: Slide, frame: FrameInfo = frameInfo(slides, "full", slide.id)) =>
-    renderToStaticMarkup(createElement(SlideView, { slide, frame, backward: false, frameRef: { current: null }, facts, onDemo: () => {} }));
+  const view = (slide: Slide, frame: FrameInfo = frameInfo(slides, "full", slide.id), step?: number) =>
+    renderToStaticMarkup(createElement(SlideView, { slide, frame, backward: false, frameRef: { current: null }, facts, onDemo: () => {}, step }));
 
   it("says Synthetic data on a slide that shows data, and the talk's title on one that does not", () => {
     expect(copy.deckFooter).toBe("Fairshare: sales answers you can check");
@@ -536,6 +720,12 @@ describe("a slide in its frame", () => {
   });
   it("draws a native slide and a figure inside the frame", () => {
     for (const id of ["problem", "coverage"]) expect(view(byId(id)), id).toContain('data-frame="header"');
+  });
+  it("hands its step to a native slide, which shows complete without one", () => {
+    const problem = byId("problem");
+    const shown = (step?: number) => stepItems(view(problem, undefined, step)).filter((i) => !i.hidden).length;
+    expect(shown(1)).toBe(1);
+    expect(shown()).toBe(stepCount(problem));
   });
 
   // No slide of the deck has a byline yet, so a fixture stands in: the welcome's live page, with two lines under its title
@@ -557,11 +747,7 @@ describe("a slide in its frame", () => {
         const style = { display: "", setProperty: (p: string, v: string) => void (p === "display" && (style.display = v)) };
         parts[sel] = { style };
       }
-      const doc = {
-        querySelector: (sel: string) => parts[sel.trim()] ?? null,
-        querySelectorAll: (sel: string) => sel.split(",").flatMap((s) => (parts[s.trim()] ? [parts[s.trim()]] : [])),
-        getElementById: (id: string) => parts[`#${id}`] ?? null,
-      };
+      const doc = { querySelector: (sel: string) => parts[sel.trim()] ?? null };
       const hidden = () => Object.keys(parts).filter((sel) => parts[sel].style.display === "none").sort();
       return { frame: { contentDocument: doc as unknown as Document }, hidden };
     };
