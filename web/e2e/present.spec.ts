@@ -180,6 +180,36 @@ test("the seven numbers come one card a press over numbers and gaps, the newest 
   await expect(page).toHaveURL(/#share-fair$/);
 });
 
+test("share against fair share shows its agencies on arrival, then one thing a press, the newest note leading and AA share's values in blue", async ({ page }) => {
+  const [INK, MUTED, ACCENT] = ["rgb(54, 73, 90)", "rgb(90, 113, 129)", "rgb(0, 108, 191)"];
+  await openSlide(page, "gaps"); // a load lands complete, so the next press moves on
+  await page.keyboard.press("ArrowRight"); // share-fair arrives on its first step going forward
+  await expect(page).toHaveURL(/#share-fair$/);
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", "0");
+  const figure = page.frameLocator("iframe[data-slide-frame]");
+  await expect(figure.locator("[data-row-label]"), "every agency's name shows on arrival").toHaveCount(12);
+  await expect(figure.locator("[data-row-label]").first()).toBeVisible();
+  for (const item of await itemStates(page)) expect(item.opacity, `step ${item.step} before its press`).toBe("0");
+  const count = Number(await root(page).getAttribute("data-step-count"));
+  // the notes that recede: each one's words without the values that keep their color, as one color
+  const notes = figure.locator("[data-motion-item][data-recede]");
+  const noteSteps = await notes.evaluateAll((els) => els.map((el) => Number(el.getAttribute("data-step"))));
+  expect(noteSteps.length, "the sentence about the made-up seat shares and two callouts").toBe(3);
+  const fills = () => notes.evaluateAll((els) => els.map((el) => [...new Set([...el.querySelectorAll("text:not([data-keep])")].map((t) => getComputedStyle(t).fill))]));
+  const kept = () => figure.locator("text[data-keep]").evaluateAll((els) => els.map((el) => getComputedStyle(el).fill));
+  for (let step = 1; step <= count; step++) {
+    await page.keyboard.press("ArrowRight");
+    await expect(root(page)).toHaveAttribute("data-step-current", String(step));
+    const shown = async () => (await itemStates(page)).every((i) => (i.step <= step ? i.opacity === "1" : i.opacity === "0"));
+    await expect.poll(shown, `one thing a press, step ${step}`).toBe(true);
+    await expect.poll(fills, `the newest note leads, step ${step}`).toEqual(noteSteps.map((s) => [s === step ? INK : MUTED]));
+    await expect.poll(kept, `AA share's values stay blue, step ${step}`).toEqual([ACCENT, ACCENT]);
+  }
+  await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#moved$/);
+});
+
 test("a load on an animated slide, a reload or the way back from a demo, shows its whole figure, and the first press moves on", async ({ page }) => {
   await openSlide(page, "pipeline");
   await expect(ready(page)).toBeVisible();

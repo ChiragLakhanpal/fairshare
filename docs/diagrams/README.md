@@ -1,7 +1,7 @@
 # Diagrams for the presentation
 
 American Airlines colors and fonts from the app's own theme, with the official AA logo in the corner of every image. Each
-diagram is a live HTML page, and every figure's slide image is in `export/` (2560 by 1440, 16:9). Nine of them also come as an
+diagram is a live HTML page, and every figure's slide image is in `export/` (2560 by 1440, 16:9). Ten of them also come as an
 animated page that steps forward one idea at a time. The deck at `/present` (the app's presentation mode, in
 `web/src/deck/`) shows the figures as slides and steps the animated pages with its arrow keys. Two other PNGs sit in
 `export/`: the stills, which are screenshots of the running app, not figures (see "The two stills").
@@ -23,9 +23,9 @@ There is no figure 13. `hairline/png/title-b.png` is the title slide image, and 
 
 ## The animated pages
 
-`01`, `02`, `04`, `05`, `06`, `08`, `09a`, `09b` and `11` also come as `<name>-animated.html`: the same figure as its static page,
-in diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays complete.
-Each step brings in one idea. On `01` each layer lifts clear; on the other eight the marks only fade in, and nothing
+`01`, `02`, `04`, `05`, `06`, `08`, `09a`, `09b`, `11` and `12` also come as `<name>-animated.html`: the same figure as its static
+page, in diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays complete.
+Each step brings in one idea. On `01` each layer lifts clear; on the other nine the marks only fade in, and nothing
 moves. The logo band, the headers, lane labels or actors, the lifelines, axes or tier cards, a chart's lines, and the legend
 stay in place, except what gives the point away: the legend key that names the focal item or the check, a caption, a payoff
 line and a chart's notes come in with the step they belong to.
@@ -41,6 +41,7 @@ line and a chart's notes come in with the step they belong to.
 | `09a-numbers-share-animated.html` | 4 | AA revenue, AA share and fair share, a card a press, each with how it is calculated and its value for Harbor in Sep 2026, then where the seven numbers live and why that matters (the title, the heading over the values, and each card's frame and name show from the start) |
 | `09b-numbers-gaps-animated.html` | 5 | the share gap in points, the share gap in dollars, year over year and pace, a card a press in the same way, then the same close |
 | `11-revenue-by-month-animated.html` | 4 | the band over March and April 2026 with each month's net change against 2025, then one note a press beside it: Sunbelt sent nothing, Harbor's AA revenue fell, the other agencies grew (the title, the axes, both lines with their years and the source line show from the start) |
+| `12-share-vs-fair-animated.html` | 5 | fair share's hollow dots with their name, the sentence that says why fair share barely moves and that the seat shares are made up, AA share's solid dots with their name and connectors, then one callout a press: the agency furthest above fair share (the top row) and the one furthest below (the bottom row), each with its two values (the title, the agencies' names, the axis and the source line show from the start) |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
 reduced motion, or with no JavaScript, the whole figure shows at once. A figure that prints values from the data says
@@ -53,13 +54,15 @@ the logo band, hides every step the controller has not reached (on its own a pag
 fits the figure to the frame (`EMBED_CSS` in `src/aa.py`), then sends Home or End and the arrow keys to the figure. A
 chart draws in once, when the frame shows: on `11` each line traces itself left to right over 900ms, and its dots and
 its year come in after it; under reduced motion, and on a backward arrival or a load, it shows drawn. The newest item
-leads: an item marked `data-recede` (the notes on `11`, the cards on `09a` and `09b`) has its words in ink while its press
-is the current one, and on `09a` and `09b` its card is outlined in blue, as a native slide's newest tile is; when the next
-press comes, its words recede to the muted text and the outline goes. Which slide uses which page is in
-`web/src/deck/slides.ts`. An animated page has no PNG of its own: the static page's export is its thumbnail, which the
-deck shows only when the frame is still not ready after `FRAME_FALLBACK_MS` (`web/src/lib/deck.ts`); until then the
-slide shows nothing of the figure. In the deck a figure keeps its content between y 64 and y 680, clear of the frame's
-header and footer, and `evals/test_figures_in_deck.py` holds every figure the deck shows to that.
+leads: an item marked `data-recede` (the notes on `11`, the cards on `09a` and `09b`, the sentence and the two callouts
+on `12`) has its words in ink while its press is the current one, and on `09a` and `09b` its card is outlined in blue,
+as a native slide's newest tile is; when the next press comes, its words recede to the muted text and the outline goes.
+A text in it marked `data-keep` keeps the color it is drawn in, so AA share's values on `12` stay blue. Which slide uses
+which page is in `web/src/deck/slides.ts`. An animated page has no PNG of its own: the static page's export is its
+thumbnail, which the deck shows only when the frame is still not ready after `FRAME_FALLBACK_MS`
+(`web/src/lib/deck.ts`); until then the slide shows nothing of the figure. In the deck a figure keeps its content
+between y 64 and y 680, clear of the frame's header and footer, and `evals/test_figures_in_deck.py` holds every figure
+the deck shows to that.
 
 ## The two stills
 
@@ -129,7 +132,7 @@ python3 docs/diagrams/src/swimlane.py                 # 03
 .venv/bin/python docs/diagrams/src/definitions.py     # 09, and 09a and 09b (both versions)
 .venv/bin/python docs/diagrams/src/coverage.py        # 10
 .venv/bin/python docs/diagrams/src/revenue.py         # 11 (both versions)
-.venv/bin/python docs/diagrams/src/share_fair.py      # 12
+.venv/bin/python docs/diagrams/src/share_fair.py      # 12 (both versions)
 .venv/bin/python docs/diagrams/src/planted.py         # 14
 node docs/diagrams/hairline/src/pages.mjs             # the hairline pages
 python3 docs/diagrams/src/lint.py docs/diagrams/[01]*.html   # the skin lint; only the AA logo's own colors may differ

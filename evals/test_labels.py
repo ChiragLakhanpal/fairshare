@@ -45,7 +45,7 @@ def test_fair_share_has_no_qsi_synonym():
 DATA_FIGURES = ["04-journey-sales-director", "04-journey-sales-director-animated", "06-data-pipeline", "06-data-pipeline-animated",
                 "07-fair-share", "08-why-it-moved", "08-why-it-moved-animated", "09-definitions", "09a-numbers-share", "09a-numbers-share-animated",
                 "09b-numbers-gaps", "09b-numbers-gaps-animated", "10-coverage", "11-revenue-by-month", "11-revenue-by-month-animated",
-                "12-share-vs-fair", "14-what-was-planted"]
+                "12-share-vs-fair", "12-share-vs-fair-animated", "14-what-was-planted"]
 
 
 def test_every_data_figure_says_synthetic_data_in_its_logo_band():

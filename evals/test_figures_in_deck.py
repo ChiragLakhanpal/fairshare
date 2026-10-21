@@ -5,8 +5,8 @@ keeps its marks between y 64 and y 680; the logo band at the top is hidden in th
 animated page when it is built) an item the controller has not reached shows nothing, and whatever gives a figure's point away (a legend entry that
 names the focal item, a caption, a payoff line) comes in with the step that brings in its item. A figure's structure (its axes, headings, actors and
 frame) shows on arrival, and a chart's lines draw then; its notes come one per press. An item marked data-recede leads in ink while it is the current
-step and recedes to the muted text once a later one arrives (aa.EMBED_CSS again), so the newest note or card leads. These read the generated pages;
-rebuild them with the commands in docs/diagrams/README.md.
+step and recedes to the muted text once a later one arrives (aa.EMBED_CSS again), so the newest note or card leads; a text in it marked data-keep (a
+value drawn in the accent) keeps the color it is drawn in. These read the generated pages; rebuild them with the commands in docs/diagrams/README.md.
 """
 import json
 import re
@@ -24,7 +24,7 @@ from aa import MUTED  # noqa: E402  the figures' muted text
 DIAGRAMS = ROOT / "docs" / "diagrams"
 FACTS = json.loads((ROOT / "web/src/deck/facts.json").read_text(encoding="utf-8"))["facts"]
 ANIMATED = ["01-system-exploded", "02-answer-checked", "04-journey-sales-director", "05-journey-account-manager", "06-data-pipeline",
-            "08-why-it-moved", "09a-numbers-share", "09b-numbers-gaps", "11-revenue-by-month"]
+            "08-why-it-moved", "09a-numbers-share", "09b-numbers-gaps", "11-revenue-by-month", "12-share-vs-fair"]
 # every page the deck shows a figure from: the animated pages in their frames, and the static pages whose PNGs are the thumbs and the backup slides
 SHOWN = [f"{n}-animated" for n in ANIMATED] + ANIMATED + ["07-fair-share", "14-what-was-planted"]
 TOP, BOTTOM = 64, 680
@@ -301,8 +301,9 @@ def css_of(name) -> dict[str, str]:
     return {s: body for sels, body in rules("".join(re.findall(r"<style>(.*?)</style>", html(name), re.S))) for s in sels}
 
 
-RECEDE = "html[data-embed] .motion-ready [data-motion-item][data-recede] text"
-LEAD = "html[data-embed] .motion-ready [data-motion-item][data-recede].is-current text"
+# the hook recolors an item's words but spares a text marked data-keep, such as a value drawn in the accent
+RECEDE = "html[data-embed] .motion-ready [data-motion-item][data-recede] text:not([data-keep])"
+LEAD = "html[data-embed] .motion-ready [data-motion-item][data-recede].is-current text:not([data-keep])"
 OUTLINE = "html[data-embed] .motion-ready [data-motion-item][data-recede] [data-lead]"
 OUTLINE_LEADS = "html[data-embed] .motion-ready [data-motion-item][data-recede].is-current [data-lead]"
 
@@ -321,6 +322,8 @@ def test_in_the_deck_an_item_marked_to_recede_leads_in_ink_while_current_and_goe
         and re.search(r"transition:\s*stroke-opacity var\(--motion-step\) var\(--motion-ease\)", outline), \
         "a lead mark is blue but unseen until its item is current, and fades over the step time"
     assert re.search(r"stroke-opacity:\s*1\s*(;|$)", leads.strip()), "the current item's lead mark shows its blue outline"
+    unscoped = [s for s in css if "[data-recede]" in s and re.search(r"\btext$", s)]
+    assert not unscoped, f"a rule that recolors every word of a receding item would take a kept value's color too: {unscoped}"
 
 
 def test_the_draw_in_classes_play_once_in_the_deck_and_not_under_reduced_motion():
@@ -584,3 +587,130 @@ def test_the_drift_strip_stays_on_the_glossary_and_off_the_two_numbers_pages():
     assert texts(figure("09-definitions"), r"^HOW A DEFINITION STAYS HONEST$"), "09-definitions keeps building as it did"
     for name in NUMBER_PAGES:
         assert not re.search(r"STAYS HONEST|twin_sql_retired|kpi_parity", html(name)), f"{name} holds no part of the drift strip"
+
+
+# ---------------------------------------------------------------- 12: AA share against fair share, a dumbbell in steps
+
+SHARE = "12-share-vs-fair"
+SHARE_PAGES = [SHARE, f"{SHARE}-animated"]
+SHARE_FACT = re.compile(r"agency_q3_(aa|fair)_share_(\w+)")
+
+
+def series(fig: Node, name: str) -> list[Node]:
+    """The dots of one series: fair share's hollow ones, or AA share's solid ones."""
+    return [n for n in fig.walk() if n.tag == "circle" and n.attrs.get("data-series") == name]
+
+
+def rows_top_down(fig: Node) -> list[str]:
+    """The agencies, in the order their rows run down the chart."""
+    return [n.attrs["data-row-label"] for n in sorted((n for n in fig.walk() if "data-row-label" in n.attrs), key=lambda n: float(n.attrs["y"]))]
+
+
+def values_printed(fig: Node) -> list[Node]:
+    """Every text that prints a value from the data: a number with a decimal point. The ticks are whole numbers and the title's year has none."""
+    return [n for n in fig.walk() if n.tag == "text" and re.search(r"\d\.\d", n.words())]
+
+
+def test_share_fair_steps_inside_the_plugins_budget():
+    name = f"{SHARE}-animated"
+    steps = [int(n.attrs["data-step"]) for n in figure(name).walk() if "data-motion-item" in n.attrs]
+    assert step_count(name) <= 8 and len(steps) <= 12, f"at most eight steps and twelve marked items: {step_count(name)} and {len(steps)}"
+    assert sorted(set(steps)) == list(range(1, step_count(name) + 1)) and max(steps.count(s) for s in steps) <= 2, "every step brings something, two items at most"
+
+
+def test_share_fair_shows_its_agencies_and_its_axis_on_arrival():
+    fig = figure(f"{SHARE}-animated")
+    names = [n for n in fig.walk() if "data-row-label" in n.attrs]
+    assert len(names) == FACTS["agencies"]["value"] and all(step_of(n) is None for n in names), "every agency's name is structure, so it shows on arrival"
+    ticks = [n for n in fig.walk() if n.tag == "text" and "data-tick" in n.attrs]
+    grid = [n for n in fig.walk() if n.tag == "line" and "data-grid" in n.attrs]
+    assert len(ticks) >= 4 and len(grid) == len(ticks), "a gridline and a tick for every step of the axis"
+    assert all(step_of(n) is None for n in ticks + grid), "the axis shows on arrival"
+    assert all(re.fullmatch(r"\d+%", n.words()) for n in ticks), "each tick carries its unit, so the axis needs no title"
+
+
+def test_share_fair_brings_in_fair_share_then_the_made_up_seats_then_aa_share_then_one_callout_a_press():
+    name = f"{SHARE}-animated"
+    fig = figure(name)
+    fair, solid = series(fig, "fair"), series(fig, "aa")
+    assert len(fair) == len(solid) == FACTS["agencies"]["value"], "a fair share dot and an AA share dot for every agency"
+    fair_step, solid_step = {step_of(d) for d in fair}, {step_of(d) for d in solid}
+    assert fair_step == {1} and len(solid_step) == 1, "each series comes in whole, fair share first"
+    (seats,) = texts(fig, r"(?i)made.up")
+    words = [n for n in item_of(seats).walk() if n.tag == "text"]
+    assert words == [seats] and 1 < step_of(seats) < min(solid_step), "the sentence about the made-up seat shares is a step of its own, before AA share"
+    connectors = [n for n in fig.walk() if n.tag == "line" and "data-agency" in n.attrs]
+    assert connectors and {step_of(c) for c in connectors} == solid_step, "the line between the two dots comes in with AA share"
+    callouts: dict[str, set] = {}
+    for n in fig.walk():
+        if "data-callout" in n.attrs:
+            callouts.setdefault(n.attrs["data-callout"], set()).add(step_of(n))
+    order = rows_top_down(fig)
+    assert list(callouts) == [order[0], order[-1]], "two agencies carry the story: the top row, furthest above fair share, then the bottom row"
+    assert [s for (s,) in callouts.values()] == [min(solid_step) + 1, min(solid_step) + 2] == [step_count(name) - 1, step_count(name)], \
+        "after AA share, one callout a press, and they close the page"
+
+
+@pytest.mark.parametrize("name", SHARE_PAGES)
+def test_share_fair_prints_four_values_at_most_each_one_a_fact(name):
+    fig = figure(name)
+    values = values_printed(fig)
+    assert 0 < len(values) <= 4, f"at most four values on the finished page, found {[v.words() for v in values]}"
+    by_agency: dict[str, dict[str, str]] = {}
+    for v in values:
+        key = v.attrs.get("data-fact", "")
+        assert key in FACTS and v.words() == FACTS[key]["display"], f"{v.words()!r} prints {key or 'no fact'} as the deck shows it"
+        share = SHARE_FACT.fullmatch(key)
+        assert share, f"{key}: a value on this chart is an agency's AA share or fair share"
+        by_agency.setdefault(v.attrs["data-callout"], {})[share.group(1)] = share.group(2)
+    order = rows_top_down(fig)
+    assert list(by_agency) == [order[0], order[-1]], "the values belong to the agencies that carry the story"
+    assert all(set(ends) == {"aa", "fair"} and len(set(ends.values())) == 1 for ends in by_agency.values()), "each of them with both its ends"
+    if name.endswith("-animated"):
+        assert all(step_of(v) is not None for v in values), "a value waits for its callout"
+
+
+@pytest.mark.parametrize("name", SHARE_PAGES)
+def test_share_fair_keeps_the_made_up_seat_shares_labeled_in_plain_words(name):
+    (seats,) = texts(figure(name), r"(?i)made.up")
+    assert "the seat shares are made up, one per route" in seats.words(), "the finished page says the seat shares are made up"
+    assert not re.search("[\u2013\u2014]", html(name)), "no em or en dash on the page"
+
+
+@pytest.mark.parametrize("name", SHARE_PAGES)
+def test_share_fair_names_each_series_over_its_top_dot_and_has_no_legend(name):
+    fig = figure(name)
+    assert not texts(fig, r"(?i)^legend$"), "the marks are labeled where they are, so the legend goes"
+    for key, words in (("fair", "Fair share"), ("aa", "AA share")):
+        (label,) = [n for n in fig.walk() if n.attrs.get("data-label") == key]
+        top = min(series(fig, key), key=lambda d: float(d.attrs["cy"]))
+        assert label.words() == words and abs(float(label.attrs["x"]) - float(top.attrs["cx"])) <= 24 \
+            and 12 <= float(top.attrs["cy"]) - float(label.attrs["y"]) <= 32, f"{words!r} sits over the top row's dot"
+        if name.endswith("-animated"):
+            assert step_of(label) == step_of(top), f"{words!r} comes in with its dots"
+
+
+@pytest.mark.parametrize("name", SHARE_PAGES)
+def test_share_fair_keeps_one_order_of_weight_title_then_notes_then_the_source(name):
+    fig = figure(name)
+    words = [n for n in fig.walk() if n.tag == "text" and not in_logo(n)]
+    size = lambda n: float(n.attrs["font-size"])  # noqa: E731
+    weight = lambda n: int(n.attrs.get("font-weight", 400))  # noqa: E731
+    assert not [n.words() for n in words if n.attrs.get("font-style") == "italic"], "no italic display type"
+    (title,) = texts(fig, r"^AA share against fair share, Q3 2026$")
+    assert size(title) == max(size(n) for n in words) and weight(title) == max(weight(n) for n in words), "the title is the strongest text"
+    notes = [n for n in words if "data-note" in n.attrs]
+    assert len(notes) == 3 and all(size(n) < size(title) and weight(n) < weight(title) for n in notes), \
+        "the sentence and the two callouts' words are smaller and lighter than the title"
+    (source,) = texts(fig, r"gold\.fact_agency_sales_monthly")
+    assert size(source) == min(size(n) for n in words) and source.attrs["fill"] == MUTED, "the source line is the smallest text, and grey"
+
+
+def test_share_fair_lets_the_newest_note_lead_and_keeps_aa_shares_values_in_the_accent():
+    fig = figure(f"{SHARE}-animated")
+    notes = [n for n in fig.walk() if n.tag == "text" and "data-note" in n.attrs]
+    assert notes and all("data-recede" in item_of(n).attrs for n in notes), "the sentence and each callout recede once a later press comes"
+    kept = [n for n in fig.walk() if n.tag == "text" and "data-keep" in n.attrs]
+    assert kept and all(n.attrs.get("data-series") == "aa" and n.attrs["fill"] == aa.ACCENT for n in kept), "AA share's values keep the accent of AA share's dots"
+    assert all("data-keep" not in n.attrs for n in values_printed(fig) if n.attrs.get("data-series") != "aa"), "fair share's values lead and recede with their callout"
+    assert all("data-recede" not in item_of(d).attrs for d in series(fig, "aa") + series(fig, "fair")), "the dots are the chart, so they never recede"

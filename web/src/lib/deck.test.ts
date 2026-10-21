@@ -190,6 +190,10 @@ describe("what the talk's slides hold", () => {
     const r = byId("revenue");
     expect([r.kind, r.asset, r.thumb, r.data]).toEqual(["animated", "11-revenue-by-month-animated.html", "export/11-revenue-by-month.png", true]);
   });
+  it("steps through AA share against fair share on its animated page, with the static figure as its thumb, as a figure that prints data", () => {
+    const r = byId("share-fair");
+    expect([r.kind, r.asset, r.thumb, r.data]).toEqual(["animated", "12-share-vs-fair-animated.html", "export/12-share-vs-fair.png", true]);
+  });
   it("steps through the seven numbers on two animated pages, numbers and then gaps, as figures that print data", () => {
     const shape = (id: string) => { const x = byId(id); return [x.kind, x.asset, x.thumb, x.data]; };
     expect(shape("numbers")).toEqual(["animated", "09a-numbers-share-animated.html", "export/09a-numbers-share.png", true]);

@@ -152,8 +152,8 @@ export const slides: Slide[] = [
     note: "The other four, a press each. Harbor's under fair share in points and dollars, and down on last September. Pace only counts months an agency reported. Last press, same metric view. Then every agency against fair share.",
   },
   {
-    id: "share-fair", part: "numbers", kind: "image", title: "AA share against fair share, Q3 2026", min: 1, data: true,
-    asset: "export/12-share-vs-fair.png",
+    id: "share-fair", part: "numbers", kind: "animated", title: "AA share against fair share, Q3 2026", min: 1, data: true,
+    asset: "12-share-vs-fair-animated.html", thumb: "export/12-share-vs-fair.png",
     note: "Fair share is about the same for everyone, since they all sell the same routes and the seat shares are made up. Lone Star's on top at {agency_q3_aa_share_lonestar}, FareHub's last at {agency_q3_aa_share_farehub}. Now why Harbor moved.",
   },
   {
