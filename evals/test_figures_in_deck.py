@@ -409,7 +409,7 @@ LANES = ["Nightly job", "Agent runtime", "AI Foundry", "Account manager", "CRM +
 # the flow in the order it runs, one stage a press: the nightly job, the fixed queries, the writer, the verifier, the person who approves, and then the
 # CRM and Outlook together; each key is a data-node, and what its box says shows the stage is the one named
 FLOW = ["job", "queries", "writer", "verifier", "decide", "crm"]
-SAYS = {"job": r"nightly", "queries": r"fixed SQL", "writer": r"fairshare-precall-pack", "verifier": r"Checks every number", "waits": r"Waits for a decision",
+SAYS = {"job": r"^Runs the agents", "queries": r"fixed SQL", "writer": r"fairshare-precall-pack", "verifier": r"Checks every number", "waits": r"Waits for a decision",
         "review": r"Reviews the page", "decide": r"Approves or rejects", "crm": r"Dynamics 365 \(stand-in\)", "mail": r"Outlook"}
 CAPTION = "Nothing reaches the CRM or Outlook until a person approves."
 
@@ -480,6 +480,16 @@ def test_delegate_shows_its_caption_only_on_its_last_step():
     caption = texts(fig, r"^FOCAL STEP$") + texts(fig, rf"^{re.escape(CAPTION)}$")
     assert len(caption) == 2, "the caption: its eyebrow and its line"
     assert {step_of(n) for n in caption} == {step_count(name)}, "the caption gives the point away, so it comes in with the last step"
+
+
+@pytest.mark.parametrize("name", DELEGATE_PAGES)
+def test_delegate_gives_no_count_of_the_agents_the_nightly_job_runs(name):
+    # the nightly job runs the Monday pre-call pack, the agreement watch and CRM versus reality (lakehouse/job_tasks.py, agents_task), while prospect
+    # research runs when a person picks a market, so "the four agents" on the job's box was false; the box, its step and the description give no count
+    (job,) = [n for n in figure(name).walk() if n.attrs.get("data-node") == "job"]
+    assert [n.words() for n in job.walk() if n.tag == "text"][0] == "Runs the agents", "the job's box names no count"
+    counted = re.findall(r"(?i)\b(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:\w+\s+)?agents\b", html(name))
+    assert not counted, f"no count of agents anywhere on the page, its step announcements and description included: {counted}"
 
 
 @pytest.mark.parametrize("name", DELEGATE_PAGES)

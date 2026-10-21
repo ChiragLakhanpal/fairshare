@@ -17,7 +17,7 @@ import aa
 SLUG = "03-delegate"
 TITLE = "Agents draft, people decide"
 EYEBROW = "fairshare · delegate"
-DESC = ("Swimlane of Delegate. The nightly Databricks job runs four agents, the runtime pulls the facts with fixed SQL, a writer "
+DESC = ("Swimlane of Delegate. The nightly Databricks job runs the agents, the runtime pulls the facts with fixed SQL, a writer "
         "agent in Azure AI Foundry drafts the page from those facts only, the verifier checks every number, and the page waits "
         "until an account manager approves, which logs the activity in a made-up CRM shaped like Dynamics 365 Sales and opens "
         "an Outlook draft.")
@@ -41,7 +41,7 @@ LANES = [
 
 # the steps of the flow in the order it runs: key -> (x, y, w, h, name, one mono line or None)
 NODES = {
-    "job": (240, 88, 200, 64, "Runs the four agents", "fairshare nightly · 6 am"),
+    "job": (240, 88, 200, 64, "Runs the agents", "fairshare nightly · 6 am"),
     "queries": (240, 188, 200, 64, "Pulls the facts", "fixed SQL"),
     "writer": (320, 296, 256, 64, "Drafts the page", "fairshare-precall-pack + 3 more"),
     "verifier": (520, 188, 200, 64, "Checks every number", "verifier"),
@@ -78,7 +78,7 @@ MONO_ADVANCE = 0.62 + 0.06  # em per character at 0.06em tracking, the style gui
 
 # the motion steps, one stage of the flow a press: what the controller announces, and the steps each one brings in
 STEPS = [
-    ("Every night at 6 am the job runs the four agents", ["job"]),
+    ("Every night at 6 am the job runs the agents", ["job"]),
     ("The agent runtime pulls the facts with fixed SQL", ["queries"]),
     ("A writer agent in AI Foundry drafts the page from those facts only", ["writer"]),
     ("The verifier checks every number in the draft, and the page waits in ops.agent_runs for a decision", ["verifier", "waits"]),
