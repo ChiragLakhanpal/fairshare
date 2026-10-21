@@ -24,7 +24,7 @@ import aa
 from deck_facts import MONTHS, display, fact, query
 
 VW, VH = 1280, 720
-PX, PY = (40, 448, 856), (140, 404)    # panel origins: three columns, two rows
+PX, PY = (40, 448, 856), (118, 382)    # panel origins: three columns, two rows, between the heading and the sources, all inside y 64 to 680
 PW, PH, PAD = 384, 248, 20             # panel size, and the padding inside it
 BAND = 64                              # the verdict band at the foot of a panel
 PLANTED = (104, 108)                   # the two corporates planted to slip: data/make_data.py, docstring lines 16 and 17
@@ -204,7 +204,7 @@ def p1(d: dict) -> list[str]:
     most, least = d["spellings"][0], d["spellings"][-1]
     out = frame(1, "Channel names", "the channel on each corporate booking", "Cleaned in silver.", ["Letter case and extra spaces are ignored."])
     out += [big(x + PAD, y + 104, display("channel_spellings_delivered")), note(x + PAD, y + 122, "spellings delivered"),
-            text(x + 176, y + 102, "→", size=28, fill=aa.MUTED, anchor="middle"),
+            text(x + 176, y + 104, "to", size=16, fill=aa.MUTED, anchor="middle"),
             big(x + 204, y + 104, display("channel_spellings_cleaned")), note(x + 204, y + 122, "labels after cleaning"),
             note(x + PAD, y + 146, "the most common spelling, and the rarest", size=11)]
     for i, (spelling, rows) in enumerate(((most["channel"], display("channel_direct_rows")), (least["channel"], display("channel_ndc_rows")))):
@@ -240,7 +240,7 @@ def p3(d: dict) -> list[str]:
                 note(x + PAD + i * step + 16, y + 96, MONTHS[m.month - 1], anchor="middle", size=11)]
     out += [note(x + PAD, y + 118, f"pace in May {year}, as a percent of the goal so far", size=11),
             big(x + PAD, y + 154, display("sunbelt_pace_may26_before"), fill=aa.MUTED), note(x + PAD, y + 172, "old rule", size=11),
-            text(x + 120, y + 152, "→", size=28, fill=aa.MUTED, anchor="middle"),
+            text(x + 120, y + 154, "to", size=16, fill=aa.MUTED, anchor="middle"),
             big(x + 148, y + 154, display("sunbelt_pace_may26")), note(x + 148, y + 172, "new rule", size=11)]
     return out + ["</g>"]
 
@@ -314,13 +314,16 @@ def build(d: dict) -> str:
     traps, drops = (p1, p2, p3, p4), (p5, p6)  # four data traps the pipeline handles, then two drops the app is for
     subtitle = f"{NUMBER_WORDS[len(traps)].capitalize()} traps planted to test the cleaning, then {NUMBER_WORDS[len(drops)]} drops the app should catch."
     # what the figure is about, inside the image because a slide takes the SVG alone
-    out += [text(40, 100, TITLE, size=16, weight=600), note(40, 120, subtitle, fill=aa.MUTED)]
+    out += [text(40, 84, TITLE, size=16, weight=600), note(40, 102, subtitle, fill=aa.MUTED)]
     for panel in (*traps, *drops):
         out += panel(d)
-    # where the numbers come from
-    out.append(aa.icon("databricks", 40, 674, 16))
-    out.append(note(64, 687, "bronze, silver and gold tables in aa_demo: corporate bookings, agency sales, pace and corporates", size=11))
-    out.append(note(64, 705, "Harbor's fair share uses made-up seat shares, one per route; the T-100 loader (data/t100.py) has never run", size=11))
+    # where the numbers come from, under the panels and above the bottom of the deck's stage
+    sy = PY[1] + PH + 25  # the first line's baseline
+    assert sy + 17 + aa.TEXT_DESCENT * 11 <= aa.STAGE_BOTTOM, "the sources run under the deck's footer"
+    out.append(aa.icon("databricks", 40, sy - 13, 16))
+    out.append(note(64, sy, "bronze, silver and gold tables in aa_demo: corporate bookings, agency sales, pace and corporates", size=11))
+    out.append(note(64, sy + 17, "Harbor's fair share uses made-up seat shares, one base share per route, moved a little each month. The T-100 loader "
+                                 "in data/t100.py has never run.", size=11))
     return "\n        ".join(out)
 
 

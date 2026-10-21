@@ -1,12 +1,15 @@
 """08: why Harbor's September revenue moved, as a waterfall: last year's total, the three parts the SQL splits the
-change into (volume, mix, share), this year's total. The share bar is the focal bar.
+change into (volume, mix, share), this year's total. The share bar is the focal bar. The mix part is named in plain words, the
+shift between routes: selling more on some routes and less on others, valued at last year's AA share on each route
+(lakehouse/06_decomposition.sql), with a note under its bar that for Harbor it barely moved.
 
     .venv/bin/python docs/diagrams/src/waterfall.py   # writes docs/diagrams/08-why-it-moved.html and 08-why-it-moved-animated.html
 
 Values come from ops.decomposition through deck_facts.py (whole dollars), shown in $ thousands to one decimal because the
 waterfall verifier reads each printed value as a plain number. scripts/verify-waterfall.py in the plugin checks conservation,
 geometry, carries, printed values and sign fills. The animated page brings the bars in left to right, each with the carry line into it;
-the title, the axes and the legend stay put, the callout comes in with the focal bar and the sum note with the last total.
+the title, the axes and the legend's first three keys stay put. What gives a bar's point away comes in with it: the mix bar's note,
+the focal key and the callout with the focal bar, and the sum note with the last total.
 """
 from __future__ import annotations
 
@@ -14,12 +17,13 @@ import aa
 from deck_facts import fact
 
 VW, VH = 1280, 720
-BASE, TOP = 520, 140                 # baseline (the $0 floor) and the top of the plot band
+BASE, TOP = 500, 140                 # baseline (the $0 floor) and the top of the plot band; what sits under the floor ends above y 680
 X0, BAR, PITCH = 192, 120, 200       # first bar's x, bar width, bar pitch
 AXIS_X, AXIS_R = 128, 1176
 INK_A = lambda a: f"rgba(54,73,90,{a})"
 MUTED_TINT = "rgba(90,113,129,0.15)"
 FOCAL_TINT = "rgba(0,108,191,0.12)"
+CHART_TITLE = "Why Harbor fell in September"  # the moved slide's title in web/src/deck/slides.ts, word for word
 
 
 def numbers():
@@ -51,12 +55,12 @@ def build(motion=False):
     y = lambda v: BASE - v * s
     bars = [("total", start, "September 2025", "total", False),
             ("delta", d_vol, "Sold more travel", "volume", False),
-            ("delta", d_mix, "Route mix", "mix", False),
-            ("delta", d_share, "AA’s share fell", "share", True),
+            ("delta", d_mix, "Shift between routes", "mix", False),
+            ("delta", d_share, "AA's share fell", "share", True),
             ("total", end, "September 2026", "total", False)]
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
-    # what the chart is about, inside the image because a slide takes the SVG alone
-    out.append(f'<text x="40" y="100" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}">Harbor Business Travel</text>')
+    # what the chart is about, inside the image because a slide takes the SVG alone: the slide's title, since the deck draws none over a figure
+    out.append(f'<text data-title x="40" y="100" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}">{CHART_TITLE}</text>')
     out.append(f'<text x="40" y="120" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">AA revenue in $ thousands, September 2025 vs September 2026</text>')
     # grid, axes, ticks
     for v in (100, 200, 300, 400):
@@ -82,6 +86,7 @@ def build(motion=False):
         lvl = levels[i][1]
         x1, x2 = X0 + i * PITCH + BAR, X0 + (i + 1) * PITCH
         put(i + 2, f'<line x1="{x1}" y1="{y(lvl):.2f}" x2="{x2}" y2="{y(lvl):.2f}" stroke="{INK_A(0.55)}" stroke-width="1" data-carry="{lvl:.1f}"/>')
+    value_y = []  # each bar's value label's baseline
     for i, ((role, v, name, tag, focal), (before, after)) in enumerate(zip(bars, levels)):
         x, cx = X0 + i * PITCH, X0 + i * PITCH + BAR / 2
         lo, hi = (0.0, v) if role == "total" else (min(before, after), max(before, after))
@@ -107,31 +112,48 @@ def build(motion=False):
             # fill and the AA focal tint is laid over it
             put(i + 1, f'<rect x="{x}" y="{top}" width="{BAR}" height="{h}" fill="{FOCAL_TINT}"/>')
         ly = bottom + 12 if (role == "delta" and v < 0) else top - 8
+        value_y.append(ly)
         weight = ' font-weight="600"' if focal else ""
         put(i + 1, f'<text x="{cx}" y="{ly:g}" fill="{aa.ACCENT if focal else aa.MUTED}" font-size="12" font-family="{aa.MONO}"{weight} '
                    f'text-anchor="middle">{fmt(v, role == "delta")}</text>')
         put(i + 1, f'<text x="{cx}" y="{BASE + 28}" fill="{aa.INK}" font-size="16" font-weight="600" font-family="{aa.SANS}" text-anchor="middle">{name}</text>')
         put(i + 1, f'<text x="{cx}" y="{BASE + 48}" fill="{aa.ACCENT if focal else aa.MUTED}" font-size="12" font-family="{aa.MONO}" text-anchor="middle">{tag}</text>')
+    # what the mix bar means, in a column under its value label, between the volume and share bars; the last line says how
+    # much it moved for Harbor, so it comes in with the bar
+    mix_step, mix_cx = 3, X0 + 2 * PITCH + BAR / 2
+    assert bars[mix_step - 1][3] == "mix" and abs(d_mix) < 1, "the mix note says the mix barely moved, so it must stay under $1K"
+    for k, line in enumerate(("Selling more on some routes", "and less on others, valued at", "last year's AA share on each route.",
+                              "For Harbor it barely moved.")):
+        put(mix_step, f'<text x="{mix_cx:g}" y="{round(value_y[mix_step - 1]) + 26 + 18 * k}" fill="{aa.INK if k == 3 else aa.MUTED}" '
+                      f'font-size="13" font-family="{aa.SANS}" text-anchor="middle">{line}</text>')
     # the one callout comes in with the focal bar, and the note that the parts add up with the last total
     focal_step = 1 + [b[4] for b in bars].index(True)
-    put(focal_step, f'<text x="40" y="616" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">FOCAL BAR</text>')
-    put(focal_step, f'<text x="144" y="616" fill="{aa.INK}" font-size="14" font-style="italic" font-family="{aa.SANS}">'
+    put(focal_step, f'<text x="40" y="{BASE + 96}" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">FOCAL BAR</text>')
+    put(focal_step, f'<text x="144" y="{BASE + 96}" fill="{aa.INK}" font-size="14" font-style="italic" font-family="{aa.SANS}">'
                     f'The made-up seat shares would have predicted {money(fair)}, so the drop is not about seats.</text>')
-    put(len(bars), aa.icon("databricks", 144, 630, 16))
-    put(len(bars), f'<text x="168" y="643" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">volume + mix + share = {money(delta)}, the whole change, exactly · ops.decomposition</text>')
-    # legend strip, which never moves
-    legend = [f'<line x1="40" y1="664" x2="1240" y2="664" stroke="{aa.RULE}" stroke-width="0.8"/>',
-              f'<text x="40" y="694" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">LEGEND</text>']
-    keys = [(INK_A(0.08), aa.INK, "Total"), (MUTED_TINT, aa.MUTED, "Increase"), ("#ffffff", aa.MUTED, "Decrease"), (FOCAL_TINT, aa.ACCENT, "Focal: AA’s share")]
+    put(len(bars), aa.icon("databricks", 144, BASE + 110, 16))
+    put(len(bars), f'<text x="168" y="{BASE + 123}" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">volume + mix + share = {money(delta)}, the whole change, exactly · ops.decomposition</text>')
+    # legend strip: the first three keys never move, and the focal key, which names AA's share, comes in with its bar
+    ky = BASE + 174  # the keys' baseline
+    assert ky + aa.TEXT_DESCENT * 11 <= aa.STAGE_BOTTOM, "the legend runs under the deck's footer"
+    legend = [f'<line x1="40" y1="{BASE + 144}" x2="1240" y2="{BASE + 144}" stroke="{aa.RULE}" stroke-width="0.8"/>',
+              f'<text x="40" y="{ky}" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">LEGEND</text>']
+    keys = [(INK_A(0.08), aa.INK, "Total"), (MUTED_TINT, aa.MUTED, "Increase"), ("#ffffff", aa.MUTED, "Decrease"), (FOCAL_TINT, aa.ACCENT, "Focal: AA's share")]
     for i, (fill, stroke, text) in enumerate(keys):
         kx = 144 + i * 200
-        legend.append(f'<rect x="{kx}" y="682" width="20" height="14" fill="{fill}" stroke="{stroke}" stroke-width="1"/>')
-        legend.append(f'<text x="{kx + 28}" y="694" fill="{aa.INK}" font-size="11" font-family="{aa.SANS}">{text}</text>')
+        key = [f'<rect x="{kx}" y="{ky - 12}" width="20" height="14" fill="{fill}" stroke="{stroke}" stroke-width="1"/>',
+               f'<text x="{kx + 28}" y="{ky}" fill="{aa.INK}" font-size="11" font-family="{aa.SANS}">{text}</text>']
+        if stroke == aa.ACCENT:
+            for markup in key:
+                put(focal_step, markup)
+        else:
+            legend += key
     if motion:
         up = lambda v: "added" if v > 0 else "took off"  # noqa: E731
         words = [f"September 2025: Harbor's AA revenue is ${start:.1f}K",
                  f"Volume: Harbor sold more travel, which {up(d_vol)} ${abs(d_vol):.1f}K",
-                 f"Mix: the route mix barely moved, which {up(d_mix)} ${abs(d_mix):.1f}K",
+                 f"Shift between routes: Harbor sold more on some routes and less on others, which at last year's AA share on each route "
+                 f"{up(d_mix)} ${abs(d_mix):.1f}K, so for Harbor it barely moved",
                  f"Share: AA's share fell, which {up(d_share)} ${abs(d_share):.1f}K",
                  f"September 2026: Harbor's AA revenue is ${end:.1f}K"]
         assert len(words) == len(bars) and {n for n, _ in parts} == set(range(1, len(bars) + 1))
@@ -144,7 +166,8 @@ def build(motion=False):
 TITLE = "Why a number moved"
 EYEBROW = "fairshare · the data"
 DESC = ("Waterfall of Harbor Business Travel's AA revenue from September 2025 to September 2026: more travel added revenue, "
-        "the route mix barely moved, and AA's share inside its routes fell, which is the focal bar.")
+        "the shift between routes, selling more on some and less on others, barely moved it, and AA's share inside its routes fell, "
+        "which is the focal bar.")
 
 if __name__ == "__main__":
     html = aa.page(slug="08-why-it-moved", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=build())

@@ -1,44 +1,124 @@
-// The /present deck's rules: which slide a press reaches on the full or the short path, which slide a URL hash names, and
-// the handoff on an animated slide, where a press steps the framed diagram until its last step and then moves the deck.
-// frameState and sendKey are the only two that touch a frame, and both read it inside try and catch, because an aborted
-// or blocked frame cannot be read. The text helpers fill a slide's {placeholders} from facts.json and read its words for
-// the content rules. The keys, the parts, the clock and the messages between the deck and its notes window are at the
-// end. The pure parts are tested in deck.test.ts.
+// The /present deck's rules: which slide a press reaches on the full or the short path, which slide a URL hash names, what
+// the frame draws around a slide (the topic tracker and the slide number), and the handoff on a stepped slide, where a press
+// steps the framed diagram, or the native slide's own steps, until the last one and then moves the deck. frameState, sendKey
+// and arrive are the only three that touch a frame, and all read it inside try and catch, because an aborted or blocked frame
+// cannot be read. The text helpers fill a slide's {placeholders} from facts.json and read its words for the content rules.
+// The topics and the parts are at the top; the keys, the clock and the messages between the deck and its notes window are
+// at the end. The pure parts are tested in deck.test.ts.
 
-export type Part = "first" | "data" | "built" | "proof" | "backup";
+/** The five topics the talk is told in, in the order of TOPIC_ORDER. */
+export type Topic = "steps" | "modes" | "numbers" | "checks" | "aa";
+/** What a slide belongs to: the welcome and the agenda (open), a topic, the thanks (close) or the backup slides. */
+export type Part = "open" | Topic | "close" | "backup";
 export type Kind = "image" | "live" | "animated" | "native";
 export type PathName = "full" | "short";
-/** still: a screenshot of the app itself, drawn edge to edge. The app has its own top bar, so a still gets no part label over it. */
-export type Slide = { id: string; part: Part; kind: Kind; title: string; min: number; short?: number; asset?: string; thumb?: string; still?: boolean; native?: Native; note: string };
+/** still: a screenshot of the app itself, drawn edge to edge. The app has its own top bar, so a still gets no frame (frameInfo).
+ * data: a figure that prints values from the data. byline: lines a live slide shows under its title, in place of its page's caption. */
+export type Slide = { id: string; part: Part; kind: Kind; title: string; min: number; short?: number; asset?: string; thumb?: string; still?: boolean; data?: boolean; byline?: string[]; native?: Native; note: string };
 export type Demo = { kind: "ask"; question: string } | { kind: "precall" } | { kind: "dashboard" };
 /** The demos the deck jumps into the app for. The dashboard only opens in a new tab, so it needs no jump. */
 export type Jump = Exclude<Demo["kind"], "dashboard">;
 export type Tile = { head: string; body: string; tag?: "Possibility" };
+/** One test or evaluation: its head, a body saying what it tests and who grades it, its result and, where it has one, its miss. */
+export type Result = { head: string; body: string; result: string; miss?: string };
+/** A native slide's layout. Its steps (stepCount) are one press each: a statement's lines and then its question, a tile, a table, a check, a
+ * result, a topic of the agenda, a demo line. */
 export type Native =
-  | { layout: "statement"; lines: string[] }
+  | { layout: "statement"; lines: string[]; ask?: string } // ask: the question to the room, after the last line
   | { layout: "tiles"; tiles: Tile[] }
-  | { layout: "table"; tables: string[] } // keys of facts.columns, or "checks"
+  | { layout: "table"; tables: string[]; columns?: string[] } // keys of facts.columns; columns keeps only those column names, in its own order
+  | { layout: "checks"; keys?: string[] } // keys of facts.checks; none means all of them, shown at once
+  | { layout: "results"; items: Result[] }
+  | { layout: "agenda" } // the five topics, name and line
+  | { layout: "close"; lines: string[] }
   | { layout: "demo"; demo: Demo; lines: string[] };
 /** What fill() reads from facts.json: the display string of every fact and every dated fact. */
 export type Facts = { facts: Record<string, { display: string }>; dated: Record<string, { display: string }> };
-/** All of facts.json that a slide shows: the facts, plus the columns of each table and the basic checks. */
+/** All of facts.json that a slide shows: the facts, plus the columns of each table (each with an example that carries its unit) and the basic
+ * checks (each with a snake_case key, a why, one plain sentence on what the check guards against, and its values as the query returned them
+ * and as a slide prints them, with their units). */
 export type DeckFacts = Facts & {
   columns: Record<string, { name: string; meaning: string; example: string }[]>;
-  checks: { name: string; expected: unknown; actual: unknown; ok: boolean }[];
+  checks: { key: string; name: string; why: string; expected: unknown; actual: unknown; ok: boolean; display: { expected: string; actual: string } }[];
 };
 
+/** The topics in the order of the talk. */
+export const TOPIC_ORDER: readonly Topic[] = ["steps", "modes", "numbers", "checks", "aa"];
+
+/** Each topic's name, which the tracker and the outline show, and its line, which the agenda shows. */
+export const TOPICS: Record<Topic, { name: string; line: string }> = {
+  steps: { name: "Two slow steps", line: "What I heard in round one about share questions and pre-call packs." },
+  modes: { name: "Ask and Delegate", line: "The app answers a share question and drafts a pre-call pack, live." },
+  numbers: { name: "Where the numbers come from", line: "The data behind the seven numbers, and why Harbor fell in September." },
+  checks: { name: "Checks and misses", line: "How the app checks each number, what the tests found, and what it can't do yet." },
+  aa: { name: "Starting at AA", line: "The same layers on AA's own data, and the first four steps." },
+};
+
+/** The name of each part: the heading of its section in the notes window's outline, which lists the parts in this order. The frame's footer
+ * says the backup part's name in place of a slide number. */
 export const PARTS: Record<Part, string> = {
-  first: "The first answer",
-  data: "The data",
-  built: "What I built",
-  proof: "Proof and next",
+  open: "Welcome",
+  steps: TOPICS.steps.name,
+  modes: TOPICS.modes.name,
+  numbers: TOPICS.numbers.name,
+  checks: TOPICS.checks.name,
+  aa: TOPICS.aa.name,
+  close: "Thank you",
   backup: "Backup",
 };
 
-/** Whether SlideView draws the part's name at the top right of a slide. A still is a screenshot of the app, whose own top bar sits under
- * that corner, so it gets none. */
-export function showEyebrow(s: Slide): boolean {
-  return !s.still;
+/** Whether a part is one of the five topics, and not the welcome, the thanks or a backup. */
+export function isTopic(p: Part): p is Topic {
+  return Object.hasOwn(TOPICS, p);
+}
+
+/** The parts the notes window's outline lists, in the order of PARTS: only those with a slide, so no heading stands alone. */
+export function outlineParts(slides: Slide[]): Part[] {
+  return (Object.keys(PARTS) as Part[]).filter((p) => slides.some((s) => s.part === p));
+}
+
+/** A slide on the path as the tracker marks it, from where the slide on the screen stands: shown before it, the slide itself, or still
+ * to come. */
+export type Segment = "passed" | "current" | "later";
+
+/** What the frame draws around a slide. bare: nothing at all, not even the logo (a still). tracker: the five topic names across the top, with
+ * topic lit; segments holds a mark for each topic's slides on the path, in order, the one showing marked current. footer: the line along the
+ * bottom, with the slide's number on the path that is on (null off it, and on the first and last slides) or, when backup is true, the word
+ * Backup in its place. */
+export type FrameInfo = {
+  bare: boolean;
+  tracker: boolean;
+  topic: Topic | null;
+  segments: Record<Topic, Segment[]>;
+  number: { at: number; of: number } | null;
+  footer: boolean;
+  backup: boolean;
+};
+
+/** The frame for a slide, on the path that is on. The first and last slides of the path (the welcome and the thanks) get the logo only, an open
+ * slide after the first (the agenda) the footer without the tracker, a backup slide the tracker with no topic lit and the footer, and a still
+ * nothing. The number counts the slides on the path, so a slide the path leaves out keeps its topic lit and has none. The segments mark the
+ * path's slides by their place in the deck: the ones before this slide passed, this one current, the rest later; a slide the path leaves out
+ * marks none current, and a backup slide sits outside the path, so every segment is later. An unknown id takes the first slide. */
+export function frameInfo(slides: Slide[], path: PathName, id: string): FrameInfo {
+  const s = slides.find((x) => x.id === id) ?? slides[0];
+  const backup = s.part === "backup";
+  const line = onPath(slides, path);
+  const here = slides.indexOf(s);
+  const mark = (x: Slide): Segment => (x === s ? "current" : !backup && slides.indexOf(x) < here ? "passed" : "later");
+  const segments = Object.fromEntries(TOPIC_ORDER.map((t) => [t, line.filter((x) => x.part === t).map(mark)])) as Record<Topic, Segment[]>;
+  if (s.still) return { bare: true, tracker: false, topic: null, segments, number: null, footer: false, backup: false };
+  const at = line.indexOf(s);
+  const ends = at >= 0 && (at === 0 || at === line.length - 1);
+  return {
+    bare: false,
+    tracker: !ends && s.part !== "open" && s.part !== "close",
+    topic: isTopic(s.part) ? s.part : null,
+    segments,
+    number: at >= 0 && !ends ? { at: at + 1, of: line.length } : null,
+    footer: !ends,
+    backup,
+  };
 }
 
 /** The slides a talk walks through, in order: every slide but the backup ones, and on the short path only those with a
@@ -76,23 +156,59 @@ export function askQuestion(slides: Slide[]): string | null {
   return null;
 }
 
-/** Whether a press on an animated slide steps the diagram or moves the deck: forward steps the diagram until its last
- * step, back until step 0. A frame with no steps, or steps it could not read (NaN), counts as zero steps. */
+/** Whether a press on a stepped slide steps within it or moves the deck: forward steps until its last step, back until
+ * step 0. "diagram" is a step within the slide, an animated slide's framed diagram or a native slide's own steps. A frame
+ * with no steps, or steps it could not read (NaN), counts as zero steps. */
 export function pressTarget(current: number, count: number, dir: 1 | -1): "diagram" | "deck" {
   const steps = count > 0 ? count : 0; // NaN > 0 is false
   const at = current > 0 ? Math.min(current, steps) : 0;
   return (dir === 1 ? at < steps : at > 0) ? "diagram" : "deck";
 }
 
-/** A frame that becomes ready this long after its slide arrived started late: the presenter has been talking over the
- * whole figure (the PNG under the frame), so it stays whole. */
-const LATE_MS = 2000;
+/** How many presses a native slide takes to show all of it: one for each step of its layout (see Native), none for a layout shown at once. A
+ * figure, a live page and a slide with no layout have none here; an animated slide's frame counts its own steps. */
+export function stepCount(s: Slide): number {
+  const n = s.native;
+  if (!n) return 0;
+  switch (n.layout) {
+    case "statement": return n.lines.length + (n.ask ? 1 : 0);
+    case "tiles": return n.tiles.length;
+    case "table": return n.tables.length;
+    case "checks": return n.keys?.length ?? 0;
+    case "results": return n.items.length;
+    case "agenda": return TOPIC_ORDER.length;
+    case "close": return 0;
+    case "demo": return n.lines.length;
+  }
+}
+
+/** How a slide comes onto the screen: a press or a jump forward, one back, or the page loading on it (a reload, or the way back from a
+ * demo). */
+export type Arrival = "forward" | "backward" | "load";
+
+/** The step a stepped slide arrives on: 0 going forward, so the title shows alone, and the last step going back or when the page loads on
+ * the slide (a reload, or the way back from a demo), so the slide shows complete. */
+export function arrivalStep(s: Slide, how: Arrival): number {
+  return how === "forward" ? 0 : stepCount(s);
+}
+
+/** How a jump from the notes window's outline arrives, wherever the deck stands: a backup slide as going back would bring it, complete, since a
+ * question pulls it up to be read at once; a slide of the path as going forward would, on its first step, so the presenter walks it again. */
+export function outlineArrival(s: Slide): "forward" | "backward" {
+  return s.part === "backup" ? "backward" : "forward";
+}
+
+/** How long an animated slide waits for its frame's controller before it shows the finished figure (its thumb, the static
+ * page's PNG) in the frame's place. Until then the slide shows nothing of the figure, so no step shows before its press. A
+ * frame that gets ready after that has had the room looking at the whole figure, so it arrives whole (arrivalKey). */
+export const FRAME_FALLBACK_MS = 3000;
 
 /** The key a framed diagram gets when its slide arrives: Home (step 0, which also stops the reveal from playing on its
- * own) going forward, and End (the whole figure) going back, after a late start, and under reduced motion, where Home
- * would still hide most of the figure because the controller's keys ignore reduced motion. */
-export function arrivalKey(backward: boolean, elapsedMs: number, reduced: boolean): "Home" | "End" {
-  return backward || reduced || elapsedMs > LATE_MS ? "End" : "Home";
+ * own) going forward, and End (the whole figure) going back, after a load (a reload, or the way back from a demo), and once
+ * the finished figure has shown in the frame's place (FRAME_FALLBACK_MS). Reduced motion changes nothing here: the figure
+ * steps as a native slide does, with nothing moving (aa.EMBED_CSS in docs/diagrams/src/aa.py). */
+export function arrivalKey(how: Arrival, elapsedMs: number): "Home" | "End" {
+  return how !== "forward" || elapsedMs > FRAME_FALLBACK_MS ? "End" : "Home";
 }
 
 function motionRoot(f: HTMLIFrameElement): HTMLElement | null {
@@ -110,6 +226,13 @@ export function frameState(f: HTMLIFrameElement | null): { current: number; coun
   return root ? { current: Number(root.dataset.stepCurrent), count: Number(root.dataset.stepCount) } : null;
 }
 
+/** What the notes window counts on an animated slide: the framed diagram's step of its steps (frameState), or zero steps before the frame is
+ * ready and when it cannot be read, as pressTarget counts them. */
+export function framePoint(at: { current: number; count: number } | null): { step: number; steps: number } {
+  const steps = at && at.count > 0 ? at.count : 0; // NaN > 0 is false
+  return { step: at && at.current > 0 ? Math.min(at.current, steps) : 0, steps };
+}
+
 /** A key for the framed diagram's controller, which listens on its [data-motion-root], not on the document: a keydown
  * that does not bubble, built with the frame's own KeyboardEvent. */
 export function sendKey(f: HTMLIFrameElement, key: "Home" | "End" | "ArrowRight" | "ArrowLeft"): void {
@@ -121,23 +244,58 @@ export function sendKey(f: HTMLIFrameElement, key: "Home" | "End" | "ArrowRight"
   }
 }
 
+/** What a slide's arrival sends its framed diagram (arrivalKey). End shows the whole figure, so with it every animation and transition of the
+ * frame's page is finished too: its parts' assembly ends at once and does not play out in front of the room. The first arrival and a page the
+ * browser restores from its cache both come through here. An animation that cannot end (an endless one) keeps running, and the rest still finish. */
+export function arrive(f: HTMLIFrameElement, key: "Home" | "End"): void {
+  sendKey(f, key);
+  if (key !== "End") return;
+  try {
+    f.contentDocument?.getAnimations().forEach((a) => {
+      try {
+        a.finish();
+      } catch {
+        // an endless animation cannot finish
+      }
+    });
+  } catch {
+    // a frame that went away or cannot be read: the figure under it stays
+  }
+}
+
 /** A {placeholder}: anything between braces, so a typo cannot pass for plain text. */
 const PLACEHOLDER = /\{([^{}]*)\}/g;
 
-/** Every string a slide shows, plus its note: what the content rules read. A table's cells come from facts.json, not from
- * the slide, so only its table keys are here. */
+/** The strings a layout holds. A table's cells and the checks come from facts.json, not from the slide, so only a table's keys are here, and
+ * the agenda's words are the TOPICS'. */
+function layoutTexts(n: Native): string[] {
+  switch (n.layout) {
+    case "statement": return [...n.lines, ...(n.ask ? [n.ask] : [])];
+    case "tiles": return n.tiles.flatMap((t) => [t.head, t.body, ...(t.tag ? [t.tag] : [])]);
+    case "table": return n.tables;
+    case "results": return n.items.flatMap((r) => [r.head, r.body, r.result, ...(r.miss ? [r.miss] : [])]);
+    case "close": return n.lines;
+    case "demo": return [...(n.demo.kind === "ask" ? [n.demo.question] : []), ...n.lines];
+    case "checks":
+    case "agenda": return [];
+  }
+}
+
+/** Every string a slide shows: its title, its byline and what its layout holds. */
+function shown(s: Slide): string[] {
+  return [s.title, ...(s.byline ?? []), ...(s.native ? layoutTexts(s.native) : [])];
+}
+
+/** Every string a slide shows, plus its note: what the content rules read. */
 export function texts(s: Slide): string[] {
-  const n = s.native;
-  const shown = !n
-    ? []
-    : n.layout === "statement"
-      ? n.lines
-      : n.layout === "tiles"
-        ? n.tiles.flatMap((t) => [t.head, t.body, ...(t.tag ? [t.tag] : [])])
-        : n.layout === "table"
-          ? n.tables
-          : [...(n.demo.kind === "ask" ? [n.demo.question] : []), ...n.lines];
-  return [s.title, ...shown, s.note];
+  return [...shown(s), s.note];
+}
+
+/** Whether a slide shows numbers from the data, so its footer says the data is synthetic: a table or the checks, a figure marked as data, or
+ * a text that holds one of the facts. A dated fact is a result kept in a file, not a query on the data, and a note is not on the slide. */
+export function showsData(s: Slide, facts: Facts): boolean {
+  const layout = s.native?.layout;
+  return !!s.data || layout === "table" || layout === "checks" || shown(s).flatMap(placeholders).some((k) => Object.hasOwn(facts.facts, k));
 }
 
 /** The text with each {key} replaced by that fact's display string, from the facts or the dated facts. An unknown key
@@ -165,15 +323,35 @@ export function bareNumbers(text: string): string[] {
   return rest.match(/\d+(?:[.,]\d+)*/g) ?? [];
 }
 
-/** The table keys a table slide can draw: the basic checks, and the tables facts.json holds columns for. An unknown key is left
- * out, because the deck has no error boundary and a slide that throws goes blank; deck.test.ts holds slides.ts to known keys. */
+/** The table keys a table slide can draw: the tables facts.json holds columns for (the checks have a layout of their own). An unknown key
+ * is left out, because the deck has no error boundary and a slide that throws goes blank; deck.test.ts holds slides.ts to known keys. */
 export function knownTables(keys: string[], columns: DeckFacts["columns"]): string[] {
-  return keys.filter((k) => k === "checks" || Object.hasOwn(columns, k));
+  return keys.filter((k) => Object.hasOwn(columns, k));
 }
 
 /** How many words a text has, split on runs of white space. */
 export function words(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
+}
+
+/** The fewest monospaced characters a line needs to hold a text in two lines, breaking only at its spaces: the longest word, or more when the
+ * words do not share two lines evenly. A table slide sizes its example column by it. */
+export function twoLines(text: string): number {
+  const words = text.split(/\s+/).filter(Boolean);
+  for (let width = Math.max(0, ...words.map((w) => w.length)); width < text.length; width++) {
+    let lines = 1;
+    let used = 0;
+    for (const w of words) {
+      if (used === 0) used = w.length;
+      else if (used + 1 + w.length <= width) used += 1 + w.length;
+      else {
+        lines += 1;
+        used = w.length;
+      }
+    }
+    if (lines <= 2) return width;
+  }
+  return text.length;
 }
 
 /** What a key does, in the deck or in the notes window. Clickers send Page Up and Page Down. A key held with Command,
@@ -256,19 +434,15 @@ export function clockStart(slides: Slide[], path: PathName, id: string, now: num
   return s?.part === "backup" ? now : now - plannedStart(slides, path, id) * 60_000;
 }
 
-/** The clock's checkpoints (Global Constraints): a slide done by a minute, or a slide started by one. */
-const CHECKPOINTS: Record<PathName, { id: string; done: boolean; by: number }[]> = {
-  full: [{ id: "precall", done: true, by: 29 }, { id: "start", done: false, by: 36 }],
-  short: [{ id: "ask", done: true, by: 5 }, { id: "start", done: false, by: 11 }],
-};
-
-/** Each checkpoint with the minute the plan reaches it: the slide's planned end for a "done" checkpoint, its planned
- * start otherwise, and the minute it must be reached by. */
+/** The clock's checkpoints, one for each topic that has a slide on the path: the topic's name, the minute the plan reaches its end (the end
+ * of its last slide on the path), and the whole minute it must be reached by. */
 export function checkpointPlan(slides: Slide[], path: PathName): { label: string; planned: number; by: number }[] {
-  return CHECKPOINTS[path].map(({ id, done, by }) => {
-    const s = slides.find((x) => x.id === id);
-    const start = plannedStart(slides, path, id);
-    return { label: done ? `${id} done` : id, planned: done && s ? start + minutes(s, path) : start, by };
+  const line = onPath(slides, path);
+  return TOPIC_ORDER.flatMap((topic) => {
+    const last = line.filter((s) => s.part === topic).at(-1);
+    if (!last) return [];
+    const planned = plannedStart(slides, path, last.id) + minutes(last, path);
+    return [{ label: TOPICS[topic].name, planned, by: Math.ceil(planned) }];
   });
 }
 
@@ -280,10 +454,11 @@ export function clock(min: number): string {
 
 /** The BroadcastChannel between the deck and its notes window. The deck is the one source of truth: the notes window
  * sends keys, outline jumps, the path, a clock reset, demo requests and a hello when it opens, and the deck applies each
- * and answers with its state. */
+ * and answers with its state: the slide on the screen, how many of its items show (step) of how many it has (steps, 0 on a
+ * slide with none; on an animated slide the diagram's, from framePoint), the path and the start of the talk. */
 export const CHANNEL = "fairshare-deck";
 export type Msg =
-  | { t: "state"; id: string; path: PathName; startedAt: number | null }
+  | { t: "state"; id: string; path: PathName; startedAt: number | null; step: number; steps: number }
   | { t: "key"; action: Action }
   | { t: "go"; id: string }
   | { t: "demo"; demo: Jump }

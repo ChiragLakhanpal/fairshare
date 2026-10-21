@@ -42,6 +42,10 @@ INK, MUTED, SOFT, ACCENT, NAVY, PAPER, PAPER2 = "#36495a", "#5a7181", "#566d7b",
 RULE, RULE_SOLID, ACCENT_TINT = "rgba(54,73,90,0.14)", "#d0dae0", "rgba(0,108,191,0.10)"
 SANS, MONO = "'Inter', system-ui, sans-serif", "'Geist Mono', ui-monospace, monospace"
 FONT_LINK = "https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Geist+Mono:wght@400;500;600&display=swap"
+# The /present deck draws its header over y 0 to 64 of a 1280 by 720 figure and its footer over y 690 to 720, so a figure it shows
+# keeps every mark from STAGE_TOP to STAGE_BOTTOM, the logo band aside. evals/test_figures_in_deck.py measures each mark, a text by
+# its font box: 1em over its baseline to TEXT_DESCENT under it.
+STAGE_TOP, STAGE_BOTTOM, TEXT_DESCENT = 64, 680, 0.3
 
 # face tones for the axonometry helpers, every value a profile role or an rgba() of one
 SKIN = dict(
@@ -112,13 +116,46 @@ def page(*, slug, title, desc, eyebrow, body, vw=1280, vh=720) -> str:
 
 
 # Embed mode for the /present deck. No script: verify-motion.py allows one per motion page (the controller) and lint-skin.py
-# rejects on* attributes, so the deck sets data-embed itself once the controller is ready, then sends Home or End.
+# rejects on* attributes, so the deck sets data-embed itself once the controller is ready, then sends Home or End. In the deck a
+# step the presenter has not reached shows nothing (the plugin's own reveal leaves it at .12, which still gives the end away), the
+# figure's logo band goes (the deck's frame draws the one logo), the draw-in classes below play, and an item marked data-recede (a note,
+# a card, a callout) leads while it is the current step and recedes once a later one arrives, all but a text marked data-keep. Under
+# reduced motion the steps still step, as a native slide's do, with nothing moving.
+# evals/test_figures_in_deck.py reads these rules in every animated page, so a change here means rebuilding them all.
 EMBED_CSS = """    /* html[data-embed]: set by the /present deck once the controller is ready; only the figure shows, fitted to the frame */
     html[data-embed] body { margin: 0; padding: 0; min-height: 0; display: block; overflow: hidden; background: var(--color-paper); }
     html[data-embed] .eyebrow, html[data-embed] h1, html[data-embed] [data-motion-controls] { display: none !important; }
     html[data-embed] [data-motion-root] { width: 100vw; max-width: none; margin: 0; }
     html[data-embed] .diagram-container { overflow: hidden; }
     html[data-embed] [data-motion-root] svg { width: 100vw; min-width: 0; height: auto; display: block; }
+    html[data-embed] [data-brand="aa-logo"] { display: none; }
+    /* a step not reached yet is invisible, not faded; 01's slabs stay, assembled, and lift on each press. On step 0, where a
+       slide arrives, nothing fades: the deck shows the frame at once, so a fade would play out in front of the room */
+    html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]) { opacity: 0; }
+    html[data-embed] .motion-ready[data-frame="start"] [data-motion-item] { transition: none; }
+    /* draw-in for charts, once, when the deck switches the page to embed mode: a line (a path with pathLength="1") traces
+       left to right, and a dot fades in after its line */
+    html[data-embed] .draw-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: aa-draw-line 900ms ease-out forwards; }
+    html[data-embed] .draw-dot { opacity: 0; animation: aa-draw-dot 300ms ease-out 900ms forwards; }
+    /* the newest item leads: the words of an item marked data-recede are ink while it is the current step and go back to the muted text once
+       a later step arrives, and a mark in it marked data-lead (a card's outline, drawn with no stroke) is outlined in blue only while it is
+       current, as a native slide's newest tile is, all over the plugin's step time. A text marked data-keep (a value drawn in the accent, a
+       miss in red) keeps the color it is drawn in. On its own a page keeps the colors it is drawn in */
+    html[data-embed] .motion-ready [data-motion-item][data-recede] text:not([data-keep]) { fill: var(--color-muted); transition: fill var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current text:not([data-keep]) { fill: var(--color-ink); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede] [data-lead] { stroke: var(--color-accent); stroke-opacity: 0; transition: stroke-opacity var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current [data-lead] { stroke-opacity: 1; }
+    @keyframes aa-draw-line { to { stroke-dashoffset: 0; } }
+    @keyframes aa-draw-dot { to { opacity: 1; } }
+    /* under reduced motion the steps still step, with nothing moving. The plugin's own rule there shows every item and stands 01's layers
+       where their lift takes them, so an item not reached yet stays unseen over it, and a layer of 01 shows its name only once its press
+       comes. A step appears at once, with no fade, and a chart shows drawn */
+    @media (prefers-reduced-motion: reduce) {
+      html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]),
+      html[data-embed] .motion-ready [data-part]:not(.is-visible) .part-label { opacity: 0 !important; }
+      html[data-embed] .motion-ready [data-motion-item], html[data-embed] .motion-ready [data-motion-item] * { transition: none !important; }
+      html[data-embed] .draw-line, html[data-embed] .draw-dot { animation: none; stroke-dashoffset: 0; opacity: 1; }
+    }
 """
 
 # Extra CSS for animated(): items fade in where they stand instead of rising 8px into place.
@@ -170,12 +207,15 @@ def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def motion_item(step: int, label: str, marks) -> str:
+def motion_item(step: int, label: str, marks, recede: bool = False) -> str:
     """One step of an animated figure: its marks in a single group that the controller reveals together. The label is what
-    the controller announces ("Step 2 of 7: ..."), so it says in plain words what the step shows."""
+    the controller announces ("Step 2 of 7: ..."), so it says in plain words what the step shows. With recede, the step's words
+    lead in ink while it is the current one and go muted once a later step arrives, all but a text marked data-keep, which keeps
+    its own color, and its data-lead mark is outlined in blue only while it is current, in the deck (EMBED_CSS)."""
     marks = list(marks)
     assert marks, f"motion step {step} holds no marks"
-    return f'<g data-motion-item data-step="{step}" aria-label="{esc(label)}">\n          ' + "\n          ".join(marks) + "\n        </g>"
+    mark = " data-recede" if recede else ""
+    return f'<g data-motion-item data-step="{step}"{mark} aria-label="{esc(label)}">\n          ' + "\n          ".join(marks) + "\n        </g>"
 
 
 # ---------------------------------------------------------------- brand and platform marks

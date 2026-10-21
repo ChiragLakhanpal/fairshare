@@ -189,6 +189,34 @@
     html[data-embed] [data-motion-root] { width: 100vw; max-width: none; margin: 0; }
     html[data-embed] .diagram-container { overflow: hidden; }
     html[data-embed] [data-motion-root] svg { width: 100vw; min-width: 0; height: auto; display: block; }
+    html[data-embed] [data-brand="aa-logo"] { display: none; }
+    /* a step not reached yet is invisible, not faded; 01's slabs stay, assembled, and lift on each press. On step 0, where a
+       slide arrives, nothing fades: the deck shows the frame at once, so a fade would play out in front of the room */
+    html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]) { opacity: 0; }
+    html[data-embed] .motion-ready[data-frame="start"] [data-motion-item] { transition: none; }
+    /* draw-in for charts, once, when the deck switches the page to embed mode: a line (a path with pathLength="1") traces
+       left to right, and a dot fades in after its line */
+    html[data-embed] .draw-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: aa-draw-line 900ms ease-out forwards; }
+    html[data-embed] .draw-dot { opacity: 0; animation: aa-draw-dot 300ms ease-out 900ms forwards; }
+    /* the newest item leads: the words of an item marked data-recede are ink while it is the current step and go back to the muted text once
+       a later step arrives, and a mark in it marked data-lead (a card's outline, drawn with no stroke) is outlined in blue only while it is
+       current, as a native slide's newest tile is, all over the plugin's step time. A text marked data-keep (a value drawn in the accent, a
+       miss in red) keeps the color it is drawn in. On its own a page keeps the colors it is drawn in */
+    html[data-embed] .motion-ready [data-motion-item][data-recede] text:not([data-keep]) { fill: var(--color-muted); transition: fill var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current text:not([data-keep]) { fill: var(--color-ink); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede] [data-lead] { stroke: var(--color-accent); stroke-opacity: 0; transition: stroke-opacity var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current [data-lead] { stroke-opacity: 1; }
+    @keyframes aa-draw-line { to { stroke-dashoffset: 0; } }
+    @keyframes aa-draw-dot { to { opacity: 1; } }
+    /* under reduced motion the steps still step, with nothing moving. The plugin's own rule there shows every item and stands 01's layers
+       where their lift takes them, so an item not reached yet stays unseen over it, and a layer of 01 shows its name only once its press
+       comes. A step appears at once, with no fade, and a chart shows drawn */
+    @media (prefers-reduced-motion: reduce) {
+      html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]),
+      html[data-embed] .motion-ready [data-part]:not(.is-visible) .part-label { opacity: 0 !important; }
+      html[data-embed] .motion-ready [data-motion-item], html[data-embed] .motion-ready [data-motion-item] * { transition: none !important; }
+      html[data-embed] .draw-line, html[data-embed] .draw-dot { animation: none; stroke-dashoffset: 0; opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -229,13 +257,15 @@
           <path d="M 628 312 L 660 312 L 660 328 L 628 328" fill="none" stroke="#006cbf" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
           <rect x="668.0" y="298" width="144.4" height="16" rx="2" fill="#ffffff"/><text x="672" y="310" fill="#006cbf" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">verifier: every number</tspan></text>
           <rect x="668.0" y="312" width="57.6" height="16" rx="2" fill="#ffffff"/><text x="672" y="324" fill="#006cbf" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">vs. rows</tspan></text>
+          <line x1="412" y1="668" x2="440" y2="668" stroke="#006cbf" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+          <text x="448" y="672" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Checked, then approved</text>
         </g>
         <g data-motion-item data-step="5" aria-label="The page waits and the older version is retired. On Monday the account manager opens Delegate and sees the numbers, the reason, the cited clause and the email">
           <rect x="620" y="380" width="8" height="240" fill="rgba(54,73,90,0.06)" stroke="#5a7181" stroke-width="0.8"/>
           <line x1="628" y1="356" x2="868" y2="356" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
           <line x1="868" y1="384" x2="628" y2="384" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
           <line x1="628" y1="412" x2="868" y2="412" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-          <rect x="641.7" y="334" width="212.6" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="346" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">page waits; older version retired</tspan></text>
+          <rect x="641.7" y="334" width="212.6" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="346" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">page waits, older version retired</tspan></text>
           <rect x="675.8" y="362" width="144.4" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="374" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">opens Delegate, Monday</tspan></text>
           <rect x="641.7" y="390" width="212.6" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="402" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">numbers, why, cited clause, email</tspan></text>
         </g>
@@ -249,14 +279,15 @@
           <line x1="628" y1="536" x2="1124" y2="536" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
           <rect x="654.1" y="458" width="187.8" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="470" fill="#006cbf" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">approve (edits checked again)</tspan></text>
           <rect x="638.9" y="486" width="218.2" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="498" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">log activity </tspan><tspan font-family="'Geist Mono', ui-monospace, monospace">ops.crm_activities</tspan></text>
-          <rect x="641.7" y="514" width="212.6" height="16" rx="2" fill="#ffffff"/><text x="748.0" y="526" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">open the draft; app sends nothing</tspan></text>
+          <rect x="881.3" y="514" width="237.4" height="16" rx="2" fill="#ffffff"/><text x="1000.0" y="526" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">open the draft, the app sends nothing</tspan></text>
         </g>
-        <g data-motion-item data-step="7" aria-label="If the account manager rejects, the page is closed and nothing is logged or sent">
+        <g data-motion-item data-step="7" aria-label="If the account manager rejects, the page is closed and nothing is logged or sent. Today the account manager builds this by hand before every call.">
           <line x1="532" y1="552" x2="1148" y2="552" stroke="rgba(54,73,90,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
           <text x="536" y="572" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">[rejects]</text>
           <path d="M 628 600 L 660 600 L 660 616 L 628 616" fill="none" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
           <rect x="668.0" y="586" width="132.0" height="16" rx="2" fill="#ffffff"/><text x="672" y="598" fill="#5a7181" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">page closed, nothing</tspan></text>
           <rect x="668.0" y="600" width="94.8" height="16" rx="2" fill="#ffffff"/><text x="672" y="612" fill="#5a7181" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">logged or sent</tspan></text>
+          <text x="1240" y="672" fill="#36495a" font-size="14" font-family="'Inter', system-ui, sans-serif" font-style="italic" text-anchor="end">Today the account manager builds this by hand before every call.</text>
         </g>
         <rect x="40" y="72" width="184" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
         <svg x="122" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
@@ -279,16 +310,13 @@
         <svg x="1130" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.5V2.55q0-.44.3-.75.3-.3.75-.3h12.9q.44 0 .75.3.3.3.3.75V10.85l1.24.72h.01q.1.07.18.18.07.12.07.25zm-6-8.25v3h3v-3zm0 4.5v3h3v-3zm0 4.5v1.83l3.05-1.83zm-5.25-9v3h3.75v-3zm0 4.5v3h3.75v-3zm0 4.5v2.03l2.41 1.5 1.34-.8v-2.73zM9 3.75V6h2l.13.01.12.04v-2.3zM5.98 15.98q.9 0 1.6-.3.7-.32 1.19-.86.48-.55.73-1.28.25-.74.25-1.61 0-.83-.25-1.55-.24-.71-.71-1.24t-1.15-.83q-.68-.3-1.55-.3-.92 0-1.64.3-.71.3-1.2.85-.5.54-.75 1.3-.25.74-.25 1.63 0 .85.26 1.56.26.72.74 1.23.48.52 1.17.81.69.3 1.56.3zM7.5 21h12.39L12 16.08V17q0 .41-.3.7-.29.3-.7.3H7.5zm15-.13v-7.24l-5.9 3.54Z" fill="#36495a"/></svg>
         <text x="1128" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">Dynamics 365 + Outlook</text>
         <text x="1128" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">stand-in CRM</text>
-        <line x1="40" y1="656" x2="1240" y2="656" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>
-        <line x1="40" y1="674" x2="68" y2="674" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <text x="76" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Request</text>
-        <line x1="150" y1="674" x2="178" y2="674" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <text x="186" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Reply</text>
-        <line x1="248" y1="674" x2="276" y2="674" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
-        <text x="284" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Notice, no reply</text>
-        <line x1="412" y1="674" x2="440" y2="674" stroke="#006cbf" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
-        <text x="448" y="678" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Checked, then approved</text>
-        <text x="1240" y="678" fill="#36495a" font-size="14" font-family="'Inter', system-ui, sans-serif" font-style="italic" text-anchor="end">Today the account manager builds this by hand before every call.</text>
+        <line x1="40" y1="652" x2="1240" y2="652" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>
+        <line x1="40" y1="668" x2="68" y2="668" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="76" y="672" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Request</text>
+        <line x1="150" y1="668" x2="178" y2="668" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="186" y="672" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Reply</text>
+        <line x1="248" y1="668" x2="276" y2="668" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+        <text x="284" y="672" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Notice, no reply</text>
       </svg>
     </div>
     <p class="note">Today's process is how the role was described in round one.</p>

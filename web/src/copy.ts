@@ -237,13 +237,15 @@ export const copy = {
   yearAfter: "The year after",
   monthHint: "Months with no data yet are greyed out.",
   severity: { ok: "Fine", watch: "Watch", risk: "At risk" } as Record<string, string>,
-  // the /present deck: the demo buttons, the sidebar entry and the way back from the app, the logo band's tag, and the table headings
+  // the /present deck: the demo buttons, the sidebar entry and the way back from the app, the frame's footer (the talk's title, or
+  // Synthetic data on a slide that shows the data) and its list of topics, and the table headings
   askLive: "Ask it live",
   openPrecall: "Open the pre-call pack",
   present: "Present",
   backToDeck: "Back to the deck",
-  deckTag: "fairshare · sales ai & innovation",
-  deckTagData: "fairshare · synthetic data",
+  deckFooter: "Fairshare: sales answers you can check",
+  deckFooterData: "Synthetic data",
+  deckTopics: "Topics",
   deckHead: { column: "Column", meaning: "What it means", example: "Example", check: "Check", expected: "Should be", actual: "Is" },
   deckPass: "Passes",
   deckFail: "Fails",
@@ -252,6 +254,7 @@ export const copy = {
   notesTitle: "Speaker notes",
   notesWaiting: "Waiting for the deck. Open it in another window.",
   notesNow: "On the screen",
+  notesPoint: (at: number, of: number) => `Point ${at} of ${of}`, // on a slide with steps; the title alone is point 0
   notesNext: "Next",
   notesLast: "Nothing comes after this slide.",
   notesClock: "Talk time",

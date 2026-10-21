@@ -7,7 +7,9 @@ FACTS     one row per number: (key, SQL that returns one row with a column `valu
 DATED     numbers a local query cannot reproduce (a Databricks run, a results file), and the days of those runs; each keeps
           its source and date.
 COLUMNS   the tables a slide shows: an example row, and what each column means in one plain sentence.
-CHECKS    sentences the data must keep true: (sentence, SQL that returns one value, the value it must return).
+UNITS     the unit each example carries, so a slide never prints a bare 80582.47, 0.3805 or 2026-09-01.
+CHECKS    sentences the data must keep true: (key, sentence, why it is checked, SQL that returns one value, the value it must return, the
+          format a slide shows the value in).
 
 Slides and notes write a number as a {key}; the deck fills it from facts.json. The figure builders call fact(key) for a value and
 display(key) for the string a slide shows.
@@ -100,14 +102,31 @@ def _month(v):
     return f"{MONTHS[d.month - 1]} {d.year}"
 
 
+def _share(v):
+    """A fraction of one as a percent with the decimals it has, to two places: 0.3805 is 38.05%, 0.42 is 42%."""
+    return f"{v * 100:.2f}".rstrip("0").rstrip(".") + "%"
+
+
+def _month_pair(v, key):
+    """Two months joined by ' and ', each the first of its month, as the latest_month check returns them: 2026-09-01 and 2026-09-01."""
+    parts = _text(v, key).split(" and ")
+    if len(parts) != 2:
+        raise ValueError(f"{key}: {v!r} is not two dates joined by ' and '")
+    for p in parts:
+        datetime.date.fromisoformat(p)
+    return v
+
+
 FORMATS = {  # name: (read the value from the query, show it)
     "usd": (_whole, _usd),                            # $88,391
     "usd_cents": (_places(2), _usd_cents),            # $4,920.87
     "usd_signed": (_whole, _usd_signed),              # +$32,836, -$97,491
-    "pct": (_places(1), lambda v: f"{v:.1f}%"),       # 53.5%
+    "pct": (_places(1), lambda v: f"{v:.1f}%"),       # 53.5%: the value is already in percent
+    "share": (_places(4), _share),                    # 38.05%: the value is a fraction of one, 0.3805 (pct expects percent, like 53.5)
     "pts": (_places(1), lambda v: f"{v:.1f}"),        # 1.7 (points, and also pace, where 100 is on pace)
     "int": (_whole, lambda v: f"{v:,}"),              # 27,967
     "month": (_text, _month),                         # the value is the first of the month, as 2026-01-01; shown as Jan 2026
+    "months": (_month_pair, lambda v: " and ".join(_month(p) for p in v.split(" and "))),  # 2026-09-01 and 2026-09-01: Sep 2026 and Sep 2026
     "text": (_text, str),                             # as is
 }
 
@@ -116,7 +135,8 @@ FORMATS = {  # name: (read the value from the query, show it)
 
 def _summit_q3(expr: str) -> str:
     """Summit Travel Partners on DFW-ORD in Q3 2026, one number. The metric view's definitions are written out here: AA share is
-    AA revenue over everything the agency sold; fair share is AA's seat share (made up, one per route) weighted by that revenue."""
+    AA revenue over everything the agency sold; fair share is AA's seat share (made up, one base share per route, moved a little each month)
+    weighted by that revenue."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -196,7 +216,7 @@ AGENCIES = (("summit", "Summit Travel Partners"), ("bluesky", "BlueSky Corporate
 def _agency_q3(agency: str, expr: str) -> str:
     """One agency's number for Q3 2026 over all routes together, one number. Like _summit_q3 for one route, the metric view's
     definitions are written out: AA share is AA revenue over everything the agency sold; fair share is AA's seat share (made up,
-    one per route) weighted by that revenue."""
+    one base share per route, moved a little each month) weighted by that revenue."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -214,8 +234,21 @@ def _agency_q3_facts() -> list[tuple[str, str, str, str]]:
                     f"{name}, Q3 2026, all routes together: AA revenue over everything the agency sold."))
         out.append((f"agency_q3_fair_share_{slug}",
                     _agency_q3(name, "ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
-                    f"{name}, Q3 2026, all routes together: AA's seat share (made up, one per route) weighted by what the agency sold."))
+                    f"{name}, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) "
+                    "weighted by what the agency sold."))
     return out
+
+
+def _harbor_sep26(expr: str) -> str:
+    """Harbor Business Travel in Sep 2026 over all routes together, one number. Like _agency_q3, the metric view's definitions are
+    written out: fair share is AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency
+    sold on each route."""
+    return f"""
+        SELECT {expr} AS value
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
+        WHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month = DATE '2026-09-01'"""
 
 
 def _corporate_low(corporate: str) -> str:
@@ -377,6 +410,25 @@ FACTS: list[tuple[str, str, str, str]] = [
     ("harbor_share_jun26", _harbor_share("2026-06-01"), "pct", "Harbor Business Travel, Jun 2026: AA share, all routes together."),
     ("harbor_share_jul26", _harbor_share("2026-07-01"), "pct", "Harbor Business Travel, Jul 2026: AA share, all routes together."),
 
+    # --- Harbor in Sep 2026, the example beside each definition on the numbers and gaps slides; harbor_revenue_sep26_usd, harbor_share_sep26
+    # and harbor_pace_sep26 are the other three
+    ("harbor_fair_share_sep26", _harbor_sep26("ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
+     "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) "
+     "weighted by what Harbor sold."),
+    ("harbor_gap_pts_sep26",
+     _harbor_sep26("ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pts",
+     "Harbor Business Travel, Sep 2026, all routes together: AA share minus fair share, in points. Fair share comes from made-up seat shares."),
+    ("harbor_gap_usd_sep26", _harbor_sep26("ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share))"), "usd_signed",
+     "Harbor Business Travel, Sep 2026, all routes together: AA revenue minus the revenue fair share would bring. Fair share comes from made-up seat shares."),
+    ("harbor_yoy_sep26", """
+        SELECT ROUND(100 * (SUM(CASE WHEN s.sales_month = DATE '2026-09-01' THEN s.aa_revenue END)
+                            - SUM(CASE WHEN s.sales_month = DATE '2025-09-01' THEN s.aa_revenue END))
+                         / NULLIF(SUM(CASE WHEN s.sales_month = DATE '2025-09-01' THEN s.aa_revenue END), 0), 1) AS value
+        FROM aa_demo.gold.fact_agency_sales_monthly s
+        JOIN aa_demo.gold.dim_agency a ON a.agency_id = s.agency_id
+        WHERE a.agency_name = 'Harbor Business Travel' AND s.sales_month IN (DATE '2025-09-01', DATE '2026-09-01')""", "pct",
+     "Harbor Business Travel, Sep 2026, all routes together: the change in AA revenue against Sep 2025, as a percent."),
+
     # --- the two months Sunbelt is missing from, what Harbor did in them, and what the other agencies did
     ("yoy_mar26", _yoy("03"), "pct", "Mar 2026, all agencies: AA revenue against Mar 2025."),
     ("yoy_apr26", _yoy("04"), "pct", "Apr 2026, all agencies: AA revenue against Apr 2025."),
@@ -433,6 +485,9 @@ _REHEARSAL = "rehearsal on the App"
 DATED: dict[str, dict] = {
     "genie_benchmark": _dated(20, "20 of 20", "evals/results/2026-10-19T213612-genie-eval.json", "2026-10-19",
                               "One run on Oct 19, after five benchmark questions named their columns. Two earlier runs that day scored 17 of 20."),
+    "genie_benchmark_earlier": _dated(17, "17 of 20", "evals/results/2026-10-19T211129-genie-eval.json and evals/results/2026-10-19T212948-genie-eval.json",
+                                      "2026-10-19", "Two runs on Oct 19, each 17 of 20, before five benchmark questions named their columns. The first missed q09, q10 "
+                                      "and q17. The rerun, with nothing changed, missed q07, q10 and q11."),
     "app_model_questions": _dated(20, "20", _APP_RUN, "2026-10-13", "The questions in that run."),
     "app_model_right": _dated(15, "15", _APP_RUN, "2026-10-13"),
     "app_model_partly": _dated(3, "3", _APP_RUN, "2026-10-13"),
@@ -477,7 +532,9 @@ DATED: dict[str, dict] = {
     "foundry_clean_page_s": _dated(38, "38", _LIMITS + "Foundry guardrails", "2026-10-15", "Seconds for a clean page on the pre-call agent."),
     "foundry_refusal_s": _dated(3, "3", _LIMITS + "Foundry guardrails", "2026-10-15", "Seconds until a jailbreak was refused at the prompt."),
     "foundry_nightly_pages": _dated(20, "20", _LIMITS + "Databricks serverless jobs", "2026-10-15",
-                                    "Pages the nightly agents task wrote through the four Foundry agents, every sentence verified."),
+                                    "Pages one run of the nightly agents task wrote through three of the four Foundry agents, every sentence "
+                                    "verified. The task runs the pre-call pack, the agreement watch and CRM versus reality (lakehouse/job_tasks.py, "
+                                    "agents_task); prospect research runs only when a person picks a market."),
     "foundry_quality_pages": _dated(23, "23", _EVAL, "2026-10-15", "Real pages the quality evaluators graded in that run."),
     "foundry_groundedness_misses": _dated(1, "1", _EVAL, "2026-10-15",
                                           "Of those pages, the ones whose groundedness grade failed. Relevance, coherence, fluency and the four "
@@ -503,7 +560,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
         {
             "agency_id": "Which agency made these sales. It matches agency_id in dim_agency.",
             "market_id": "Which route the sales were on. It matches market_id in dim_market.",
-            "sales_month": "The month of the sales, written as the first day of that month.",
+            "sales_month": "The month of the sales, stored as the first day of that month.",
             "aa_revenue": "Dollars of AA tickets the agency sold on this route in this month.",
             "aa_pax": "Passengers on those AA tickets.",
             "market_revenue": "Dollars of tickets the agency sold on this route in this month on all airlines, AA included.",
@@ -514,10 +571,10 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
         f"market_id = {DFW_ORD} AND sales_month = DATE '2026-09-01'",
         {
             "market_id": "Which route the seats are on. It matches market_id in dim_market.",
-            "sales_month": "The month of the seats, written as the first day of that month.",
+            "sales_month": "The month of the seats, stored as the first day of that month.",
             "aa_seats": "Seats AA flies on this route in this month. Made up.",
             "total_seats": "Seats all airlines fly on this route in this month. Made up.",
-            "aa_seat_share": "AA's seats divided by all seats on the route, which is the route's fair share. Made up: one base share per route, moved a little each month.",
+            "aa_seat_share": "AA's seats divided by all seats on the route, which is the route's fair share. The seat shares are made up, one base share per route, moved a little each month.",
             "is_projected": "True when this month's seat numbers are borrowed from last year because the seat file for the month is not in yet. It is never true for the made-up seat shares.",
             "source": "Where the seat numbers came from. Here it always says synthetic, which means made up.",
         },
@@ -548,7 +605,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "agency_id": "The agency the goal is for.",
             "goal_year": "The year the goal covers.",
             "revenue_goal_usd": "The AA revenue the agency is asked to reach by the end of the year, in dollars. Made up.",
-            "share_goal": "The share of its sales the agency is asked to send to AA, as a number between zero and one. Made up.",
+            "share_goal": "The share of its sales the agency is asked to send to AA, kept as a number between zero and one. Made up.",
         },
     ),
     "gold.agency_pace": (  # Sunbelt in May 2026, because its months_reported shows why a missing month must not count as zero
@@ -560,7 +617,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "aa_revenue": "Dollars of AA revenue the agency sold in this month, all routes together.",
             "ytd_revenue": "AA revenue the agency sold from the start of the year through this month.",
             "revenue_goal_usd": "The agency's AA revenue goal for the whole year, in dollars.",
-            "ytd_goal": "The part of the yearly goal that counts so far: one twelfth for every month the agency reported.",
+            "ytd_goal": "The part of the yearly goal that counts so far, one twelfth for every month the agency reported.",
             "pace_pct": "Revenue so far divided by the goal so far, as a percent. One hundred means on pace.",
             "attainment_pct": "Revenue so far divided by the goal for the whole year, as a percent.",
             "months_reported": "How many months this year the agency has sales rows for, up to this month. A missing month is not counted.",
@@ -625,7 +682,7 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
         "booking_id = 500001",
         {
             "booking_id": "The booking's number.",
-            "ticket_number": "The ticket's number, kept as text so leading zeros stay. Each ticket appears once here; the delivered file had a few twice.",
+            "ticket_number": "The ticket's number, kept as text so leading zeros stay. Each ticket appears once.",
             "corp_id": "The company that booked the trip. It matches corp_id in dim_corporate.",
             "booking_date": "The day the ticket was booked.",
             "travel_date": "The day of the trip.",
@@ -657,14 +714,14 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "sales_month": "The month being compared with the same month one year earlier.",
             "revenue_now": "AA revenue the agency sold in this month, in dollars.",
             "revenue_prior": "AA revenue the agency sold in the same month one year earlier.",
-            "delta_revenue": "The change in AA revenue: this month minus the same month a year earlier, in dollars.",
+            "delta_revenue": "The change in AA revenue in dollars, this month minus the same month a year earlier.",
             "delta_pct": "The same change as a percent of the year-earlier revenue.",
             "market_now": "Dollars the agency sold on all airlines in this month.",
             "market_prior": "Dollars the agency sold on all airlines in the same month one year earlier.",
             "market_delta_pct": "The change in the agency's all-airline sales, as a percent.",
-            "aa_share_now": "AA's share of the agency's sales this month, as a number between zero and one.",
-            "aa_share_prior": "AA's share of the agency's sales a year earlier, as a number between zero and one.",
-            "fair_share_now": "Fair share this month: AA's seat share on the agency's routes, as a number between zero and one. The seat shares are made up.",
+            "aa_share_now": "AA's share of the agency's sales this month, kept as a number between zero and one.",
+            "aa_share_prior": "AA's share of the agency's sales a year earlier, kept as a number between zero and one.",
+            "fair_share_now": "Fair share this month, which is AA's seat share on the agency's routes, kept as a number between zero and one. The seat shares are made up.",
             "fair_share_prior": "Fair share a year earlier. The seat shares are made up.",
             "volume_effect": "The part of the change that comes from the agency selling more or less travel overall.",
             "mix_effect": "The part of the change that comes from the agency moving sales between routes.",
@@ -681,9 +738,9 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "definition_en": "The definition in plain English.",
             "owner": "The team that owns the definition.",
             "source_columns": "The table columns the number is built from.",
-            "metric_view_expr": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers; pace lives in gold.agency_pace.",
+            "metric_view_expr": "The definition as written in the metric view, the one that Genie and the dashboard read, for six of the seven numbers. Pace is stored in gold.agency_pace.",
             "dax_twin": "The same definition written the way a Power BI measure would be, in DAX.",
-            "twin_sql": "A SQL copy of the Power BI measure, compared with the metric view every night, for six of the seven numbers; pace lives in gold.agency_pace.",
+            "twin_sql": "A SQL copy of the Power BI measure. The 6 am job compares it with the metric view for six of the seven numbers, since pace has no measure there.",
             "twin_version": "Which version of the SQL copy is live. It moves up when a definition changes.",
             "twin_sql_retired": "The old SQL copy that the comparison with the metric view caught being wrong. Empty for numbers that never changed.",
             "retired_note": "Why the old copy was retired. Empty for numbers that never changed.",
@@ -691,42 +748,71 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
     ),
 }
 
+# The unit each example carries, by table and column: a name from FORMATS, which reads the stored value and shows it. A column that is not listed shows
+# what is stored, which is right for ids, years, days, names and flags, and for threshold and threshold_2, whose unit changes from clause to clause.
+# Dollars are usd where every row of the column holds whole dollars and usd_cents where a row can hold cents (a row that has none still shows .00).
+# A share kept as a fraction of one is share; pct is only for a value that is already in percent.
+UNITS: dict[str, dict[str, str]] = {
+    "gold.fact_agency_sales_monthly": {"sales_month": "month", "aa_revenue": "usd_cents", "aa_pax": "int", "market_revenue": "usd_cents", "market_pax": "int"},
+    "gold.fact_market_capacity": {"sales_month": "month", "aa_seats": "int", "total_seats": "int", "aa_seat_share": "share"},
+    "gold.agency_goals": {"revenue_goal_usd": "usd", "share_goal": "share"},
+    "gold.agency_pace": {"sales_month": "month", "aa_revenue": "usd_cents", "ytd_revenue": "usd_cents", "revenue_goal_usd": "usd", "ytd_goal": "usd",
+                         "pace_pct": "pct", "attainment_pct": "pct", "months_reported": "int"},
+    "gold.contract_clauses": {"window_quarters": "int"},
+    "gold.crm_opportunities": {"amount_usd": "usd"},
+    "gold.fact_corporate_bookings": {"fare_usd": "usd_cents", "ticket_count": "int"},
+    "gold.dim_corporate": {"annual_commitment_usd": "usd"},
+    "ops.decomposition": {"sales_month": "month", "revenue_now": "usd_cents", "revenue_prior": "usd_cents", "delta_revenue": "usd_cents", "delta_pct": "pct",
+                          "market_now": "usd_cents", "market_prior": "usd_cents", "market_delta_pct": "pct", "aa_share_now": "share", "aa_share_prior": "share",
+                          "fair_share_now": "share", "fair_share_prior": "share", "volume_effect": "usd_cents", "mix_effect": "usd_cents",
+                          "share_effect": "usd_cents", "fair_share_effect": "usd_cents", "residual": "usd_cents"},
+}
+
 
 # ---------------------------------------------------------------- the checks the data must keep passing
 
-CHECKS: list[tuple[str, str, object]] = [
+CHECKS: list[tuple[str, str, str, str, object, str]] = [  # (key, sentence, why, SQL, expected, format); a why is one plain sentence on what the check
+    # guards against, and the format is a FORMATS name for how a slide prints the expected and actual values
     # twelve agencies by twelve routes by twenty-one months is 3,024 cells; Sunbelt's two missing months take away twelve routes each
-    ("Sales rows equal every agency, route and month, minus Sunbelt's two missing months", """
+    ("sales_row_count", "Sales rows equal every agency, route and month, minus Sunbelt's two missing months",
+     "Catches sales rows lost or added on the way in, because the expected count is known.", """
         SELECT COUNT(s.agency_id) AS value
         FROM aa_demo.gold.dim_agency a
         CROSS JOIN aa_demo.gold.dim_market m
         CROSS JOIN (SELECT DISTINCT sales_month FROM aa_demo.gold.fact_agency_sales_monthly) d
         LEFT JOIN aa_demo.gold.fact_agency_sales_monthly s
-               ON s.agency_id = a.agency_id AND s.market_id = m.market_id AND s.sales_month = d.sales_month""", 3000),
-    ("One row per agency, route and month, with no repeats", """
+               ON s.agency_id = a.agency_id AND s.market_id = m.market_id AND s.sales_month = d.sales_month""", 3000, "int"),
+    ("no_repeated_rows", "One row per agency, route and month, with no repeats",
+     "Catches an agency, route and month with more than one row, because a sum would count it twice.", """
         SELECT COUNT(*) AS value
         FROM (SELECT agency_id, market_id, sales_month FROM aa_demo.gold.fact_agency_sales_monthly
-              GROUP BY agency_id, market_id, sales_month HAVING COUNT(*) > 1) AS t""", 0),
-    ("Every sales row has a seats row", """
+              GROUP BY agency_id, market_id, sales_month HAVING COUNT(*) > 1) AS t""", 0, "int"),
+    ("sales_have_seats", "Every sales row has a seats row",
+     "Catches a sale with no seats row for its route and month, which fair share would leave out.", """
         SELECT COUNT(*) AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
         LEFT JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
-        WHERE c.market_id IS NULL""", 0),
-    ("No empty sales numbers", """
+        WHERE c.market_id IS NULL""", 0, "int"),
+    ("no_empty_sales", "No empty sales numbers",
+     "Catches an empty sales number, which a sum skips without an error, so the share comes out wrong.", """
         SELECT COUNT(*) AS value FROM aa_demo.gold.fact_agency_sales_monthly
-        WHERE aa_revenue IS NULL OR aa_pax IS NULL OR market_revenue IS NULL OR market_pax IS NULL""", 0),
-    ("AA is never above the market in revenue or passengers", """
+        WHERE aa_revenue IS NULL OR aa_pax IS NULL OR market_revenue IS NULL OR market_pax IS NULL""", 0, "int"),
+    ("aa_within_market", "AA is never above the market in revenue or passengers",
+     "Catches swapped columns, because the market includes AA and so can never be smaller than AA.", """
         SELECT COUNT(*) AS value FROM aa_demo.gold.fact_agency_sales_monthly
-        WHERE aa_revenue > market_revenue OR aa_pax > market_pax""", 0),
-    ("Both facts end in September 2026", """
+        WHERE aa_revenue > market_revenue OR aa_pax > market_pax""", 0, "int"),
+    ("latest_month", "Sales and seats both run through September 2026",
+     "Catches a table that stops early, because fair share needs sales and seats for the same month.", """
         SELECT CONCAT(CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_agency_sales_monthly) AS STRING), ' and ',
-                      CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_market_capacity) AS STRING)) AS value""", "2026-09-01 and 2026-09-01"),
-    ("Cleaning removed the duplicates' revenue", """
+                      CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_market_capacity) AS STRING)) AS value""", "2026-09-01 and 2026-09-01", "months"),
+    ("duplicates_removed", "Cleaning removed the duplicates' revenue",
+     "Catches cleaning that removes more or less than the fares of the duplicate tickets.", """
         SELECT ROUND((SELECT SUM(fare_usd * ticket_count) FROM aa_demo.bronze.fact_corporate_bookings)
-                   - (SELECT SUM(fare_usd * ticket_count) FROM aa_demo.silver.fact_corporate_bookings), 2) AS value""", 4920.87),
-    ("Pace never counts more months than the calendar has", """
+                   - (SELECT SUM(fare_usd * ticket_count) FROM aa_demo.silver.fact_corporate_bookings), 2) AS value""", 4920.87, "usd_cents"),
+    ("pace_month_count", "Pace never counts more months than the calendar has",
+     "Catches a month counted twice in pace, since no agency reports more months than the year has had.", """
         SELECT COUNT(*) AS value FROM aa_demo.gold.agency_pace
-        WHERE months_reported > EXTRACT(MONTH FROM sales_month)""", 0),
+        WHERE months_reported > EXTRACT(MONTH FROM sales_month)""", 0, "int"),
 ]
 
 
@@ -760,7 +846,29 @@ def _example(v) -> str:
     return s if len(s) <= 60 else s[:59].rstrip() + "…"
 
 
+def _shown(table: str, column: str, v) -> str:
+    """An example as the slide shows it. A column with a unit in UNITS goes through that format's read and show, so a value the format cannot
+    show raises instead of being rounded. A missing value stays NULL, and a column with no unit shows what is stored."""
+    fmt = UNITS.get(table, {}).get(column)
+    if fmt is None or v is None:
+        return _example(v)
+    read, show = FORMATS[fmt]
+    return show(read(_json(v), f"{table}.{column}"))
+
+
+def _check_units() -> None:
+    """UNITS may name only tables and columns that COLUMNS describes and formats that FORMATS has; a typo would leave an example without its unit."""
+    for table, units in UNITS.items():
+        if table not in COLUMNS:
+            raise ValueError(f"UNITS: {table} is not a table in COLUMNS")
+        if set(units) - set(COLUMNS[table][1]):
+            raise ValueError(f"UNITS: no such column in {table}: {sorted(set(units) - set(COLUMNS[table][1]))}")
+        if set(units.values()) - set(FORMATS):
+            raise ValueError(f"UNITS: no such format for {table}: {sorted(set(units.values()) - set(FORMATS))}")
+
+
 def _columns() -> dict:
+    _check_units()
     out = {}
     for table, (where, meanings) in COLUMNS.items():
         schema, name = table.split(".")
@@ -773,7 +881,7 @@ def _columns() -> dict:
         if unknown:
             raise ValueError(f"{table}: no such column: {sorted(unknown)}")
         out[table] = [{"name": c["column_name"], "type": TYPES.get(c["data_type"], c["data_type"]),
-                       "meaning": meanings[c["column_name"]], "example": _example(row[0][c["column_name"]])}
+                       "meaning": meanings[c["column_name"]], "example": _shown(table, c["column_name"], row[0][c["column_name"]])}
                       for c in cols if c["column_name"] in meanings]
     return out
 
@@ -783,14 +891,26 @@ def _same(actual, expected) -> bool:
     return math.isclose(actual, expected, rel_tol=0, abs_tol=1e-9) if numbers else actual == expected
 
 
+def _check_shown(fmt: str, v) -> str:
+    """A check's value the way a slide prints it, in the check's format. A value the format cannot read (a NULL, or another kind of value that
+    a failing check returned) shows as stored, because a check that fails must still say what came back."""
+    read, show = FORMATS[fmt]
+    try:
+        return show(read(v, fmt))
+    except (TypeError, ValueError):
+        return _example(v)
+
+
 def _checks() -> list[dict]:
     out = []
-    for name, sql, expected in CHECKS:
+    for key, name, why, sql, expected, fmt in CHECKS:
         rows = query(_sql(sql))
         if len(rows) != 1 or "value" not in rows[0]:
-            raise ValueError(f"{name}: the query must return one row with a column named value")
+            raise ValueError(f"{key}: the query must return one row with a column named value")
         actual = _json(rows[0]["value"])
-        out.append({"name": name, "expected": expected, "actual": actual, "ok": _same(actual, expected)})
+        read, show = FORMATS[fmt]
+        display = {"expected": show(read(expected, key)), "actual": _check_shown(fmt, actual)}  # the expected value is written here, so it must read
+        out.append({"key": key, "name": name, "why": why, "expected": expected, "actual": actual, "ok": _same(actual, expected), "display": display})
     return out
 
 

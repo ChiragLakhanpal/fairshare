@@ -189,6 +189,34 @@
     html[data-embed] [data-motion-root] { width: 100vw; max-width: none; margin: 0; }
     html[data-embed] .diagram-container { overflow: hidden; }
     html[data-embed] [data-motion-root] svg { width: 100vw; min-width: 0; height: auto; display: block; }
+    html[data-embed] [data-brand="aa-logo"] { display: none; }
+    /* a step not reached yet is invisible, not faded; 01's slabs stay, assembled, and lift on each press. On step 0, where a
+       slide arrives, nothing fades: the deck shows the frame at once, so a fade would play out in front of the room */
+    html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]) { opacity: 0; }
+    html[data-embed] .motion-ready[data-frame="start"] [data-motion-item] { transition: none; }
+    /* draw-in for charts, once, when the deck switches the page to embed mode: a line (a path with pathLength="1") traces
+       left to right, and a dot fades in after its line */
+    html[data-embed] .draw-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: aa-draw-line 900ms ease-out forwards; }
+    html[data-embed] .draw-dot { opacity: 0; animation: aa-draw-dot 300ms ease-out 900ms forwards; }
+    /* the newest item leads: the words of an item marked data-recede are ink while it is the current step and go back to the muted text once
+       a later step arrives, and a mark in it marked data-lead (a card's outline, drawn with no stroke) is outlined in blue only while it is
+       current, as a native slide's newest tile is, all over the plugin's step time. A text marked data-keep (a value drawn in the accent, a
+       miss in red) keeps the color it is drawn in. On its own a page keeps the colors it is drawn in */
+    html[data-embed] .motion-ready [data-motion-item][data-recede] text:not([data-keep]) { fill: var(--color-muted); transition: fill var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current text:not([data-keep]) { fill: var(--color-ink); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede] [data-lead] { stroke: var(--color-accent); stroke-opacity: 0; transition: stroke-opacity var(--motion-step) var(--motion-ease); }
+    html[data-embed] .motion-ready [data-motion-item][data-recede].is-current [data-lead] { stroke-opacity: 1; }
+    @keyframes aa-draw-line { to { stroke-dashoffset: 0; } }
+    @keyframes aa-draw-dot { to { opacity: 1; } }
+    /* under reduced motion the steps still step, with nothing moving. The plugin's own rule there shows every item and stands 01's layers
+       where their lift takes them, so an item not reached yet stays unseen over it, and a layer of 01 shows its name only once its press
+       comes. A step appears at once, with no fade, and a chart shows drawn */
+    @media (prefers-reduced-motion: reduce) {
+      html[data-embed] .motion-ready [data-motion-item]:not(.is-visible):not([data-part]),
+      html[data-embed] .motion-ready [data-part]:not(.is-visible) .part-label { opacity: 0 !important; }
+      html[data-embed] .motion-ready [data-motion-item], html[data-embed] .motion-ready [data-motion-item] * { transition: none !important; }
+      html[data-embed] .draw-line, html[data-embed] .draw-dot { animation: none; stroke-dashoffset: 0; opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -243,14 +271,17 @@
           <path d="M 356 516 L 388 516 L 388 532 L 356 532" fill="none" stroke="#006cbf" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
           <rect x="396.0" y="502" width="200.2" height="16" rx="2" fill="#ffffff"/><text x="400" y="514" fill="#006cbf" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">verifier: every number vs. rows</tspan></text>
           <rect x="396.0" y="516" width="144.4" height="16" rx="2" fill="#ffffff"/><text x="400" y="528" fill="#006cbf" font-size="12" text-anchor="start"><tspan font-family="'Inter', system-ui, sans-serif">unmatched sentence cut</tspan></text>
+          <line x1="248" y1="644" x2="276" y2="644" stroke="#006cbf" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+          <text x="284" y="648" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Checked, then answered</text>
         </g>
         <g data-motion-item data-step="6" aria-label="The answer goes back to the director with its query attached">
           <line x1="348" y1="568" x2="124" y2="568" stroke="#006cbf" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
           <rect x="139.0" y="546" width="194.0" height="16" rx="2" fill="#ffffff"/><text x="236.0" y="558" fill="#006cbf" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">answer with its query attached</tspan></text>
         </g>
-        <g data-motion-item data-step="7" aria-label="The director clicks -97.5K and sees its rows">
+        <g data-motion-item data-step="7" aria-label="The director clicks -97.5K and sees its rows. Today the same question becomes a ticket to sales BI.">
           <line x1="124" y1="604" x2="348" y2="604" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
           <rect x="145.2" y="582" width="181.6" height="16" rx="2" fill="#ffffff"/><text x="236.0" y="594" fill="#5a7181" font-size="12" text-anchor="middle"><tspan font-family="'Inter', system-ui, sans-serif">clicks -97.5K: sees its rows</tspan></text>
+          <text x="1240" y="648" fill="#36495a" font-size="14" font-family="'Inter', system-ui, sans-serif" font-style="italic" text-anchor="end">Today the same question becomes a ticket to sales BI.</text>
         </g>
         <rect x="40" y="72" width="160" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
         <svg x="110" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#36495a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
@@ -259,7 +290,7 @@
         <rect x="252" y="72" width="200" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
         <svg x="342" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
         <text x="352" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">fairshare app</text>
-        <text x="352" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Agent Framework harness</text>
+        <text x="352" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Agent Framework</text>
         <rect x="524" y="72" width="216" height="72" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
         <svg x="622" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
         <text x="632" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">Genie</text>
@@ -273,14 +304,11 @@
         <svg x="1142" y="80" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M22.379 23.343a1.62 1.62 0 0 0 1.536-2.14v.002L17.35 1.76A1.62 1.62 0 0 0 15.816.657H8.184A1.62 1.62 0 0 0 6.65 1.76L.086 21.204a1.62 1.62 0 0 0 1.536 2.139h4.741a1.62 1.62 0 0 0 1.535-1.103l.977-2.892 4.947 3.675c.28.208.618.32.966.32m-3.084-12.531 3.624 10.739a.54.54 0 0 1-.51.713v-.001h-.03a.54.54 0 0 1-.322-.106l-9.287-6.9h4.853m6.313 7.006c.116-.326.13-.694.007-1.058L9.79 1.76a1.722 1.722 0 0 0-.007-.02h6.034a.54.54 0 0 1 .512.366l6.562 19.445a.54.54 0 0 1-.338.684" fill="#36495a"/></svg>
         <text x="1140" y="118" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" font-weight="600" text-anchor="middle">Model</text>
         <text x="1140" y="134" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Qwen3-Next · gpt-5-mini</text>
-        <line x1="40" y1="632" x2="1240" y2="632" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>
-        <line x1="40" y1="650" x2="68" y2="650" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <text x="76" y="654" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Request</text>
-        <line x1="150" y1="650" x2="178" y2="650" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <text x="186" y="654" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Reply</text>
-        <line x1="248" y1="650" x2="276" y2="650" stroke="#006cbf" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
-        <text x="284" y="654" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Checked, then answered</text>
-        <text x="1240" y="654" fill="#36495a" font-size="14" font-family="'Inter', system-ui, sans-serif" font-style="italic" text-anchor="end">Today the same question becomes a ticket to sales BI.</text>
+        <line x1="40" y1="628" x2="1240" y2="628" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>
+        <line x1="40" y1="644" x2="68" y2="644" stroke="#5a7181" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="76" y="648" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Request</text>
+        <line x1="150" y1="644" x2="178" y2="644" stroke="#5a7181" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="186" y="648" fill="#5a7181" font-size="11" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Reply</text>
       </svg>
     </div>
     <p class="note">Today's process is how the role was described in round one.</p>

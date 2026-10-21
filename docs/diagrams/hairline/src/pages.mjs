@@ -13,16 +13,18 @@ const DIST = here("../../../../web/node_modules/@lucasmarkes/hairline/dist/index
 const BRAND = execFileSync("python3", ["-c", "import aa; print(aa.brand(0, 0, 22))"], { cwd: here("../../src/"), encoding: "utf8" }).trim();
 
 const CUSTOM = {
-  stack: ["stack.html", "Five layers under every answer. Point at one to lift it clear."],
+  stack: ["stack.html", "The five layers under Ask and Delegate"],
   "flight-symbol": ["title-a-flight-symbol.html", "The Flight Symbol in line. Point at it and it turns and banks."],
   airliner: ["title-b-airliner.html", "Fairshare: sales answers you can check"],
   seats: ["title-c-seats.html", "Fair share is AA's share of the seats on a route."],
 };
+// Each opener's caption is the title of its slide in web/src/deck/slides.ts, the words the room reads while it plays; deck.test.ts keeps the two
+// equal and holds them to the deck's copy rules. The stack's caption asks for no pointing, since the deck's frames ignore the pointer.
 const OPENERS = {
-  sieve: "Every number passes through the checks.",
-  riffle: "Pages wait for a person to decide.",
-  query: "It starts with a question.",
-  elevator: "Four floors: as delivered, cleaned, ready to use, and defined once.",
+  sieve: "Checks on every number in Ask and Delegate",
+  riffle: "Delegate's pages wait for an account manager",
+  query: "Before the live Harbor question",
+  elevator: "Four floors under the seven numbers",
 };
 
 const page = (title, caption, scripts) => `<!doctype html>

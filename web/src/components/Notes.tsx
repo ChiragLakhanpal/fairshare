@@ -2,10 +2,14 @@
 // when it opens it says hello on the channel, the deck answers with its state, and it shows whatever state the deck
 // posts. Every key, outline click, path switch, clock reset and demo request goes to the deck, which applies it as if it
 // were pressed there and posts its state back; this window never posts a state, so nothing echoes. It shows the slide on
-// the screen and the next one (native and image slides drawn small, live and animated ones as their thumbs), the note in
-// large type, the talk time with the drift and the checkpoints, and the outline of every slide, backup included. It also
-// calls api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL warehouse
-// awake, because the warehouse stops after ten idle minutes. Under the demo buttons it says when the last ping got through.
+// the screen at its step, with the point it is on ("Point 2 of 3" on a native slide with steps, and on a diagram once its
+// frame is ready), and the next one complete (native and image slides drawn small, live and animated ones as their
+// thumbs), the note in large type, the talk time with the drift and the checkpoints, and the outline of every slide,
+// grouped by part, backup included (a part with no slide gets no heading). A click in the outline sends the deck to that
+// slide, which lands a backup slide complete and a slide of the path on its first step (outlineArrival in lib/deck.ts).
+// It also calls api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL
+// warehouse awake, because the warehouse stops after ten idle minutes. Under the demo buttons it says when the last ping
+// got through.
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { images } from "../deck/assets";
@@ -14,17 +18,16 @@ import { NativeSlide } from "../deck/layouts";
 import { slides } from "../deck/slides";
 import { api } from "../lib/api";
 import {
-  blurAfterClick, CHANNEL, checkpointPlan, clock, driftIsRed, fill, fromHash, keyAction, KEYS, liveDrift, move, onPath, PARTS, plannedStart,
-  type Msg, type Part, type PathName, type Slide,
+  blurAfterClick, CHANNEL, checkpointPlan, clock, driftIsRed, fill, fromHash, keyAction, KEYS, liveDrift, move, onPath, outlineParts, PARTS,
+  plannedStart, stepCount, type Msg, type PathName, type Slide,
 } from "../lib/deck";
 import { Check } from "./Icons";
 
 const PING_MS = 8 * 60_000;
 const TICK_MS = 500;
-const ORDER = Object.keys(PARTS) as Part[];
 
 /** What the deck last posted, and when its slide arrived here (the drift is measured from the arrival). */
-type View = { id: string; path: PathName; startedAt: number | null; arrivedAt: number };
+type View = { id: string; path: PathName; startedAt: number | null; arrivedAt: number; step: number; steps: number };
 
 /** The keep-warm ping: when one last got through, and whether the latest one failed. */
 type Warm = { at: number | null; missed: boolean };
@@ -45,8 +48,12 @@ function savedPath(): PathName {
 }
 
 export function Notes() {
-  // until the deck answers: the slide in this window's hash and the path saved in this browser
-  const [view, setView] = useState<View>(() => ({ id: fromHash(slides, location.hash), path: savedPath(), startedAt: null, arrivedAt: Date.now() }));
+  // until the deck answers: the slide in this window's hash, complete, and the path saved in this browser
+  const [view, setView] = useState<View>(() => {
+    const id = fromHash(slides, location.hash);
+    const steps = stepCount(slides.find((s) => s.id === id) ?? slides[0]);
+    return { id, path: savedPath(), startedAt: null, arrivedAt: Date.now(), step: steps, steps };
+  });
   const [heard, setHeard] = useState(false);
   const [warm, setWarm] = useState<Warm>({ at: null, missed: false });
   const channel = useRef<BroadcastChannel | null>(null);
@@ -66,7 +73,7 @@ export function Notes() {
       const m = e.data;
       if (!m || typeof m !== "object" || m.t !== "state") return;
       const now = Date.now();
-      setView((v) => ({ id: m.id, path: m.path, startedAt: m.startedAt, arrivedAt: v.id === m.id ? v.arrivedAt : now }));
+      setView((v) => ({ id: m.id, path: m.path, startedAt: m.startedAt, step: m.step, steps: m.steps, arrivedAt: v.id === m.id ? v.arrivedAt : now }));
       setHeard(true);
     };
     channel.current = ch;
@@ -109,9 +116,13 @@ export function Notes() {
             {copy.notesWaiting}
           </p>
         )}
-        <h2 className="t-label">{copy.notesNow}</h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="t-label">{copy.notesNow}</h2>
+          {heard && view.steps > 0 && <p className="text-[15px] font-semibold tabular-nums text-navy">{copy.notesPoint(view.step, view.steps)}</p>}
+        </div>
         <div className="mt-2">
-          <Preview slide={slide} />
+          {/* the deck's step: until the deck posts it with its state, the complete slide */}
+          <Preview slide={slide} step={view.step} />
         </div>
         <h1 className="mt-3 text-[17px] font-semibold leading-snug">{fill(slide.title, facts)}</h1>
         <p className="mt-4 text-[26px] leading-[1.4]">{fill(slide.note, facts)}</p>
@@ -195,7 +206,7 @@ function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg)
                   </>
                 )}
               </span>
-              <span className={`tabular-nums ${overdue ? "font-semibold text-red" : "text-ink-2"}`}>{copy.notesBy(clock(c.by))}</span>
+              <span className={`whitespace-nowrap tabular-nums ${overdue ? "font-semibold text-red" : "text-ink-2"}`}>{copy.notesBy(clock(c.by))}</span>
             </li>
           );
         })}
@@ -222,10 +233,11 @@ function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg)
   );
 }
 
-/** A slide drawn small: native and image slides as the deck draws them, live and animated ones as the PNG under their
- * frame. It takes no focus and no clicks (inert), and it is hidden from screen readers and from Playwright's roles, which
- * do not read inert, so a demo slide's button here is never mistaken for this window's own. */
-function Preview({ slide }: { slide: Slide }) {
+/** A slide drawn small: native and image slides as the deck draws them, a native one at a step (complete when it gets
+ * none), live and animated ones as the PNG under their frame. It takes no focus and no clicks (inert), and it is hidden
+ * from screen readers and from Playwright's roles, which do not read inert, so a demo slide's button here is never
+ * mistaken for this window's own. */
+function Preview({ slide, step }: { slide: Slide; step?: number }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   useEffect(() => {
@@ -243,7 +255,7 @@ function Preview({ slide }: { slide: Slide }) {
       ) : (
         width > 0 && (
           <div className="absolute left-0 top-0 h-[720px] w-[1280px] origin-top-left" style={{ transform: `scale(${width / 1280})` }}>
-            <NativeSlide key={slide.id} slide={slide} facts={facts} />
+            <NativeSlide key={slide.id} slide={slide} facts={facts} step={step} />
           </div>
         )
       )}
@@ -251,7 +263,8 @@ function Preview({ slide }: { slide: Slide }) {
   );
 }
 
-/** Every part and every slide, backup included. A click sends the deck there; a slide off the path is greyed. */
+/** Every part that has a slide, and every slide, backup included. A click sends the deck there; a slide off the path is greyed. Each
+ * button names its slide in data-outline, so a test finds it whatever its title says. */
 function Outline({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg) => void }) {
   const current = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -261,7 +274,7 @@ function Outline({ view, slide, send }: { view: View; slide: Slide; send: (m: Ms
   return (
     <nav aria-label={copy.notesOutline} className="min-h-0 overflow-y-auto pr-1">
       <h2 className="t-label">{copy.notesOutline}</h2>
-      {ORDER.map((part) => (
+      {outlineParts(slides).map((part) => (
         <section key={part} className="mt-4">
           <h3 className="mb-1 px-2 text-[12.5px] font-semibold text-ink-2">{PARTS[part]}</h3>
           <ol className="text-[13.5px] leading-snug">
@@ -276,6 +289,7 @@ function Outline({ view, slide, send }: { view: View; slide: Slide; send: (m: Ms
                       ref={here ? current : undefined}
                       type="button"
                       aria-current={here ? "true" : undefined}
+                      data-outline={s.id}
                       onClick={() => send({ t: "go", id: s.id })}
                       className={`w-full rounded-md px-2 py-1 text-left transition-colors ${here ? "bg-tint text-navy" : off ? "text-grey hover:bg-surface" : "text-ink hover:bg-surface"}`}
                     >

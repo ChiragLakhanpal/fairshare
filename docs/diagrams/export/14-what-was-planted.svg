@@ -16,140 +16,140 @@
   </defs>
         <rect width="100%" height="100%" fill="#ffffff"/>
         <g data-brand="aa-logo" aria-hidden="true"><svg x="40" y="24" width="143.48" height="22" viewBox="0 0 300 46" aria-hidden="true"><linearGradient id="aa-logo-a" gradientUnits="userSpaceOnUse" x1="282.3005" x2="282.3005" y1="26.0772" y2="55.6668"><stop offset="0" stop-color="#ed1c24"/><stop offset=".1263" stop-color="#e81b23"/><stop offset=".2703" stop-color="#db1a21"/><stop offset=".4229" stop-color="#c4171d"/><stop offset=".5816" stop-color="#a41317"/><stop offset=".7436" stop-color="#7b0e10"/><stop offset=".7546" stop-color="#780e0f"/></linearGradient><linearGradient id="aa-logo-b" gradientUnits="userSpaceOnUse" x1="268.8272" x2="279.6261" y1="28.5396" y2="28.5396"><stop offset="0" stop-color="#69231d"/><stop offset=".2647" stop-color="#8d2922"/><stop offset=".5812" stop-color="#b22f26"/><stop offset=".8377" stop-color="#c93329"/><stop offset="1" stop-color="#d1342a"/></linearGradient><linearGradient id="aa-logo-c" gradientUnits="userSpaceOnUse" x1="267.6408" x2="279.6741" y1="26.9613" y2="19.731"><stop offset=".1" stop-color="#e7ebee"/><stop offset=".3511" stop-color="#d5dce0"/><stop offset=".8549" stop-color="#a5b4bb"/><stop offset="1" stop-color="#96a7b0"/></linearGradient><linearGradient id="aa-logo-d" gradientUnits="userSpaceOnUse" x1="261.0076" x2="261.0076" y1="20.8726" y2=".4301"><stop offset="0" stop-color="#1c2f72"/><stop offset=".1275" stop-color="#174687"/><stop offset=".4038" stop-color="#0d72af"/><stop offset=".6512" stop-color="#0692cc"/><stop offset=".8584" stop-color="#02a6de"/><stop offset="1" stop-color="#00ade4"/></linearGradient><path d="m274.15 41.58c2.61 4.29 6.78 4.2 7.89 4.2h13.41l-15.82-19.2c-7.3.3-11.16 4.98-10.37 6.94z" fill="url(#aa-logo-a)"/><path d="m269.26 33.53c-.02-.03-.43-1-.43-2.17 0-4.38 3.89-6.9 8.3-7.8l2.5 3.03c-7.3.29-11.16 4.97-10.37 6.94z" fill="url(#aa-logo-b)"/><path d="m275.36 19.27c-6.67 0-11.65 1.1-11.65 3.71 0 .96.3 1.79 1.12 3.26l4.43 7.28c-.02-.03-.43-1-.43-2.17 0-4.38 3.89-6.9 8.3-7.8 1.28-.26 2.6-.39 3.88-.39 1.08 0 2.1.06 2.88.34-.46-1.68-1.68-4.23-8.53-4.23z" fill="url(#aa-logo-c)"/><path d="m257.82 14.73c1.83 3.01 2.51 3.76 6.88 3.76h8.34l-11.5-14.52c-2.54-3.14-4-3.71-6.33-3.76h-6.23z" fill="url(#aa-logo-d)"/><path d="m130.35 36.68v-10.95c0-2.09-.95-3.37-2.74-3.37-2.37 0-3.94 2.52-3.94 5.92v8.4h-3.84s0-12.11 0-12.45c0-1.37-.13-3.37-.19-4.5h3.09c.35 0 .45.15.46.46.01.36.04 2.12.04 2.12h.09c.47-.8 1.65-2.93 5.2-2.93 3.66 0 5.71 2.5 5.71 5.31v12h-3.88zm-30.08-3.72c.1 0 .25.07.28.36.07.81.1 2.13.11 2.54-.77.39-2.44 1.14-4.48 1.14-5.14 0-8.28-2.98-8.28-8.81 0-5.46 2.8-8.82 8.28-8.82 1.82 0 3.49.64 4.48 1.14 0 .6-.06 1.97-.11 2.55-.02.24-.14.36-.28.36-.15 0-.2-.04-.3-.08-1.24-.61-2.4-.9-3.45-.9-3.27 0-4.61 2.14-4.61 5.76 0 3.22 1.08 5.75 4.61 5.75 1.35 0 2.58-.48 3.35-.85.2-.1.24-.14.4-.14zm13.3 3.72c-.31 0-.57-.1-.6-.55-.04-.55-.11-1.62-.11-1.62-.28.31-1.68 2.5-5.2 2.5-3.37 0-5.31-2.6-5.31-5.45 0-3.96 3.84-5.94 9.54-5.94h.76v-.62c0-1.78-1.26-2.73-3.62-2.73-2.12 0-3.89.75-4.57 1.09-.05.02-.17.1-.29.1-.18 0-.29-.11-.3-.31-.03-.64-.1-1.86-.11-2.64.69-.27 3-1.12 5.53-1.12 5.04 0 7.2 2.34 7.2 6.07v6.61c0 2.41.22 3.99.3 4.62 0-.01-2.95-.01-3.22-.01zm-.93-8.6s-.58 0-.65 0c-4.83 0-5.79 1.68-5.79 3.39 0 1.39.92 2.72 2.73 2.72 2.4 0 3.71-2.32 3.71-4.76zm-48.27 4.88c.21 0 .27.19.29.38.07.72.13 2.36.12 2.77-.41.13-2.48.89-5.26.89-5.4 0-8.64-2.79-8.64-8.81 0-5.15 2.77-8.82 7.75-8.82 4.88 0 7.21 3.27 7.21 7.32 0 .48-.05 1.28-.14 2.35h-10.87c0 2.9 1.85 4.98 5.25 4.98 1.88 0 3.38-.67 3.97-.96.11-.06.18-.1.32-.1zm-9.5-6.5h7.13c.15-2.73-1.28-4.26-3.45-4.26-2.27 0-3.57 1.64-3.68 4.26zm-10.64 10.22v-10.84c0-1.95-.83-3.47-2.82-3.47-2.25 0-3.54 2.46-3.54 5.9v8.42h-3.85v-10.89c0-1.78-.74-3.44-2.81-3.44-2.28 0-3.55 2.45-3.55 6.02v8.29h-3.85s0-10.71 0-12.35c0-1.59-.14-3.85-.19-4.6h3.08c.35 0 .46.11.47.47.01.45.04 2.1.04 2.1h.09c.24-.48 1.5-2.93 5.03-2.93 3.29 0 4.55 2.36 4.86 3.09.3-.64 1.77-3.09 5.08-3.09 3.45 0 5.8 1.85 5.8 5.57v11.74h-3.84zm28.42-8.27v8.27h-3.85s0-11.42 0-12.6c0-1.21-.14-3.52-.19-4.36h3.11c.33 0 .44.14.44.47.01.5.04 2.1.04 2.1h.09c.31-.73 1.4-2.93 4.59-2.93 1.07 0 1.87.34 2 .4 0 .73-.08 2.33-.12 2.76-.02.28-.15.37-.28.37s-.19-.03-.27-.06c-.24-.1-.8-.27-1.57-.27-2.06.01-3.99 1.49-3.99 5.85zm8.26 8.27v-16.95h3.84v16.95zm-.05-19.43v-3.72h3.94v3.72zm-62.88 19.43-1.77-5h-9.42l-1.77 5h-4.02l8.45-22.26h4.48l8.31 22.26zm-6.44-18.2h-.07l-3.6 10.18h7.28zm226.82 18.52c5.01 0 7.41-2.05 7.41-5.09 0-3-2.13-4.26-4.39-5-.65-.21-1.28-.42-1.87-.62-1.54-.51-2.35-1.18-2.35-2.18 0-1.06.96-1.8 2.97-1.8 1.78 0 3.24.73 3.81 1 .1.04.18.11.34.11.12 0 .27-.08.29-.38.04-.57.11-1.6.11-2.59-.47-.21-2.15-1.08-4.86-1.08-4.14 0-6.68 2.15-6.68 4.99 0 2.75 1.88 4.01 3.96 4.7.48.16 1.36.45 1.88.63 2.16.72 2.78 1.37 2.78 2.38 0 1.32-1.41 1.97-3.82 1.97-1.98 0-3.35-.73-3.9-.98-.11-.05-.18-.11-.33-.11-.28 0-.29.38-.29.44-.01.18-.1 1.94-.1 2.52.43.21 2.4 1.09 5.04 1.09zm-9.01-4.04c.21 0 .28.19.29.38.07.72.13 2.36.12 2.77-.41.13-2.48.89-5.26.89-5.4 0-8.64-2.79-8.64-8.8 0-5.16 2.77-8.83 7.74-8.83 4.89 0 7.21 3.27 7.21 7.32 0 .48-.05 1.28-.14 2.35h-10.87c0 2.89 1.85 4.97 5.25 4.97 1.88 0 3.37-.67 3.96-.96.13-.04.2-.09.34-.09zm-9.5-6.5h7.12c.15-2.73-1.29-4.26-3.45-4.26-2.26 0-3.56 1.64-3.67 4.26zm-10.65 10.22v-10.95c0-2.09-.95-3.37-2.74-3.37-2.37 0-3.94 2.52-3.94 5.92v8.4h-3.85s0-12.11 0-12.45c0-1.37-.13-3.37-.19-4.5h3.09c.35 0 .45.14.45.46.01.36.04 2.12.04 2.12h.09c.46-.8 1.65-2.93 5.19-2.93 3.66 0 5.7 2.5 5.7 5.31v12h-3.84zm-35.04-8.27v8.27h-3.86s0-11.42 0-12.6c0-1.21-.14-3.52-.19-4.35h3.11c.34 0 .43.14.44.47.01.5.03 2.1.03 2.1h.09c.3-.73 1.4-2.93 4.59-2.93 1.07 0 1.86.35 1.99.4 0 .73-.08 2.33-.12 2.75-.03.28-.15.37-.28.37s-.19-.03-.26-.06c-.24-.1-.8-.27-1.58-.27-2.03.01-3.96 1.49-3.96 5.85zm12.27 8.27v-23.13h-3.85v23.13zm-24.16 0v-16.95h3.85v16.95zm-.05-19.43v-3.72h3.94v3.72zm28.41 19.43v-16.95h3.85v16.95zm-.05-19.43v-3.72h3.94v3.72zm-34.15 19.43-1.76-5h-9.43l-1.77 5h-4.02l8.44-22.26h4.48l8.31 22.26zm-6.45-18.2h-.07l-3.6 10.18h7.28zm149.02 26.29c0 .57-.45 1.02-1.02 1.02s-1.02-.45-1.02-1.02c0-.56.45-1.02 1.02-1.02.57-.01 1.02.45 1.02 1.02zm-1.84 0c0 .45.37.82.82.82s.82-.37.82-.82-.37-.82-.82-.82c-.46-.01-.82.36-.82.82zm.79.06h-.09v.42h-.18v-1.02h.3c.23 0 .36.12.36.3 0 .21-.17.26-.2.27l.25.45h-.21zm-.02-.12c.15 0 .23-.07.23-.17s-.08-.17-.23-.17c-.05 0-.07.01-.07.01v.33c0-.01.04 0 .07 0z" fill="#36495a"/></svg><line x1="197.48" y1="27" x2="197.48" y2="43" stroke="#d0dae0" stroke-width="1"/><text x="211.48" y="38.0" fill="#5a7181" font-size="8" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">FAIRSHARE · SYNTHETIC DATA</text></g>
-        <text x="40" y="100" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">What I planted, and what cleaning did</text>
-        <text x="40" y="120" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Four traps planted to test the cleaning, then two drops the app should catch.</text>
+        <text x="40" y="84" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">What I planted, and what cleaning did</text>
+        <text x="40" y="102" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Four traps planted to test the cleaning, then two drops the app should catch.</text>
         <g data-panel="1">
-        <rect x="40" y="140" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <path d="M 41,324 H 423 V 381 A 6 6 0 0 1 417,387 H 47 A 6 6 0 0 1 41,381 Z" fill="#f2f5f8"/>
-        <text x="60" y="172" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Channel names</text>
-        <text x="60" y="190" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">the channel on each corporate booking</text>
-        <text x="60" y="350" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Cleaned in silver.</text>
-        <text x="60" y="368" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Letter case and extra spaces are ignored.</text>
-        <text x="60" y="244" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">16</text>
-        <text x="60" y="262" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">spellings delivered</text>
-        <text x="216" y="242" fill="#5a7181" font-size="28" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">→</text>
-        <text x="244" y="244" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">4</text>
-        <text x="244" y="262" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">labels after cleaning</text>
-        <text x="60" y="286" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">the most common spelling, and the rarest</text>
-        <rect x="60" y="294" width="168" height="24" rx="3" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <text x="70" y="310" fill="#36495a" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">"Direct"</text>
-        <text x="218" y="310" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">6,613 rows</text>
-        <rect x="236" y="294" width="168" height="24" rx="3" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <text x="246" y="310" fill="#36495a" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">" ndc "</text>
-        <text x="394" y="310" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">2 rows</text>
+        <rect x="40" y="118" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <path d="M 41,302 H 423 V 359 A 6 6 0 0 1 417,365 H 47 A 6 6 0 0 1 41,359 Z" fill="#f2f5f8"/>
+        <text x="60" y="150" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Channel names</text>
+        <text x="60" y="168" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">the channel on each corporate booking</text>
+        <text x="60" y="328" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Cleaned in silver.</text>
+        <text x="60" y="346" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Letter case and extra spaces are ignored.</text>
+        <text x="60" y="222" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">16</text>
+        <text x="60" y="240" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">spellings delivered</text>
+        <text x="216" y="222" fill="#5a7181" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">to</text>
+        <text x="244" y="222" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">4</text>
+        <text x="244" y="240" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">labels after cleaning</text>
+        <text x="60" y="264" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">the most common spelling, and the rarest</text>
+        <rect x="60" y="272" width="168" height="24" rx="3" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <text x="70" y="288" fill="#36495a" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">"Direct"</text>
+        <text x="218" y="288" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">6,613 rows</text>
+        <rect x="236" y="272" width="168" height="24" rx="3" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <text x="246" y="288" fill="#36495a" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">" ndc "</text>
+        <text x="394" y="288" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">2 rows</text>
         </g>
         <g data-panel="2">
-        <rect x="448" y="140" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <path d="M 449,324 H 831 V 381 A 6 6 0 0 1 825,387 H 455 A 6 6 0 0 1 449,381 Z" fill="#f2f5f8"/>
-        <text x="468" y="172" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Tickets loaded twice</text>
-        <text x="468" y="190" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">corporate bookings, by ticket number</text>
-        <text x="468" y="350" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Removed in silver.</text>
-        <text x="468" y="368" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Only the first copy of each ticket stays.</text>
-        <text x="468" y="244" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">6</text>
-        <text x="468" y="262" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">tickets</text>
-        <text x="568" y="244" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">$4,920.87</text>
-        <text x="568" y="262" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">in fares, counted twice</text>
-        <text x="468" y="298" fill="#36495a" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Each one sat on two rows of the file.</text>
+        <rect x="448" y="118" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <path d="M 449,302 H 831 V 359 A 6 6 0 0 1 825,365 H 455 A 6 6 0 0 1 449,359 Z" fill="#f2f5f8"/>
+        <text x="468" y="150" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Tickets loaded twice</text>
+        <text x="468" y="168" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">corporate bookings, by ticket number</text>
+        <text x="468" y="328" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Removed in silver.</text>
+        <text x="468" y="346" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Only the first copy of each ticket stays.</text>
+        <text x="468" y="222" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">6</text>
+        <text x="468" y="240" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">tickets</text>
+        <text x="568" y="222" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">$4,920.87</text>
+        <text x="568" y="240" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">in fares, counted twice</text>
+        <text x="468" y="276" fill="#36495a" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Each one sat on two rows of the file.</text>
         </g>
         <g data-panel="3">
-        <rect x="856" y="140" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <path d="M 857,324 H 1239 V 381 A 6 6 0 0 1 1233,387 H 863 A 6 6 0 0 1 857,381 Z" fill="#f2f5f8"/>
-        <text x="876" y="172" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Sunbelt's missing months</text>
-        <text x="876" y="190" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Sunbelt Vacations: no rows for Mar and Apr 2026</text>
-        <text x="876" y="345" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Left missing.</text>
-        <text x="876" y="362" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Pace counts only the months it reported.</text>
-        <text x="876" y="377" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The old rule counted a missing month as zero.</text>
-        <rect x="876" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Jan 2026" data-rows="1" x="876" y="202" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
-        <text x="892" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jan</text>
-        <rect x="912" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Feb 2026" data-rows="1" x="912" y="202" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
-        <text x="928" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Feb</text>
-        <rect x="948" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Mar 2026" data-rows="0" x="948" y="202" width="32" height="20" rx="3" fill="#36495a" stroke="#006cbf" stroke-width="1.6" fill-opacity="0.05"/>
-        <text x="964" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Mar</text>
-        <rect x="984" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Apr 2026" data-rows="0" x="984" y="202" width="32" height="20" rx="3" fill="#36495a" stroke="#006cbf" stroke-width="1.6" fill-opacity="0.05"/>
-        <text x="1000" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Apr</text>
-        <rect x="1020" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="May 2026" data-rows="1" x="1020" y="202" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
-        <text x="1036" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">May</text>
-        <rect x="1056" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Jun 2026" data-rows="1" x="1056" y="202" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
-        <text x="1072" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jun</text>
-        <rect x="1092" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Jul 2026" data-rows="1" x="1092" y="202" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
-        <text x="1108" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jul</text>
-        <rect x="1128" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Aug 2026" data-rows="1" x="1128" y="202" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
-        <text x="1144" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Aug</text>
-        <rect x="1164" y="202" width="32" height="20" fill="#ffffff"/>
-        <rect data-month="Sep 2026" data-rows="1" x="1164" y="202" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
-        <text x="1180" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Sep</text>
-        <text x="876" y="258" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">pace in May 2026, as a percent of the goal so far</text>
-        <text x="876" y="294" fill="#5a7181" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">74.2</text>
-        <text x="876" y="312" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">old rule</text>
-        <text x="976" y="292" fill="#5a7181" font-size="28" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">→</text>
-        <text x="1004" y="294" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">123.6</text>
-        <text x="1004" y="312" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">new rule</text>
+        <rect x="856" y="118" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <path d="M 857,302 H 1239 V 359 A 6 6 0 0 1 1233,365 H 863 A 6 6 0 0 1 857,359 Z" fill="#f2f5f8"/>
+        <text x="876" y="150" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Sunbelt's missing months</text>
+        <text x="876" y="168" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Sunbelt Vacations: no rows for Mar and Apr 2026</text>
+        <text x="876" y="323" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Left missing.</text>
+        <text x="876" y="340" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Pace counts only the months it reported.</text>
+        <text x="876" y="355" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The old rule counted a missing month as zero.</text>
+        <rect x="876" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Jan 2026" data-rows="1" x="876" y="180" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
+        <text x="892" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jan</text>
+        <rect x="912" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Feb 2026" data-rows="1" x="912" y="180" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
+        <text x="928" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Feb</text>
+        <rect x="948" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Mar 2026" data-rows="0" x="948" y="180" width="32" height="20" rx="3" fill="#36495a" stroke="#006cbf" stroke-width="1.6" fill-opacity="0.05"/>
+        <text x="964" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Mar</text>
+        <rect x="984" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Apr 2026" data-rows="0" x="984" y="180" width="32" height="20" rx="3" fill="#36495a" stroke="#006cbf" stroke-width="1.6" fill-opacity="0.05"/>
+        <text x="1000" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Apr</text>
+        <rect x="1020" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="May 2026" data-rows="1" x="1020" y="180" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
+        <text x="1036" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">May</text>
+        <rect x="1056" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Jun 2026" data-rows="1" x="1056" y="180" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
+        <text x="1072" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jun</text>
+        <rect x="1092" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Jul 2026" data-rows="1" x="1092" y="180" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
+        <text x="1108" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jul</text>
+        <rect x="1128" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Aug 2026" data-rows="1" x="1128" y="180" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
+        <text x="1144" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Aug</text>
+        <rect x="1164" y="180" width="32" height="20" fill="#ffffff"/>
+        <rect data-month="Sep 2026" data-rows="1" x="1164" y="180" width="32" height="20" rx="3" fill="#36495a" fill-opacity="0.2"/>
+        <text x="1180" y="214" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Sep</text>
+        <text x="876" y="236" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">pace in May 2026, as a percent of the goal so far</text>
+        <text x="876" y="272" fill="#5a7181" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">74.2</text>
+        <text x="876" y="290" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">old rule</text>
+        <text x="976" y="272" fill="#5a7181" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">to</text>
+        <text x="1004" y="272" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">123.6</text>
+        <text x="1004" y="290" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">new rule</text>
         </g>
         <g data-panel="4">
-        <rect x="40" y="404" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <path d="M 41,588 H 423 V 645 A 6 6 0 0 1 417,651 H 47 A 6 6 0 0 1 41,645 Z" fill="#f2f5f8"/>
-        <text x="60" y="436" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Northstar's zero</text>
-        <text x="60" y="454" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Northstar Leisure on SEA-DEN in Jan 2026</text>
-        <text x="60" y="614" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Kept, because it is a true zero.</text>
-        <text x="60" y="632" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">A reported month with no AA sales is not a gap.</text>
-        <text x="60" y="508" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">$0</text>
-        <text x="60" y="526" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">AA revenue</text>
-        <text x="170" y="508" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">$13,616</text>
-        <text x="170" y="526" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">other airlines, same month</text>
-        <text x="60" y="562" fill="#36495a" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The agency sold on the route that month, just none on AA.</text>
+        <rect x="40" y="382" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <path d="M 41,566 H 423 V 623 A 6 6 0 0 1 417,629 H 47 A 6 6 0 0 1 41,623 Z" fill="#f2f5f8"/>
+        <text x="60" y="414" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Northstar's zero</text>
+        <text x="60" y="432" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Northstar Leisure on SEA-DEN in Jan 2026</text>
+        <text x="60" y="592" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Kept, because it is a true zero.</text>
+        <text x="60" y="610" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">A reported month with no AA sales is not a gap.</text>
+        <text x="60" y="486" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">$0</text>
+        <text x="60" y="504" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">AA revenue</text>
+        <text x="170" y="486" fill="#36495a" font-size="36" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">$13,616</text>
+        <text x="170" y="504" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">other airlines, same month</text>
+        <text x="60" y="540" fill="#36495a" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The agency sold on the route that month, just none on AA.</text>
         </g>
         <g data-panel="5">
-        <rect x="448" y="404" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <path d="M 449,588 H 831 V 645 A 6 6 0 0 1 825,651 H 455 A 6 6 0 0 1 449,645 Z" fill="#f2f5f8"/>
-        <text x="468" y="436" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Harbor's share</text>
-        <text x="468" y="454" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Harbor Business Travel, all 21 months</text>
-        <text x="468" y="609" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The app catches it.</text>
-        <text x="468" y="626" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Its CRM stand-in deal is still marked On track</text>
-        <text x="468" y="641" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">while share fell, so the home page flags it.</text>
-        <line x1="468" y1="564" x2="760" y2="564" stroke="#36495a" stroke-width="1" stroke-opacity="0.25"/>
-        <polyline data-series="fair" points="468.0,503.6 482.6,502.6 497.2,503.0 511.8,502.4 526.4,502.9 541.0,502.9 555.6,502.4 570.2,503.5 584.8,502.5 599.4,503.8 614.0,503.5 628.6,502.6 643.2,502.7 657.8,502.5 672.4,502.0 687.0,503.2 701.6,502.7 716.2,503.6 730.8,503.3 745.4,502.9 760.0,502.5" fill="none" stroke="#5a7181" stroke-width="1.4" stroke-linejoin="round"/>
-        <polyline data-series="aa" points="468.0,484.3 482.6,486.0 497.2,485.6 511.8,488.3 526.4,488.6 541.0,490.1 555.6,492.0 570.2,494.0 584.8,496.0 599.4,495.7 614.0,498.2 628.6,499.5 643.2,499.9 657.8,506.4 672.4,511.6 687.0,519.9 701.6,526.6 716.2,530.8 730.8,509.5 745.4,509.6 760.0,511.5" fill="none" stroke="#006cbf" stroke-width="2.2" stroke-linejoin="round"/>
-        <circle data-month="Sep 2025" data-value="44.3" cx="584.8" cy="496.0" r="3.5" fill="#006cbf" stroke="#ffffff" stroke-width="1.5"/>
-        <circle data-month="Jun 2026" data-value="21.7" cx="716.2" cy="530.8" r="3.5" fill="#006cbf" stroke="#ffffff" stroke-width="1.5"/>
-        <circle data-month="Sep 2026" data-value="34.2" cx="760.0" cy="511.5" r="3.5" fill="#006cbf" stroke="#ffffff" stroke-width="1.5"/>
-        <text x="468" y="476.32536173794" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">AA share</text>
-        <text x="468" y="519.5904604989043" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">fair share</text>
-        <text x="584.8" y="487.019442947026" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">44.3%</text>
-        <text x="716.2" y="548.7762842032168" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">21.7%</text>
-        <text x="769.0" y="515.5357048243411" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">34.2%</text>
-        <text x="468" y="579" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Jan 2025</text>
-        <text x="643.2" y="579" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jan 2026</text>
-        <text x="760" y="579" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">Sep 2026</text>
+        <rect x="448" y="382" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <path d="M 449,566 H 831 V 623 A 6 6 0 0 1 825,629 H 455 A 6 6 0 0 1 449,623 Z" fill="#f2f5f8"/>
+        <text x="468" y="414" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Harbor's share</text>
+        <text x="468" y="432" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Harbor Business Travel, all 21 months</text>
+        <text x="468" y="587" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The app catches it.</text>
+        <text x="468" y="604" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Its CRM stand-in deal is still marked On track</text>
+        <text x="468" y="619" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">while share fell, so the home page flags it.</text>
+        <line x1="468" y1="542" x2="760" y2="542" stroke="#36495a" stroke-width="1" stroke-opacity="0.25"/>
+        <polyline data-series="fair" points="468.0,481.6 482.6,480.6 497.2,481.0 511.8,480.4 526.4,480.9 541.0,480.9 555.6,480.4 570.2,481.5 584.8,480.5 599.4,481.8 614.0,481.5 628.6,480.6 643.2,480.7 657.8,480.5 672.4,480.0 687.0,481.2 701.6,480.7 716.2,481.6 730.8,481.3 745.4,480.9 760.0,480.5" fill="none" stroke="#5a7181" stroke-width="1.4" stroke-linejoin="round"/>
+        <polyline data-series="aa" points="468.0,462.3 482.6,464.0 497.2,463.6 511.8,466.3 526.4,466.6 541.0,468.1 555.6,470.0 570.2,472.0 584.8,474.0 599.4,473.7 614.0,476.2 628.6,477.5 643.2,477.9 657.8,484.4 672.4,489.6 687.0,497.9 701.6,504.6 716.2,508.8 730.8,487.5 745.4,487.6 760.0,489.5" fill="none" stroke="#006cbf" stroke-width="2.2" stroke-linejoin="round"/>
+        <circle data-month="Sep 2025" data-value="44.3" cx="584.8" cy="474.0" r="3.5" fill="#006cbf" stroke="#ffffff" stroke-width="1.5"/>
+        <circle data-month="Jun 2026" data-value="21.7" cx="716.2" cy="508.8" r="3.5" fill="#006cbf" stroke="#ffffff" stroke-width="1.5"/>
+        <circle data-month="Sep 2026" data-value="34.2" cx="760.0" cy="489.5" r="3.5" fill="#006cbf" stroke="#ffffff" stroke-width="1.5"/>
+        <text x="468" y="454.32536173794" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">AA share</text>
+        <text x="468" y="497.5904604989044" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">fair share</text>
+        <text x="584.8" y="465.019442947026" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">44.3%</text>
+        <text x="716.2" y="526.7762842032168" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">21.7%</text>
+        <text x="769.0" y="493.53570482434117" fill="#006cbf" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">34.2%</text>
+        <text x="468" y="557" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Jan 2025</text>
+        <text x="643.2" y="557" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Jan 2026</text>
+        <text x="760" y="557" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">Sep 2026</text>
         </g>
         <g data-panel="6">
-        <rect x="856" y="404" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
-        <path d="M 857,588 H 1239 V 645 A 6 6 0 0 1 1233,651 H 863 A 6 6 0 0 1 857,645 Z" fill="#f2f5f8"/>
-        <text x="876" y="436" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Two corporates slipped</text>
-        <text x="876" y="454" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">bookings per month, both on one scale from zero</text>
-        <text x="876" y="614" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The app does not flag a single corporate yet.</text>
-        <text x="876" y="632" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">It only watches the total of all corporate bookings.</text>
-        <text x="876" y="484" fill="#36495a" font-size="12" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Northwind Logistics</text>
-        <text x="876" y="499" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">contract ends Jun 2026</text>
-        <text x="876" y="513" fill="#36495a" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">low $26,834, Jun 2026</text>
-        <line x1="1040" y1="516" x2="1220" y2="516" stroke="#36495a" stroke-width="1" stroke-opacity="0.25"/>
-        <polyline data-corporate="Northwind Logistics" points="1040.0,478.7 1049.0,477.4 1058.0,480.2 1067.0,486.8 1076.0,485.7 1085.0,484.0 1094.0,480.7 1103.0,476.2 1112.0,483.7 1121.0,480.6 1130.0,476.6 1139.0,473.7 1148.0,490.1 1157.0,487.0 1166.0,494.7 1175.0,495.2 1184.0,500.5 1193.0,504.2" fill="none" stroke="#36495a" stroke-width="1.6" stroke-linejoin="round"/>
-        <circle data-corporate="Northwind Logistics" data-month="Jun 2026" cx="1193.0" cy="504.2" r="3.5" fill="#36495a" stroke="#ffffff" stroke-width="1.5"/>
-        <text x="876" y="542" fill="#36495a" font-size="12" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Coastal Media Group</text>
-        <text x="876" y="557" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">contract ends Dec 2026</text>
-        <text x="876" y="571" fill="#36495a" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">low $21,468, Jul 2026</text>
-        <line x1="1040" y1="574" x2="1220" y2="574" stroke="#36495a" stroke-width="1" stroke-opacity="0.25"/>
-        <polyline data-corporate="Coastal Media Group" points="1040.0,549.7 1049.0,535.9 1058.0,540.4 1067.0,552.3 1076.0,546.7 1085.0,554.2 1094.0,543.2 1103.0,540.3 1112.0,546.9 1121.0,542.1 1130.0,546.9 1139.0,548.3 1148.0,536.7 1157.0,554.1 1166.0,543.5 1175.0,557.6 1184.0,556.3 1193.0,561.3 1202.0,564.6 1211.0,546.6 1220.0,543.5" fill="none" stroke="#36495a" stroke-width="1.6" stroke-linejoin="round"/>
-        <circle data-corporate="Coastal Media Group" data-month="Jul 2026" cx="1202.0" cy="564.6" r="3.5" fill="#36495a" stroke="#ffffff" stroke-width="1.5"/>
+        <rect x="856" y="382" width="384" height="248" rx="6" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
+        <path d="M 857,566 H 1239 V 623 A 6 6 0 0 1 1233,629 H 863 A 6 6 0 0 1 857,623 Z" fill="#f2f5f8"/>
+        <text x="876" y="414" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Two corporates slipped</text>
+        <text x="876" y="432" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">bookings per month, both on one scale from zero</text>
+        <text x="876" y="592" fill="#36495a" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">The app does not flag a single corporate yet.</text>
+        <text x="876" y="610" fill="#5a7181" font-size="12" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start">It only watches the total of all corporate bookings.</text>
+        <text x="876" y="462" fill="#36495a" font-size="12" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Northwind Logistics</text>
+        <text x="876" y="477" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">contract ends Jun 2026</text>
+        <text x="876" y="491" fill="#36495a" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">low $26,834, Jun 2026</text>
+        <line x1="1040" y1="494" x2="1220" y2="494" stroke="#36495a" stroke-width="1" stroke-opacity="0.25"/>
+        <polyline data-corporate="Northwind Logistics" points="1040.0,456.7 1049.0,455.4 1058.0,458.2 1067.0,464.8 1076.0,463.7 1085.0,462.0 1094.0,458.7 1103.0,454.2 1112.0,461.7 1121.0,458.6 1130.0,454.6 1139.0,451.7 1148.0,468.1 1157.0,465.0 1166.0,472.7 1175.0,473.2 1184.0,478.5 1193.0,482.2" fill="none" stroke="#36495a" stroke-width="1.6" stroke-linejoin="round"/>
+        <circle data-corporate="Northwind Logistics" data-month="Jun 2026" cx="1193.0" cy="482.2" r="3.5" fill="#36495a" stroke="#ffffff" stroke-width="1.5"/>
+        <text x="876" y="520" fill="#36495a" font-size="12" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Coastal Media Group</text>
+        <text x="876" y="535" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">contract ends Dec 2026</text>
+        <text x="876" y="549" fill="#36495a" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">low $21,468, Jul 2026</text>
+        <line x1="1040" y1="552" x2="1220" y2="552" stroke="#36495a" stroke-width="1" stroke-opacity="0.25"/>
+        <polyline data-corporate="Coastal Media Group" points="1040.0,527.7 1049.0,513.9 1058.0,518.4 1067.0,530.3 1076.0,524.7 1085.0,532.2 1094.0,521.2 1103.0,518.3 1112.0,524.9 1121.0,520.1 1130.0,524.9 1139.0,526.3 1148.0,514.7 1157.0,532.1 1166.0,521.5 1175.0,535.6 1184.0,534.3 1193.0,539.3 1202.0,542.6 1211.0,524.6 1220.0,521.5" fill="none" stroke="#36495a" stroke-width="1.6" stroke-linejoin="round"/>
+        <circle data-corporate="Coastal Media Group" data-month="Jul 2026" cx="1202.0" cy="542.6" r="3.5" fill="#36495a" stroke="#ffffff" stroke-width="1.5"/>
         </g>
-        <svg x="40" y="674" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
-        <text x="64" y="687" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">bronze, silver and gold tables in aa_demo: corporate bookings, agency sales, pace and corporates</text>
-        <text x="64" y="705" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Harbor's fair share uses made-up seat shares, one per route; the T-100 loader (data/t100.py) has never run</text>
+        <svg x="40" y="642" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
+        <text x="64" y="655" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">bronze, silver and gold tables in aa_demo: corporate bookings, agency sales, pace and corporates</text>
+        <text x="64" y="672" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Harbor's fair share uses made-up seat shares, one base share per route, moved a little each month. The T-100 loader in data/t100.py has never run.</text>
       </svg>
