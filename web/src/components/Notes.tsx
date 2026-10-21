@@ -2,11 +2,11 @@
 // when it opens it says hello on the channel, the deck answers with its state, and it shows whatever state the deck
 // posts. Every key, outline click, path switch, clock reset and demo request goes to the deck, which applies it as if it
 // were pressed there and posts its state back; this window never posts a state, so nothing echoes. It shows the slide on
-// the screen at its step and the next one complete (native and image slides drawn small, live and animated ones as their
-// thumbs), the note in large type, the talk time with the drift and the checkpoints, and the outline of every slide,
-// backup included. It also calls api.agencies() when it opens and every eight minutes: one small query, never cached,
-// that keeps the SQL warehouse awake, because the warehouse stops after ten idle minutes. Under the demo buttons it says
-// when the last ping got through.
+// the screen at its step, with the point it is on ("Point 2 of 3" on a native slide with steps), and the next one complete
+// (native and image slides drawn small, live and animated ones as their thumbs), the note in large type, the talk time
+// with the drift and the checkpoints, and the outline of every slide, grouped by part, backup included. It also calls
+// api.agencies() when it opens and every eight minutes: one small query, never cached, that keeps the SQL warehouse awake,
+// because the warehouse stops after ten idle minutes. Under the demo buttons it says when the last ping got through.
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { images } from "../deck/assets";
@@ -25,7 +25,7 @@ const TICK_MS = 500;
 const ORDER = Object.keys(PARTS) as Part[];
 
 /** What the deck last posted, and when its slide arrived here (the drift is measured from the arrival). */
-type View = { id: string; path: PathName; startedAt: number | null; arrivedAt: number };
+type View = { id: string; path: PathName; startedAt: number | null; arrivedAt: number; step: number; steps: number };
 
 /** The keep-warm ping: when one last got through, and whether the latest one failed. */
 type Warm = { at: number | null; missed: boolean };
@@ -46,8 +46,12 @@ function savedPath(): PathName {
 }
 
 export function Notes() {
-  // until the deck answers: the slide in this window's hash and the path saved in this browser
-  const [view, setView] = useState<View>(() => ({ id: fromHash(slides, location.hash), path: savedPath(), startedAt: null, arrivedAt: Date.now() }));
+  // until the deck answers: the slide in this window's hash, complete, and the path saved in this browser
+  const [view, setView] = useState<View>(() => {
+    const id = fromHash(slides, location.hash);
+    const steps = stepCount(slides.find((s) => s.id === id) ?? slides[0]);
+    return { id, path: savedPath(), startedAt: null, arrivedAt: Date.now(), step: steps, steps };
+  });
   const [heard, setHeard] = useState(false);
   const [warm, setWarm] = useState<Warm>({ at: null, missed: false });
   const channel = useRef<BroadcastChannel | null>(null);
@@ -67,7 +71,7 @@ export function Notes() {
       const m = e.data;
       if (!m || typeof m !== "object" || m.t !== "state") return;
       const now = Date.now();
-      setView((v) => ({ id: m.id, path: m.path, startedAt: m.startedAt, arrivedAt: v.id === m.id ? v.arrivedAt : now }));
+      setView((v) => ({ id: m.id, path: m.path, startedAt: m.startedAt, step: m.step, steps: m.steps, arrivedAt: v.id === m.id ? v.arrivedAt : now }));
       setHeard(true);
     };
     channel.current = ch;
@@ -110,10 +114,13 @@ export function Notes() {
             {copy.notesWaiting}
           </p>
         )}
-        <h2 className="t-label">{copy.notesNow}</h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="t-label">{copy.notesNow}</h2>
+          {heard && view.steps > 0 && <p className="text-[15px] font-semibold tabular-nums text-navy">{copy.notesPoint(view.step, view.steps)}</p>}
+        </div>
         <div className="mt-2">
           {/* the deck's step: until the deck posts it with its state, the complete slide */}
-          <Preview slide={slide} step={stepCount(slide)} />
+          <Preview slide={slide} step={view.step} />
         </div>
         <h1 className="mt-3 text-[17px] font-semibold leading-snug">{fill(slide.title, facts)}</h1>
         <p className="mt-4 text-[26px] leading-[1.4]">{fill(slide.note, facts)}</p>
@@ -197,7 +204,7 @@ function Clock({ view, slide, send }: { view: View; slide: Slide; send: (m: Msg)
                   </>
                 )}
               </span>
-              <span className={`tabular-nums ${overdue ? "font-semibold text-red" : "text-ink-2"}`}>{copy.notesBy(clock(c.by))}</span>
+              <span className={`whitespace-nowrap tabular-nums ${overdue ? "font-semibold text-red" : "text-ink-2"}`}>{copy.notesBy(clock(c.by))}</span>
             </li>
           );
         })}

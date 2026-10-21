@@ -399,6 +399,14 @@ describe("native steps", () => {
   });
 });
 
+describe("the notes window's line for a slide with steps", () => {
+  it("says which point of how many the deck is on, and counts the title alone as point 0", () => {
+    expect(copy.notesPoint(2, 3)).toBe("Point 2 of 3");
+    expect(copy.notesPoint(0, 3)).toBe("Point 0 of 3");
+    expect(copy.notesPoint(4, 4)).not.toMatch(/[\u2013\u2014]/);
+  });
+});
+
 describe("a slide that shows data", () => {
   const f: Facts = { facts: { rows: { display: "3,000" } }, dated: { when: { display: "Oct 19" } } };
   const native = (n: Native, over: Partial<Slide> = {}): Slide => ({ ...s("x", "numbers", 1), native: n, ...over });

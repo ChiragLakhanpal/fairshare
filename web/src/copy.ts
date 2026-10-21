@@ -254,6 +254,7 @@ export const copy = {
   notesTitle: "Speaker notes",
   notesWaiting: "Waiting for the deck. Open it in another window.",
   notesNow: "On the screen",
+  notesPoint: (at: number, of: number) => `Point ${at} of ${of}`, // on a slide with steps; the title alone is point 0
   notesNext: "Next",
   notesLast: "Nothing comes after this slide.",
   notesClock: "Talk time",

@@ -394,10 +394,11 @@ export function clock(min: number): string {
 
 /** The BroadcastChannel between the deck and its notes window. The deck is the one source of truth: the notes window
  * sends keys, outline jumps, the path, a clock reset, demo requests and a hello when it opens, and the deck applies each
- * and answers with its state. */
+ * and answers with its state: the slide on the screen, how many of its items show (step) of how many it has (steps, 0 on a
+ * slide with none), the path and the start of the talk. */
 export const CHANNEL = "fairshare-deck";
 export type Msg =
-  | { t: "state"; id: string; path: PathName; startedAt: number | null }
+  | { t: "state"; id: string; path: PathName; startedAt: number | null; step: number; steps: number }
   | { t: "key"; action: Action }
   | { t: "go"; id: string }
   | { t: "demo"; demo: Jump }

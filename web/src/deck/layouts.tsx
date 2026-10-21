@@ -99,11 +99,10 @@ function Fit({ children }: { children: ReactNode }) {
 
 /** An item a press brings in, the n-th of its slide. It is hidden until the slide reaches its step, current on it, and receded once the
  * next one arrives (ramp.ts draws each state). It is drawn all along, so it holds its place while it waits. */
-function Step({ n, step, as: Tag = "div", ask, className = "", style, children }: {
+function Step({ n, step, as: Tag = "div", className = "", style, children }: {
   n: number;
   step: number;
   as?: "div" | "li" | "section";
-  ask?: boolean;
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
@@ -114,7 +113,6 @@ function Step({ n, step, as: Tag = "div", ask, className = "", style, children }
       data-step={n}
       data-current={n === step ? "" : undefined}
       data-receded={n < step ? "" : undefined}
-      data-ask={ask ? "" : undefined}
       aria-hidden={shown ? undefined : true}
       className={`${STEP} ${shown ? SHOWN : UNREACHED} ${className}`}
       style={style}
@@ -147,7 +145,7 @@ function Statement({ lines, ask, link, step }: { lines: string[]; ask: string | 
         ))}
       </ul>
       {ask && (
-        <Step n={lines.length + 1} step={step} ask className={`mt-12 w-fit border-l-4 border-blue bg-tint px-[28px] py-[20px] ${MEASURE}`}>
+        <Step n={lines.length + 1} step={step} className={`mt-12 w-fit border-l-4 border-blue bg-tint px-[28px] py-[20px] ${MEASURE}`}>
           <p className={`${ASK} text-pretty`}>{ask}</p>
         </Step>
       )}
