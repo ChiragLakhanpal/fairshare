@@ -132,8 +132,8 @@ export const slides: Slide[] = [
     note: "The seats are made up, and the source column even says synthetic. AA's seats over all the seats is the fair share on that route. Next, AA revenue by month.",
   },
   {
-    id: "revenue", part: "numbers", kind: "image", title: "AA revenue by month, 2025 against 2026", min: 0.75, data: true,
-    asset: "export/11-revenue-by-month.png",
+    id: "revenue", part: "numbers", kind: "animated", title: "AA revenue by month, 2025 against 2026", min: 0.75, data: true,
+    asset: "11-revenue-by-month-animated.html", thumb: "export/11-revenue-by-month.png",
     note: "This year runs ahead of last except March and April, at {yoy_mar26} and {yoy_apr26}, and the axis doesn't start at zero. The dip is Sunbelt missing and Harbor falling. I planted both. Then four tests the rows pass.",
   },
   {

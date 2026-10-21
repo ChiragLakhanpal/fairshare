@@ -186,6 +186,10 @@ describe("what the talk's slides hold", () => {
     expect(byId("seats").native).toEqual({ layout: "table", tables: ["gold.fact_market_capacity"], columns: ["aa_seats", "total_seats", "aa_seat_share", "source"] });
     expect(byId("dict-facts").native).toEqual({ layout: "table", tables: ["gold.fact_agency_sales_monthly"] }); // every column, as the backup
   });
+  it("steps through revenue by month on its animated page, with the static figure as its thumb, as a figure that prints data", () => {
+    const r = byId("revenue");
+    expect([r.kind, r.asset, r.thumb, r.data]).toEqual(["animated", "11-revenue-by-month-animated.html", "export/11-revenue-by-month.png", true]);
+  });
   it("names four checks on the main path, under a title that does not say checks, and all eight in the backup", () => {
     const { keys } = layout("checks", "checks");
     expect(keys).toHaveLength(4);

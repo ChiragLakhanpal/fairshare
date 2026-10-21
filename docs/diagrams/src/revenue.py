@@ -1,13 +1,20 @@
 """11: AA revenue by calendar month, 2025 against 2026, as two lines. The two months Sunbelt sent nothing are marked.
 
-    .venv/bin/python docs/diagrams/src/revenue.py   # writes docs/diagrams/11-revenue-by-month.html
+    .venv/bin/python docs/diagrams/src/revenue.py   # writes docs/diagrams/11-revenue-by-month.html and 11-revenue-by-month-animated.html
 
-diagram-design's line chart grammar (references/type-line.md): one polyline per year, dots only on the focal series (the
-newest year), gridlines at even steps, a legend strip. The y axis starts at the step below the lowest month instead of at
-zero, and says so, because the gaps that matter are 1 to 3 percent of a month and a zero baseline would hide them.
+diagram-design's line chart grammar (references/type-line.md): one line per year, dots only on the focal series (the newest
+year), gridlines at even steps. Each line ends in its year, so there is no legend. The y axis starts at the step below the
+lowest month instead of at zero, and says so, because the gaps that matter are 1 to 3 percent of a month and a zero baseline
+would hide them. The band over March and April names its months and carries each month's net change against last year, and
+three short notes beside it say what made the change. They sit under the title in size and weight, and the source line is
+the smallest text, in grey.
+
+The animated page is the same figure in steps for the /present deck. The title, the axes, the lines and the source line show on
+arrival, and in the deck the lines trace left to right while their dots and year labels follow (aa.EMBED_CSS). The band with
+its net change comes on the first press, then one note per press. The static page shows it all at once.
 
 Every number comes from deck_facts.py or from this file's own queries on the same lakehouse; check_claims() asserts on every
-build what the callout says about the data.
+build what the notes say about the data.
 """
 from __future__ import annotations
 
@@ -18,22 +25,26 @@ from deck_facts import MONTHS, display, fact, query
 
 VW, VH = 1280, 720
 L, R = 128, 1176             # the plot's left and right edges, as in figure 08
-TOP, BASE = 140, 500         # the plot's top, and its floor
+TOP, BASE = 148, 588         # the plot's top, and its floor
 STEP = 500_000               # one gridline, in dollars
 INK_A = lambda a: f"rgba(54,73,90,{a})"
 FOCAL_TINT = "rgba(0,108,191,0.08)"
-CALLOUT_X = 280              # where the callout's sentences start, clear of its label
+NOTE_SIZE, NOTE_LEADING = 13, 19   # the notes beside the band: under the 16px title in size and weight
+SOURCE_Y = 662               # the source line's baseline, the last line on the stage
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve")
+TITLE, EYEBROW = "AA revenue by month", "fairshare · the data"
+# The animated page's own rules, after the plugin's: its items fade in where they stand, and in the deck the note on the current
+# press leads in ink while an earlier one recedes to the muted text it is drawn in, over the plugin's step time. On its own the
+# page keeps every note muted, as the static page does.
+MOTION_CSS = (f"    {aa.FADE_ONLY}\n"
+              "    html[data-embed] .motion-ready [data-motion-item] [data-note] { transition: fill var(--motion-step) var(--motion-ease); }\n"
+              "    html[data-embed] .motion-ready [data-motion-item].is-current [data-note] { fill: var(--color-ink); }\n")
 
 
-def text(x, y, s, *, size=12, weight=400, fill=aa.INK, mono=False, anchor="start", italic=False, spacing=None):
-    extra = (f' letter-spacing="{spacing}"' if spacing else "") + (' font-style="italic"' if italic else "")
+def text(x, y, s, *, size=12, weight=400, fill=aa.INK, mono=False, anchor="start", attrs=""):
+    """One line of text; attrs, when given, starts with a space."""
     return (f'<text x="{x}" y="{y}" fill="{fill}" font-size="{size}" font-weight="{weight}" font-family="{aa.MONO if mono else aa.SANS}" '
-            f'text-anchor="{anchor}"{extra}>{aa.esc(s)}</text>')
-
-
-def eyebrow(x, y, s, fill=aa.MUTED):
-    return text(x, y, s.upper(), size=8, weight=500, fill=fill, mono=True, spacing="0.18em")
+            f'text-anchor="{anchor}"{attrs}>{aa.esc(s)}</text>')
 
 
 def span(months) -> str:
@@ -70,7 +81,7 @@ def load():
 
 
 def check_claims(by_year, holes, shares) -> None:
-    """What the callout says about the data, checked on every build so a rebuilt lakehouse cannot quietly change the story."""
+    """What the notes say about the data, checked on every build so a rebuilt lakehouse cannot quietly change the story."""
     prior, now = (by_year[y] for y in sorted(by_year)[-2:])
     assert [h["agency_name"] for h in holes] == ["Sunbelt Vacations"] * len(holes), "the only agency with no rows should be Sunbelt"
     assert [h["sales_month"].month for h in holes] == [3, 4] and {h["sales_month"].year for h in holes} == {max(by_year)}, \
@@ -92,11 +103,23 @@ def check_claims(by_year, holes, shares) -> None:
 
 # ---------------------------------------------------------------- the figure
 
-def build(by_year, holes, shares) -> str:
+def notes(by_year) -> list[tuple[str, str]]:
+    """What made the two months' change, as (key, sentence): one note per press beside the band."""
+    prior_year = sorted(by_year)[-2]
+    others = fact("agencies") - 2  # the other agencies are all but Sunbelt and Harbor
+    return [("sunbelt", f"Sunbelt sent nothing: it sold {display('sunbelt_mar25_usd')} and {display('sunbelt_apr25_usd')} in those months of {prior_year}."),
+            ("harbor", f"Harbor's AA revenue fell: {display('harbor_mar26_chg_usd')} and {display('harbor_apr26_chg_usd')} against {prior_year}."),
+            ("others", f"The other {NUMBER_WORDS[others]} agencies grew in total: {display('others_mar26_chg_usd')} and "
+                       f"{display('others_apr26_chg_usd')} against {prior_year}.")]
+
+
+def build(by_year, holes, shares, motion=False) -> str:
+    """The figure. With motion, the band and the three notes are the steps, and the lines, the dots and the year labels carry the
+    deck's draw-in classes; without it, the same marks, all at once."""
     years = sorted(by_year)
     prior_year, focal_year = years[-2], years[-1]
     gap_months = [h["sales_month"] for h in holes]
-    values = [v for y in years for v in by_year[y].values()]
+    values = [v for yr in years for v in by_year[yr].values()]
     lo, hi = math.floor(min(values) / STEP) * STEP, math.ceil(max(values) / STEP) * STEP
     slot = (R - L) / len(MONTHS)
     x = lambda month: L + (month - 0.5) * slot                         # noqa: E731  the middle of a month's slot
@@ -104,12 +127,20 @@ def build(by_year, holes, shares) -> str:
     millions = lambda v: f"${v / 1e6:.1f}M"                            # noqa: E731
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
     # what the chart is about, inside the image because a slide takes the SVG alone
-    out.append(text(40, 100, "AA revenue by month", size=16, weight=600))
+    out.append(text(40, 100, TITLE, size=16, weight=600))
     out.append(text(40, 120, f"AA revenue per month in $ millions, all agencies and routes. The axis starts at {millions(lo)}, not at zero.",
                     mono=True, fill=aa.MUTED))
-    # the band over the months with no rows, behind everything else
+    # step 1: the band over the two months with no Sunbelt rows, behind everything else. It names its months at its top and carries
+    # each month's net change against last year at its foot.
     band_x, band_w = L + (gap_months[0].month - 1) * slot, len(gap_months) * slot
-    out.append(f'<rect x="{band_x:.1f}" y="{TOP}" width="{band_w:.1f}" height="{BASE - TOP}" fill="{FOCAL_TINT}"/>')
+    label_y = TOP + 18  # the band's name, and the first note beside it, on one baseline
+    band = [f'<rect x="{band_x:.1f}" y="{TOP}" width="{band_w:.1f}" height="{BASE - TOP}" fill="{FOCAL_TINT}" data-role="band"/>',
+            text(f"{band_x + band_w / 2:.1f}", label_y, span(gap_months), mono=True, fill=aa.ACCENT, anchor="middle"),
+            text(f"{band_x + band_w / 2:.1f}", BASE - 44, f"Net, {focal_year} vs {prior_year}", mono=True, fill=aa.MUTED, anchor="middle")]
+    for h, key in zip(gap_months, ("yoy_mar26", "yoy_apr26")):
+        band.append(text(f"{x(h.month):.1f}", BASE - 14, display(key), size=14, weight=600, fill=aa.ACCENT, mono=True, anchor="middle"))
+    out += [aa.motion_item(1, f"{span(gap_months)}: AA revenue against {prior_year}, net {display('yoy_mar26')} and {display('yoy_apr26')}", band)] \
+        if motion else band
     # grid, axes, ticks
     for v in range(lo + STEP, hi + 1, STEP):
         out.append(f'<line x1="{L}" y1="{y(v):.2f}" x2="{R}" y2="{y(v):.2f}" stroke="{INK_A(0.08)}" stroke-width="0.8"/>')
@@ -119,48 +150,32 @@ def build(by_year, holes, shares) -> str:
     out.append(f'<line x1="{L}" y1="{BASE}" x2="{R}" y2="{BASE}" stroke="{INK_A(0.25)}" stroke-width="1"/>')
     for m, name in enumerate(MONTHS, 1):
         out.append(text(f"{x(m):.1f}", BASE + 24, name, size=12, fill=aa.MUTED, mono=True, anchor="middle"))
-    # the lines: last year muted, this year in the accent with a dot on every point
-    pts = lambda series: " ".join(f"{x(m):.1f},{y(v):.1f}" for m, v in sorted(series.items()))  # noqa: E731
-    out.append(f'<polyline points="{pts(by_year[prior_year])}" fill="none" stroke="{aa.MUTED}" stroke-width="1.6" stroke-linejoin="round"/>')
-    out.append(f'<polyline points="{pts(by_year[focal_year])}" fill="none" stroke="{aa.ACCENT}" stroke-width="2.2" stroke-linejoin="round"/>')
+    # the lines: last year muted, this year in the accent with a dot on every point, each ending in its year. On the animated page,
+    # the deck's embed mode makes each line trace itself (pathLength 1 makes one dash the whole line), and its dots and its year come
+    # in after it.
+    trace, follow = (' class="draw-line" pathLength="1"', ' class="draw-dot"') if motion else ("", "")
+    for year, color, width in ((prior_year, aa.MUTED, 1.6), (focal_year, aa.ACCENT, 2.2)):
+        d = "M " + " L ".join(f"{x(m):.1f},{y(v):.1f}" for m, v in sorted(by_year[year].items()))
+        out.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linejoin="round" data-series="{year}"{trace}/>')
     for m, v in sorted(by_year[focal_year].items()):
-        out.append(f'<circle cx="{x(m):.1f}" cy="{y(v):.1f}" r="4" fill="{aa.ACCENT}" stroke="{aa.PAPER}" stroke-width="1.5"/>')
-    for year, series, color in ((prior_year, by_year[prior_year], aa.MUTED), (focal_year, by_year[focal_year], aa.ACCENT)):
-        m = max(series)
-        out.append(text(f"{x(m) + 12:.1f}", f"{y(series[m]) + 4:.1f}", str(year), size=12, weight=600, fill=color, mono=True))
-    # the two months, against last year
-    out.append(text(f"{band_x + band_w / 2:.1f}", BASE - 44, f"Net, {focal_year} vs {prior_year}", mono=True, fill=aa.ACCENT, anchor="middle"))
-    for h, key in zip(gap_months, ("yoy_mar26", "yoy_apr26")):
-        out.append(text(f"{x(h.month):.1f}", BASE - 14, display(key), size=14, weight=600, fill=aa.ACCENT, mono=True, anchor="middle"))
-    # the one callout, and where the lines come from
-    cy = 562
-    others = fact("agencies") - 2  # the other agencies are all but Sunbelt and Harbor
-    out.append(text(40, cy, span(gap_months), mono=True, fill=aa.ACCENT))
-    out.append(text(CALLOUT_X, cy, f"Sunbelt sent nothing: it sold {display('sunbelt_mar25_usd')} and {display('sunbelt_apr25_usd')} in those months of {prior_year}.",
-                    size=16, italic=True))
-    out.append(text(CALLOUT_X, cy + 24, f"Harbor's AA revenue fell: {display('harbor_mar26_chg_usd')} and {display('harbor_apr26_chg_usd')} against {prior_year}.",
-                    size=16, italic=True))
-    out.append(text(CALLOUT_X, cy + 48, f"The other {NUMBER_WORDS[others]} agencies grew in total: {display('others_mar26_chg_usd')} and {display('others_apr26_chg_usd')} against {prior_year}.",
-                    size=16, italic=True))
-    out.append(aa.icon("databricks", CALLOUT_X, 630, 16))
-    out.append(text(CALLOUT_X + 24, 643, "AA revenue summed over all agencies and routes · gold.fact_agency_sales_monthly", mono=True, fill=aa.MUTED))
-    # legend strip
-    out.append(f'<line x1="40" y1="664" x2="1240" y2="664" stroke="{aa.RULE}" stroke-width="0.8"/>')
-    out.append(eyebrow(40, 694, "Legend"))
-    kx = 144
-    out.append(f'<line x1="{kx}" y1="689" x2="{kx + 24}" y2="689" stroke="{aa.MUTED}" stroke-width="1.6"/>')
-    out.append(text(kx + 32, 694, str(prior_year), size=11))
-    kx += 112
-    out.append(f'<line x1="{kx}" y1="689" x2="{kx + 24}" y2="689" stroke="{aa.ACCENT}" stroke-width="2.2"/>')
-    out.append(f'<circle cx="{kx + 12}" cy="689" r="4" fill="{aa.ACCENT}" stroke="{aa.PAPER}" stroke-width="1.5"/>')
-    out.append(text(kx + 32, 694, str(focal_year), size=11))
-    kx += 112
-    out.append(f'<rect x="{kx}" y="682" width="20" height="14" fill="{FOCAL_TINT}" stroke="{aa.ACCENT}" stroke-width="1"/>')
-    out.append(text(kx + 28, 694, span(gap_months), size=11))
+        out.append(f'<circle cx="{x(m):.1f}" cy="{y(v):.1f}" r="4" fill="{aa.ACCENT}" stroke="{aa.PAPER}" stroke-width="1.5"{follow}/>')
+    for year, color in ((prior_year, aa.MUTED), (focal_year, aa.ACCENT)):
+        m = max(by_year[year])
+        out.append(text(f"{x(m) + 12:.1f}", f"{y(by_year[year][m]) + 4:.1f}", str(year), weight=600, fill=color, mono=True, attrs=follow))
+    # steps 2 to 4: what made the change, one note per press, beside the band and clear of the lines' highest points to its right,
+    # in the muted text of a note (in the deck the newest one leads, MOTION_CSS)
+    nx = band_x + band_w + 16
+    said = notes(by_year)
+    peak = min(y(v) for yr in years for m, v in by_year[yr].items() if x(m) > nx) - 4.75  # a dot's top, with its stroke
+    assert label_y + (len(said) - 1) * NOTE_LEADING + aa.TEXT_DESCENT * NOTE_SIZE + 6 <= peak, "the notes run into the lines"
+    for k, (key, sentence) in enumerate(said):
+        mark = text(f"{nx:.1f}", label_y + k * NOTE_LEADING, sentence, size=NOTE_SIZE, fill=aa.MUTED, attrs=f' data-note="{key}"')
+        out.append(aa.motion_item(k + 2, sentence, [mark]) if motion else mark)
+    # where the lines come from: the smallest text, in grey, last
+    assert SOURCE_Y + aa.TEXT_DESCENT * 11 <= aa.STAGE_BOTTOM, "the source line runs under the deck's footer"
+    out.append(aa.icon("databricks", 40, SOURCE_Y - 11, 14, aa.MUTED))
+    out.append(text(60, SOURCE_Y, "AA revenue summed over all agencies and routes · gold.fact_agency_sales_monthly", size=11, mono=True, fill=aa.MUTED))
     return "\n        ".join(out)
-
-
-TITLE = "AA revenue by month"
 
 
 def desc(by_year, holes) -> str:
@@ -172,6 +187,9 @@ def desc(by_year, holes) -> str:
 if __name__ == "__main__":
     data = load()
     check_claims(*data)
-    html = aa.page(slug="11-revenue-by-month", title=TITLE, desc=desc(data[0], data[1]), eyebrow="fairshare · the data", body=build(*data), vw=VW, vh=VH)
+    common = dict(title=TITLE, desc=desc(data[0], data[1]), eyebrow=EYEBROW, vw=VW, vh=VH)
+    html = aa.page(slug="11-revenue-by-month", body=build(*data), **common)
     (aa.OUT / "11-revenue-by-month.html").write_text(html, encoding="utf-8")
-    print("wrote 11-revenue-by-month.html")
+    html = aa.animated(slug="11-revenue-by-month-animated", body=build(*data, motion=True), steps=1 + len(notes(data[0])), css=MOTION_CSS, **common)
+    (aa.OUT / "11-revenue-by-month-animated.html").write_text(html, encoding="utf-8")
+    print("wrote 11-revenue-by-month.html and 11-revenue-by-month-animated.html")

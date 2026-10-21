@@ -4,7 +4,8 @@ The deck's frame covers y 0 to 64 of a figure's 1280 by 720 view box with its he
 keeps its marks between y 64 and y 680; the logo band at the top is hidden in the deck. In the deck's embed mode (aa.EMBED_CSS, baked into every
 animated page when it is built) an item the controller has not reached shows nothing, and whatever gives a figure's point away (a legend entry that
 names the focal item, a caption, a payoff line) comes in with the step that brings in its item. A figure's structure (its axes, headings, actors and
-frame) shows on arrival. These read the generated pages; rebuild them with the commands in docs/diagrams/README.md.
+frame) shows on arrival, and a chart's lines draw then; its notes come one per press. These read the generated pages; rebuild them with the commands
+in docs/diagrams/README.md.
 """
 import re
 import sys
@@ -16,7 +17,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 DIAGRAMS = ROOT / "docs" / "diagrams"
 ANIMATED = ["01-system-exploded", "02-answer-checked", "04-journey-sales-director", "05-journey-account-manager", "06-data-pipeline",
-            "08-why-it-moved"]
+            "08-why-it-moved", "11-revenue-by-month"]
 # every page the deck shows a figure from: the animated pages in their frames, and the static pages whose PNGs are the thumbs and the backup slides
 SHOWN = [f"{n}-animated" for n in ANIMATED] + ANIMATED + ["07-fair-share", "14-what-was-planted"]
 TOP, BOTTOM = 64, 680
@@ -357,3 +358,93 @@ def test_a_journey_shows_its_payoff_only_on_its_last_step(name):
     payoff = [n for n in fig.walk() if n.tag == "text" and n.attrs.get("font-style") == "italic"]
     assert len(payoff) == 1 and payoff[0].words().startswith("Today"), "the one italic line is the payoff"
     assert step_of(payoff[0]) == step_count(name), "the payoff comes in with the last step"
+
+
+# ---------------------------------------------------------------- 11: revenue by month, a chart that draws itself
+
+REVENUE = "11-revenue-by-month"
+MUTED = "#5a7181"  # the figures' muted text (aa.MUTED)
+
+
+def year_lines(fig: Node) -> list[Node]:
+    """The chart's lines, each declaring the year it plots."""
+    return [n for n in fig.walk() if n.tag == "path" and "data-series" in n.attrs]
+
+
+def classes(node: Node) -> list[str]:
+    return node.attrs.get("class", "").split()
+
+
+def test_revenue_draws_its_two_year_lines_on_arrival_and_their_dots_after_them():
+    fig = figure(f"{REVENUE}-animated")
+    lines = year_lines(fig)
+    assert sorted(n.attrs["data-series"] for n in lines) == ["2025", "2026"], "one line per year"
+    for line in lines:
+        assert "draw-line" in classes(line) and line.attrs.get("pathlength") == "1", "in the deck each line traces itself left to right"
+        assert step_of(line) is None, "the lines are the chart's marks, so they draw on arrival"
+    dots = [n for n in fig.walk() if n.tag == "circle" and not in_logo(n)]
+    assert dots and all("draw-dot" in classes(d) and step_of(d) is None for d in dots), "the dots fade in after their line"
+
+
+def test_revenue_brings_in_the_band_with_its_net_change_then_one_note_per_press():
+    name = f"{REVENUE}-animated"
+    fig = figure(name)
+    items = [n for n in fig.walk() if "data-motion-item" in n.attrs]
+    assert step_count(name) == 4 and sorted(int(n.attrs["data-step"]) for n in items) == [1, 2, 3, 4], "the band, then three notes, one item each"
+    band = [n for n in fig.walk() if n.attrs.get("data-role") == "band"]
+    assert len(band) == 1 and step_of(band[0]) == 1, "the March and April band is the first press"
+    label = texts(fig, r"^Mar and Apr 2026$")
+    net = texts(fig, r"^[+-]?\d+\.\d%$")
+    assert len(label) == 1 and len(net) == 2, "the band names its months, and carries each month's net change against last year"
+    assert {step_of(n) for n in label + net + texts(fig, r"^Net, 2026 vs 2025$")} == {1}, "and they come in with it"
+    notes = {}
+    for n in fig.walk():
+        if n.tag == "text" and "data-note" in n.attrs:
+            notes.setdefault(n.attrs["data-note"], []).append(n)
+    assert list(notes) == ["sunbelt", "harbor", "others"], "three notes: Sunbelt, Harbor, the other agencies"
+    for (key, lines), step, subject in zip(notes.items(), (2, 3, 4), ("Sunbelt", "Harbor", "other")):
+        assert {step_of(n) for n in lines} == {step}, f"the {key} note is press {step}"
+        assert subject in " ".join(n.words() for n in lines)
+
+
+@pytest.mark.parametrize("name", [REVENUE, f"{REVENUE}-animated"])
+def test_revenue_has_no_legend_since_each_line_ends_in_its_year(name):
+    fig = figure(name)
+    assert not texts(fig, r"(?i)^legend$"), "both lines carry their year, so the legend goes"
+    lines = year_lines(fig)
+    assert len(lines) == 2
+    for line in lines:
+        year = line.attrs["data-series"]
+        x, y = (float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", line.attrs["d"])[-2:])
+        label = texts(fig, rf"^{year}$")
+        assert len(label) == 1, f"one label for {year}"
+        lx, ly = float(label[0].attrs["x"]), float(label[0].attrs["y"])
+        assert x < lx <= x + 24 and abs(ly - y) <= 8, f"{year}'s label sits just past the end of its line"
+
+
+@pytest.mark.parametrize("name", [REVENUE, f"{REVENUE}-animated"])
+def test_revenue_keeps_one_order_of_weight_title_then_notes_then_the_source(name):
+    fig = figure(name)
+    words = [n for n in fig.walk() if n.tag == "text" and not in_logo(n)]
+    size = lambda n: float(n.attrs["font-size"])  # noqa: E731
+    weight = lambda n: int(n.attrs.get("font-weight", 400))  # noqa: E731
+    assert not [n.words() for n in words if n.attrs.get("font-style") == "italic"], "no italic display type"
+    (title,) = texts(fig, r"^AA revenue by month$")
+    assert size(title) == max(size(n) for n in words) and weight(title) == max(weight(n) for n in words), "the title is the strongest text"
+    notes = [n for n in words if "data-note" in n.attrs]
+    assert notes and all(size(n) < size(title) and weight(n) < weight(title) for n in notes), "a note is smaller and lighter than the title"
+    (source,) = texts(fig, r"gold\.fact_agency_sales_monthly")
+    assert size(source) == min(size(n) for n in words) and source.attrs["fill"] == MUTED, "the source line is the smallest text, and grey"
+
+
+def test_revenue_lets_the_newest_note_lead_and_the_earlier_ones_recede():
+    # a note is drawn in the muted text, as the static page and the plugin's own page show it; in the deck the note on the current press
+    # leads in ink, and when the next one comes it recedes to the muted text again
+    name = f"{REVENUE}-animated"
+    notes = [n for n in figure(name).walk() if n.tag == "text" and "data-note" in n.attrs]
+    assert len(notes) == 3 and {n.attrs["fill"] for n in notes} == {MUTED}
+    css = {s: body for sels, body in rules("".join(re.findall(r"<style>(.*?)</style>", html(name), re.S))) for s in sels}
+    lead = css.get("html[data-embed] .motion-ready [data-motion-item].is-current [data-note]", "")
+    assert re.search(r"(^|;)\s*fill:\s*var\(--color-ink\)", lead.strip()), "the note on the current press leads in ink"
+    ease = css.get("html[data-embed] .motion-ready [data-motion-item] [data-note]", "")
+    assert re.search(r"transition:\s*fill var\(--motion-step\)", ease), "and changes color over the plugin's step time"
