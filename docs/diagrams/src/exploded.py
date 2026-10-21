@@ -1,8 +1,8 @@
 """01: the whole system as one exploded stack, data at the bottom and the app on top, the checks layer in AA blue. 15: the same five layers at AA,
 with three marks for what runs today, what is built but not deployed and what waits on AA's Microsoft account, and each table beside the AA feed that
-would replace it.
+would replace it; its animated page brings in a kind of mark a press, then the feeds hardest first.
 
-    python3 docs/diagrams/src/exploded.py   # writes docs/diagrams/01-system-exploded.html, 01-system-exploded-animated.html and 15-at-aa.html
+    python3 docs/diagrams/src/exploded.py   # writes docs/diagrams/01-system-exploded.html, 01-system-exploded-animated.html, 15-at-aa.html and 15-at-aa-animated.html
 
 Every point comes from iso(x, y, z) through diagram-design's axonometry helpers; scripts/verify-exploded.py in the plugin
 reprojects each part from the data-* attributes written here. 01 and 15 draw their slabs through the same stack_svg().
@@ -259,16 +259,22 @@ def build(motion: bool):
 
 # ---------------------------------------------------------------- 15: the same layers at AA
 #
-# The same five slabs through the same stack_svg(). What changes is what stands next to them: 01 had a column of platform logos with a dot per
-# layer; here every piece under a layer carries one of three marks, drawn in 01's own dot grammar (solid, half, hollow), and the right half lists
-# each made-up table beside the AA feed that would replace it, hardest first. The focal slab is the data, because the feeds are the work and the
-# first row of the list is the hard one. Nothing on it is a number from the data, so its logo band keeps the default tag.
+# The same five slabs through the same stack_svg(), at rest as 01's static page draws them. What changes is what stands next to them: 01 had a column
+# of platform logos with a dot per layer; here every piece under a layer carries one of three marks, drawn in 01's own dot grammar (solid, half,
+# hollow), and the right half lists each made-up table beside the AA feed that would replace it, hardest first. The focal slab is the data, because
+# the feeds are the work and the first row of the list is the hard one. Nothing on it is a number from the data, so its logo band keeps the default tag.
+#
+# The animated page arrives with what the room looks at: the stack, the layers' names, the headings and the made-up tables. Then a press each for what
+# runs today, what is built but not deployed and what waits on AA's Microsoft account, each with its legend entry (the legend arrives with the first
+# marks), then the feeds hardest first. A step's words lead while it is current and recede once a later one comes (aa.EMBED_CSS). No slab is a step,
+# so the stack never lifts, and in the deck the rule that leaves 01's lifting slabs alone never has to.
 
 RUN, BUILT, WAIT = "run", "built", "wait"
+KINDS = (RUN, BUILT, WAIT)  # the order the marks come in, a press each
 MARKS = {RUN: "Running today", BUILT: "Built, not deployed", WAIT: "Waiting on AA's Microsoft account"}
 KEY_W = {RUN: 88, BUILT: 115, WAIT: 212}  # the legend's text widths at 13px Inter, to space its three entries
 AT_AA_FOCUS = "data"
-AT_AA = {  # layer -> (mark, piece), in the order they print
+AT_AA = {  # layer -> (mark, piece), in the order they print, which is the order their presses come
     "app": [(RUN, "Databricks App and dashboard"), (WAIT, "Teams through Copilot Studio"), (WAIT, "Entra ID sign-in")],
     "checks": [(RUN, "Verifier in the Databricks App"), (RUN, "MLflow traces on laptop runs")],
     "agents": [(RUN, "Databricks Genie and the harness"), (RUN, "Foundry writers"), (BUILT, "Harness as a Foundry hosted agent")],
@@ -288,23 +294,25 @@ FEEDS = [
     (("crm_contacts", "crm_opportunities", "crm_activities"), ("Dynamics 365 Sales, through the Dataverse mirror.",), ()),
     (("agency_goals",), ("The sales plan.",), ()),
 ]
+FEED_PRESSES = [(0,), (1,), (2, 3), (4, 5)]  # the rows of FEEDS each press brings once the marks are in: the hardest alone, the seat capacity alone, then two a press
 STACK_LEFT, LEAD_AT_AA = 46, 40   # no platform matrix to make room for, so the stack sits at the left edge and the labels follow it
 HEAD_Y, RULE_Y = 96, 108          # the baseline of both headings, and the line under the list's heading
 STRIP_L, FEED_X, STRIP_R = 632, 836, 1240
 ITEM_PITCH = 18                   # between the pieces under one layer name
 ROW_PAD, FEED_LH, TBL_LH, WHY_GAP = 20, 20, 18, 6  # a list row's padding, its text line, its table-name line, and the space before the note
-KEY_RULE_Y, KEY_BASE_Y = 664, 694  # the legend strip's rule and its text baseline, where 12's legend sits
+KEY_RULE_Y, KEY_BASE_Y = 656, 674  # the legend strip's rule and its text baseline: under the stack, and over the deck's footer
 
 
-def text(x, y, s, *, size=14, fill=None, mono=False, italic=False, weight=400):
-    extra = (f' font-weight="{weight}"' if weight != 400 else "") + (' font-style="italic"' if italic else "")
-    return (f'<text x="{f(x)}" y="{f(y)}" fill="{fill or SK["ink"]}" font-size="{size}"{extra} '
+def text(x, y, s, *, size=14, fill=None, mono=False, weight=400, attrs=""):
+    bold = f' font-weight="{weight}"' if weight != 400 else ""
+    return (f'<text{attrs} x="{f(x)}" y="{f(y)}" fill="{fill or SK["ink"]}" font-size="{size}"{bold} '
             f'font-family="{aa.MONO if mono else aa.SANS}">{aa.esc(s)}</text>')
 
 
-def eyebrow(x, y, s, anchor="start"):
+def eyebrow(x, y, s, anchor="start", keep=False):
+    """A small mono heading. One marked keep holds the muted color it is drawn in when the step it sits in leads (aa.EMBED_CSS)."""
     end = ' text-anchor="end"' if anchor == "end" else ""
-    return (f'<text x="{f(x)}" y="{f(y)}" fill="{SK["muted"]}" font-size="8" font-weight="500" font-family="{aa.MONO}" '
+    return (f'<text{" data-keep" if keep else ""} x="{f(x)}" y="{f(y)}" fill="{SK["muted"]}" font-size="8" font-weight="500" font-family="{aa.MONO}" '
             f'letter-spacing="0.18em"{end}>{aa.esc(s.upper())}</text>')
 
 
@@ -319,53 +327,101 @@ def mark(kind, cx, cy, r=5):
             f'<circle {c} r="{f(ring)}" fill="none" stroke="{SK["ink"]}" stroke-width="1.5"/></g>')
 
 
-def label_at_aa(part, anchor, col_x, focal):
-    """01's label with the sublabels replaced by one line per piece, each behind its mark."""
-    ayy = anchor[1]
-    rows = "".join(mark(kind, col_x + 5, ayy + 14.5 + ITEM_PITCH * i) + text(col_x + 18, ayy + 19 + ITEM_PITCH * i, piece, size=13)
-                   for i, (kind, piece) in enumerate(AT_AA[part.key]))
-    return label_head(part, anchor, col_x, focal) + rows + "</g>"
+def pieces(anchors, col_x):
+    """Every piece under every layer, behind its mark, one line each under the layer's name, by kind. A layer lists its pieces in the order their
+    presses come, so each press fills the lines under the last one's."""
+    out = {kind: [] for kind in KINDS}
+    for key, rows in AT_AA.items():
+        kinds = [kind for kind, _ in rows]
+        assert kinds == sorted(kinds, key=KINDS.index), f"{key}: list its pieces in the order their presses come"
+        ayy = anchors[key][1]
+        for i, (kind, piece) in enumerate(rows):
+            out[kind].append(f'<g data-piece="{kind}" data-layer="{key}">' + mark(kind, col_x + 5, ayy + 14.5 + ITEM_PITCH * i)
+                             + text(col_x + 18, ayy + 19 + ITEM_PITCH * i, piece, size=13) + "</g>")
+    return out
 
 
-def feed_strip():
-    """The right half: each made-up table beside the AA feed that would replace it, hardest first. A row is as tall as its text, to the 4px grid."""
+def feed_rows():
+    """The right half's rows, hardest first, as (tables, feed, why, top, bottom): a row is as tall as its text, to the 4px grid."""
+    rows, y = [], RULE_Y
+    for tables, feed, why in FEEDS:
+        height = 2 * ROW_PAD + max(len(feed) * FEED_LH + (WHY_GAP + len(why) * FEED_LH if why else 0), len(tables) * TBL_LH)
+        rows.append((tables, feed, why, y, y + -(-height // 4) * 4))
+        y = rows[-1][4]
+    return rows
+
+
+def feed_frame(rows):
+    """What the right half shows on arrival: the three headings, the rule under them, each made-up table and a hairline between rows. A table
+    heads its row, so it is structure; the feed beside it is the point, so it waits for its press."""
     out = [eyebrow(STRIP_L, HEAD_Y, "Table of made-up data"), eyebrow(FEED_X, HEAD_Y, "AA feed that would replace it"), eyebrow(STRIP_R, HEAD_Y, "Hardest first", "end"),
            f'<line x1="{STRIP_L}" y1="{RULE_Y}" x2="{STRIP_R}" y2="{RULE_Y}" stroke="{aa.RULE_SOLID}" stroke-width="1"/>']
-    y = RULE_Y
-    for i, (tables, feed, why) in enumerate(FEEDS):
-        height = 2 * ROW_PAD + max(len(feed) * FEED_LH + (WHY_GAP + len(why) * FEED_LH if why else 0), len(tables) * TBL_LH)
-        height = -(-height // 4) * 4
-        base = y + ROW_PAD + 15
-        row = [text(STRIP_L, base + TBL_LH * j, t, size=12, mono=True, fill=aa.ACCENT if i == 0 else None, weight=500 if i == 0 else 400) for j, t in enumerate(tables)]
-        row += [text(FEED_X, base + FEED_LH * j, line) for j, line in enumerate(feed)]
-        row += [text(FEED_X, base + len(feed) * FEED_LH + WHY_GAP + FEED_LH * j, line, italic=True) for j, line in enumerate(why)]
-        out.append(f'<g data-feed="{tables[0]}">{"".join(row)}</g>')
-        y += height
-        if i < len(FEEDS) - 1:
-            out.append(f'<line x1="{STRIP_L}" y1="{y}" x2="{STRIP_R}" y2="{y}" stroke="{aa.RULE}" stroke-width="0.8"/>')
-    return "".join(out)
+    for i, (tables, _, _, top, bottom) in enumerate(rows):
+        base = top + ROW_PAD + 15
+        out.append(f'<g data-table="{tables[0]}">' + "".join(text(STRIP_L, base + TBL_LH * j, t, size=12, mono=True, fill=aa.ACCENT if i == 0 else None,
+                                                                  weight=500 if i == 0 else 400) for j, t in enumerate(tables)) + "</g>")
+        if i < len(rows) - 1:
+            out.append(f'<line x1="{STRIP_L}" y1="{bottom}" x2="{STRIP_R}" y2="{bottom}" stroke="{aa.RULE}" stroke-width="0.8"/>')
+    return out
 
 
-def mark_key():
-    """The three marks, named, in the bottom strip every data figure uses."""
-    out = [f'<line x1="40" y1="{KEY_RULE_Y}" x2="1240" y2="{KEY_RULE_Y}" stroke="{aa.RULE}" stroke-width="0.8"/>', eyebrow(40, KEY_BASE_Y, "Legend")]
-    x = 144
-    for kind in (RUN, BUILT, WAIT):
-        out += [mark(kind, x + 5, KEY_BASE_Y - 4.5), text(x + 18, KEY_BASE_Y, MARKS[kind], size=13)]
-        x += 18 + KEY_W[kind] + 36
-    return "".join(out)
+def feed(row):
+    """The AA feed beside one table, on its first line, and for the hardest a note on why, in the muted text a note is drawn in."""
+    tables, lines, why, top, _ = row
+    base = top + ROW_PAD + 15
+    out = [text(FEED_X, base + FEED_LH * j, line) for j, line in enumerate(lines)]
+    out += [text(FEED_X, base + len(lines) * FEED_LH + WHY_GAP + FEED_LH * j, line, fill=SK["muted"], attrs=' data-note="why"') for j, line in enumerate(why)]
+    return f'<g data-feed="{tables[0]}">' + "".join(out) + "</g>"
 
 
-def build_at_aa():
+def key_head():
+    """The legend strip's rule and its heading, which arrive with the first marks."""
+    return [f'<line x1="40" y1="{KEY_RULE_Y}" x2="1240" y2="{KEY_RULE_Y}" stroke="{aa.RULE}" stroke-width="0.8"/>', eyebrow(40, KEY_BASE_Y, "Legend", keep=True)]
+
+
+def key_entry(kind):
+    """One mark, named, in the legend strip, in the order of KINDS; each comes in with the marks it names."""
+    x = 144 + sum(18 + KEY_W[k] + 36 for k in KINDS[:KINDS.index(kind)])
+    return f'<g data-key="{kind}">' + mark(kind, x + 5, KEY_BASE_Y - 4.5) + text(x + 18, KEY_BASE_Y, MARKS[kind], size=13) + "</g>"
+
+
+def listed(items):
+    """Names in a sentence, with a comma before the last of three or more, since a piece such as Fabric and OneLake has an and of its own."""
+    items = list(items)
+    if len(items) < 3:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + ", and " + items[-1]
+
+
+def presses(anchors, col_x, rows):
+    """What each press brings, as [(what the controller announces, marks)] for each press, at most two items a press: a kind of mark each,
+    with its legend entry, then the feeds hardest first."""
+    by_kind = pieces(anchors, col_x)
+    out = [[(f"{MARKS[k]}: {listed(p for ps in AT_AA.values() for kind, p in ps if kind == k)}", (key_head() if k == KINDS[0] else []) + [key_entry(k)] + by_kind[k])]
+           for k in KINDS]
+    assert [i for press in FEED_PRESSES for i in press] == list(range(len(FEEDS))), "every feed comes in once, hardest first"
+    out += [[(f"{listed(FEEDS[i][0])}: {' '.join(FEEDS[i][1] + FEEDS[i][2])}", [feed(rows[i])]) for i in press] for press in FEED_PRESSES]
+    assert len(out) <= 8 and sum(map(len, out)) <= 12 and max(map(len, out)) <= 2, "inside the plugin's budget: 8 steps, 12 items, 2 at once"
+    return out
+
+
+def build_at_aa(motion: bool):
     parts, gap, (minx, maxx, miny, maxy) = stack_geometry()
     ox, oy = round((STACK_LEFT - minx) / 4) * 4, round((TOP - miny) / 4) * 4
-    assert oy + maxy <= KEY_RULE_Y - 12, f"the stack runs into the legend: bottom at {oy + maxy}"
+    assert oy + maxy <= KEY_RULE_Y - 8, f"the stack runs into the legend: bottom at {oy + maxy}"
+    assert KEY_BASE_Y + aa.TEXT_DESCENT * 13 <= aa.STAGE_BOTTOM, "the legend runs under the deck's footer"
     P = Proj(ox, oy)
     col_x = ox + maxx + LEAD_AT_AA
-    stack, _ = stack_svg(P, parts, gap, col_x, AT_AA_FOCUS, lambda p, anchor, focal, animated: label_at_aa(p, anchor, col_x, focal), False)
-    out = [f'<rect width="100%" height="100%" fill="{SK["paper"]}"/>'] + stack
-    out += [eyebrow(col_x, HEAD_Y, "Where it stands in the demo"), feed_strip(), aa.brand(), mark_key()]
-    return "\n        ".join(out)
+    anchors = {p.key: prism(P, p.rect, p.z, p.z + p.t)["anchor"] for p in parts}
+    stack, _ = stack_svg(P, parts, gap, col_x, AT_AA_FOCUS, lambda p, anchor, focal, animated: label_head(p, anchor, col_x, focal) + "</g>", False)
+    rows = feed_rows()
+    assert rows[-1][4] <= KEY_RULE_Y - 8, f"the list runs into the legend: bottom at {rows[-1][4]}"
+    out = [f'<rect width="100%" height="100%" fill="{SK["paper"]}"/>'] + stack + [eyebrow(col_x, HEAD_Y, "Where it stands in the demo")] + feed_frame(rows)
+    steps = presses(anchors, col_x, rows)
+    for n, items in enumerate(steps, 1):
+        out += [aa.motion_item(n, label, marks, recede=True) if motion else "\n        ".join(marks) for label, marks in items]
+    out.append(aa.brand())
+    return "\n        ".join(out), len(steps)
 
 
 def check_at_aa(body: str):
@@ -377,11 +433,11 @@ def check_at_aa(body: str):
     assert [ts[0] for ts, _, _ in FEEDS] == ["fact_agency_sales_monthly", "fact_market_capacity", "fact_corporate_bookings", "contract_clauses",
                                              "crm_contacts", "agency_goals"], "the feeds keep the data lead's order, hardest first"
     # every piece the brief names, under the one mark the brief gives it
-    pieces = [(kind, piece) for rows in AT_AA.values() for kind, piece in rows]
+    marked = [(kind, piece) for rows in AT_AA.values() for kind, piece in rows]
     want = {"Databricks": RUN, "Foundry writers": RUN, "MLflow": RUN, "Foundry hosted agent": BUILT, "Fabric and OneLake": WAIT, "Dataverse": WAIT,
             "Teams through Copilot Studio": WAIT, "Entra ID": WAIT}
     for name, kind in want.items():
-        found = {k for k, p in pieces if name in p}
+        found = {k for k, p in marked if name in p}
         assert found == {kind}, f"{name} should print under {MARKS[kind]!r} and nothing else; it prints under {sorted(found)}"
     assert all(any(k == RUN and "Databricks" in p for k, p in rows) for rows in AT_AA.values()), "Databricks runs under every layer"
     # tracing: the App runs with it off, so no figure may show MLflow traces as running in the App; they are kept on the laptop's runs (01 says the same)
@@ -393,6 +449,7 @@ def check_at_aa(body: str):
     assert not re.search(r"possible|not built", words, re.I), "Foundry is neither possible nor not built"
     assert not re.search("[\u2013\u2014\u2212]", words), "the only dash is the hyphen"
     assert not re.search(r"\d", words.replace("T-100", "").replace("Dynamics 365", "")), "this figure prints no number from the data"
+    assert 'font-style="italic"' not in body, "no italic display type"
 
 
 AT_AA_TITLE = "The same layers at AA"
@@ -413,7 +470,11 @@ if __name__ == "__main__":
     body, steps = build(True)
     page = aa.animated(slug="01-system-exploded-animated", title=TITLE, desc=DESC, eyebrow=EYEBROW, body=body, steps=steps, css=ex.MOTION_CSS)
     (aa.OUT / "01-system-exploded-animated.html").write_text(page, encoding="utf-8")
-    body = build_at_aa()
+    body, _ = build_at_aa(False)
     check_at_aa(body)
     (aa.OUT / "15-at-aa.html").write_text(aa.page(slug="15-at-aa", title=AT_AA_TITLE, desc=AT_AA_DESC, eyebrow=AT_AA_EYEBROW, body=body), encoding="utf-8")
-    print("wrote 01-system-exploded.html, 01-system-exploded-animated.html and 15-at-aa.html")
+    body, steps = build_at_aa(True)
+    check_at_aa(body)
+    page = aa.animated(slug="15-at-aa-animated", title=AT_AA_TITLE, desc=AT_AA_DESC, eyebrow=AT_AA_EYEBROW, body=body, steps=steps, css=aa.FADE_ONLY)
+    (aa.OUT / "15-at-aa-animated.html").write_text(page, encoding="utf-8")
+    print("wrote 01-system-exploded.html, 01-system-exploded-animated.html, 15-at-aa.html and 15-at-aa-animated.html")

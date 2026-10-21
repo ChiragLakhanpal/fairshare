@@ -24,7 +24,7 @@ from aa import MUTED  # noqa: E402  the figures' muted text
 DIAGRAMS = ROOT / "docs" / "diagrams"
 FACTS = json.loads((ROOT / "web/src/deck/facts.json").read_text(encoding="utf-8"))["facts"]
 ANIMATED = ["01-system-exploded", "02-answer-checked", "03-delegate", "04-journey-sales-director", "05-journey-account-manager",
-            "06-data-pipeline", "08-why-it-moved", "09a-numbers-share", "09b-numbers-gaps", "11-revenue-by-month", "12-share-vs-fair"]
+            "06-data-pipeline", "08-why-it-moved", "09a-numbers-share", "09b-numbers-gaps", "11-revenue-by-month", "12-share-vs-fair", "15-at-aa"]
 # every page the deck shows a figure from: the animated pages in their frames, and the static pages whose PNGs are the thumbs and the backup slides
 SHOWN = [f"{n}-animated" for n in ANIMATED] + ANIMATED + ["07-fair-share", "14-what-was-planted"]
 TOP, BOTTOM = 64, 680
@@ -825,3 +825,137 @@ def test_share_fair_lets_the_newest_note_lead_and_keeps_aa_shares_values_in_the_
     assert kept and all(n.attrs.get("data-series") == "aa" and n.attrs["fill"] == aa.ACCENT for n in kept), "AA share's values keep the accent of AA share's dots"
     assert all("data-keep" not in n.attrs for n in values_printed(fig) if n.attrs.get("data-series") != "aa"), "fair share's values lead and recede with their callout"
     assert all("data-recede" not in item_of(d).attrs for d in series(fig, "aa") + series(fig, "fair")), "the dots are the chart, so they never recede"
+
+
+# ---------------------------------------------------------------- 15: the same layers at AA, a kind of mark a press, then the feeds hardest first
+
+AT_AA = "15-at-aa"
+AT_AA_PAGES = [AT_AA, f"{AT_AA}-animated"]
+# the five layers of 01, top to bottom
+AT_AA_LAYERS = ["The app", "Checks", "Agents", "Definitions", "Data"]
+# the three marks in the order they come, a press each, with the words the legend gives each one
+AT_AA_MARKS = {"run": "Running today", "built": "Built, not deployed", "wait": "Waiting on AA's Microsoft account"}
+# the made-up tables the AA feeds would replace, hardest first in the data lead's order, and the press each feed comes in on: the hardest
+# alone, the seat capacity alone, then two a press
+AT_AA_TABLES = ["fact_agency_sales_monthly", "fact_market_capacity", "fact_corporate_bookings", "contract_clauses", "crm_contacts", "agency_goals"]
+AT_AA_FEED_STEPS = [4, 5, 6, 6, 7, 7]
+
+
+def at_aa_pieces(fig: Node) -> list[tuple[str, str, str, Node]]:
+    """Each piece listed under a layer: its mark, its words, its layer and its node, in the order the page draws them."""
+    return [(n.attrs["data-piece"], n.words().strip(), n.attrs["data-layer"], n) for n in fig.walk() if "data-piece" in n.attrs]
+
+
+def at_aa_baseline(node: Node) -> float:
+    """The baseline of the first text in a mark."""
+    return float(next(t for t in node.walk() if t.tag == "text").attrs["y"])
+
+
+def at_aa_tree(node: Node):
+    """A mark and everything in it, as a value two pages can be compared by."""
+    return node.tag, tuple(sorted(node.attrs.items())), node.text.strip(), tuple(at_aa_tree(k) for k in node.kids)
+
+
+def at_aa_feed_lines(fig: Node, table: str) -> list[Node]:
+    """The text lines of one table's feed."""
+    (feed,) = [n for n in fig.walk() if n.attrs.get("data-feed") == table]
+    return [n for n in feed.walk() if n.tag == "text"]
+
+
+def test_at_aa_steps_inside_the_plugins_budget():
+    name = f"{AT_AA}-animated"
+    steps = [int(n.attrs["data-step"]) for n in figure(name).walk() if "data-motion-item" in n.attrs]
+    assert step_count(name) <= 8 and len(steps) <= 12, f"at most eight steps and twelve marked items: {step_count(name)} and {len(steps)}"
+    assert sorted(set(steps)) == list(range(1, step_count(name) + 1)) and max(steps.count(s) for s in steps) <= 2, "every step brings something, two items at most"
+
+
+def test_at_aa_shows_its_five_layers_and_their_names_on_arrival_at_rest_as_01_draws_them():
+    # the layers are the structure, so they show on arrival; nothing lifts, since lifting the layers is 01's reveal, and in the deck the rule that
+    # leaves 01's slabs alone never has to, because none of 15's slabs is a step
+    fig = figure(f"{AT_AA}-animated")
+    parts = [n for n in fig.walk() if "data-part" in n.attrs]
+    assert [p.attrs["data-name"] for p in parts][::-1] == AT_AA_LAYERS, "the five layers of 01, drawn from the bottom up"
+    assert all(step_of(p) is None and "data-motion-item" not in p.attrs for p in parts), "no layer is a step or sits in one"
+    assert not [p.attrs["data-part"] for p in parts if "style" in p.attrs or "data-closed-z" in p.attrs], "no layer carries a lift"
+    seat = lambda n: tuple(n.attrs[k] for k in ("data-rect", "data-z", "data-t", "data-level"))  # noqa: E731
+    assert {p.attrs["data-part"]: seat(p) for p in parts} == {n.attrs["data-part"]: seat(n) for n in figure("01-system-exploded").walk() if "data-part" in n.attrs}, \
+        "every layer has the size and the height 01 gives it"
+    names = [n for n in fig.walk() if n.attrs.get("data-role") == "name"]
+    assert [n.words() for n in names][::-1] == AT_AA_LAYERS and all(step_of(n) is None for n in names), "each layer's name shows on arrival"
+    (stack,) = [n for n in fig.walk() if "data-exploded" in n.attrs]
+    assert not [n for n in stack.walk() if "data-motion-item" in n.attrs], "nothing in the stack waits for a press"
+    (still,) = [n for n in figure(AT_AA).walk() if "data-exploded" in n.attrs]
+    assert at_aa_tree(stack) == at_aa_tree(still), "the stepped page draws the same stack as the static one"
+
+
+def test_at_aa_brings_in_what_runs_then_what_is_built_then_what_waits_a_press_each_with_its_legend_entry():
+    fig = figure(f"{AT_AA}-animated")
+    pieces = at_aa_pieces(fig)
+    steps: dict[str, set] = {}
+    for kind, words, _, node in pieces:
+        assert [m.attrs["data-mark"] for m in node.walk() if "data-mark" in m.attrs] == [kind], f"{words!r} sits behind its own mark"
+        steps.setdefault(kind, set()).add(step_of(node))
+    assert {k: sorted(v) for k, v in steps.items()} == {"run": [1], "built": [2], "wait": [3]}, \
+        "a press each: what runs today, then what is built but not deployed, then what waits on AA's Microsoft account"
+    order = list(AT_AA_MARKS)
+    for layer in {layer for _, _, layer, _ in pieces}:
+        kinds = [kind for kind, _, at, node in sorted(pieces, key=lambda p: at_aa_baseline(p[3])) if at == layer]
+        assert kinds == sorted(kinds, key=order.index), f"{layer}: each press fills the rows under the last one's, so its pieces run in the order the presses come"
+    keys = {n.attrs["data-key"]: n for n in fig.walk() if "data-key" in n.attrs}
+    assert {k: n.words().strip() for k, n in keys.items()} == AT_AA_MARKS, "the legend names the three marks"
+    for kind, entry in keys.items():
+        assert [m.attrs["data-mark"] for m in entry.walk() if "data-mark" in m.attrs] == [kind], f"the legend entry for {kind} shows its mark"
+        assert step_of(entry) == min(steps[kind]), f"the legend entry for {kind} comes in with its marks"
+    (legend,) = texts(fig, r"^LEGEND$")
+    rule = legend.parent.kids[legend.parent.kids.index(legend) - 1]
+    assert step_of(legend) == 1 and rule.tag == "line" and step_of(rule) == 1, "the legend, its heading and its rule arrive with the first marks"
+
+
+def test_at_aa_brings_in_each_feed_beside_its_table_hardest_first_once_the_marks_are_in():
+    name = f"{AT_AA}-animated"
+    fig = figure(name)
+    tables = sorted((n for n in fig.walk() if "data-table" in n.attrs), key=at_aa_baseline)
+    assert [n.attrs["data-table"] for n in tables] == AT_AA_TABLES, "the made-up tables down the list, hardest first"
+    assert all(step_of(n) is None for n in tables), "a table heads its row, so the tables show on arrival"
+    feeds = {n.attrs["data-feed"]: n for n in fig.walk() if "data-feed" in n.attrs}
+    assert sorted(feeds, key=lambda k: at_aa_baseline(feeds[k])) == AT_AA_TABLES, "one feed for each table"
+    assert [step_of(feeds[t]) for t in AT_AA_TABLES] == AT_AA_FEED_STEPS, \
+        "once the marks are in, the feeds hardest first: the agency's sales alone, the seat capacity alone, then two a press"
+    assert max(AT_AA_FEED_STEPS) == step_count(name), "the feeds close the figure"
+    for table in tables:
+        assert at_aa_baseline(feeds[table.attrs["data-table"]]) == at_aa_baseline(table), f"the feed for {table.attrs['data-table']} sits beside its table, on its first line"
+    lines = at_aa_feed_lines(fig, AT_AA_TABLES[0])
+    feed, why = said(n for n in lines if "data-note" not in n.attrs), said(n for n in lines if "data-note" in n.attrs)
+    assert "the agency's sales on other airlines" in feed and why.startswith("The hardest, because AA sees its own sales"), \
+        "the hardest says what it needs, the agency's sales on other airlines, and in a note why it is the hardest"
+
+
+def test_at_aa_lets_the_newest_press_lead_and_keeps_the_legend_heading_as_drawn():
+    # the words a press brings lead in ink while it is current and recede to the muted text once a later press comes (aa.EMBED_CSS), so the room
+    # finds the one built piece among the running ones, and then each new feed
+    fig = figure(f"{AT_AA}-animated")
+    items = [n for n in fig.walk() if "data-motion-item" in n.attrs]
+    assert items and all("data-recede" in n.attrs for n in items), "every step's words lead while it is current and recede after"
+    kept = [n.words() for n in fig.walk() if n.tag == "text" and "data-keep" in n.attrs]
+    assert kept == ["LEGEND"], "only the legend's heading keeps the muted color it is drawn in"
+    notes = [n for n in fig.walk() if n.tag == "text" and "data-note" in n.attrs]
+    assert notes and notes == [n for n in at_aa_feed_lines(fig, AT_AA_TABLES[0]) if "data-note" in n.attrs], "the one note says why the hardest feed is the hardest"
+    assert all(n.attrs["fill"] == MUTED for n in notes), "it is drawn in the muted text, as a note is, and leads in ink on its own press in the deck"
+
+
+@pytest.mark.parametrize("name", AT_AA_PAGES)
+def test_at_aa_says_it_in_plain_words_and_marks_every_azure_possibility_as_waiting(name):
+    fig = figure(name)
+    assert not [n.words() for n in fig.walk() if n.tag == "text" and n.attrs.get("font-style") == "italic"], "no italic display type"
+    assert not re.search("[\u2013\u2014]", html(name)), "no em or en dash on the page"
+    pieces = {words: kind for kind, words, _, _ in at_aa_pieces(fig)}
+    slides = (ROOT / "web/src/deck/slides.ts").read_text(encoding="utf-8")
+    possible = re.findall(r'head: "([^"]+)", body: "[^"]*", tag: "Possibility"', slides)
+    assert len(possible) == 4, "the azure slide's four possibilities"
+    for p in possible:
+        assert pieces.get(p) == "wait", f"{p!r} is a possibility on the azure slide, so here it waits on AA's Microsoft account"
+    built = json.loads(re.search(r"export const BUILT = (\[.*?\]);", slides).group(1))
+    for words, kind in pieces.items():
+        if any(b.lower() in words.lower() for b in built):
+            assert kind != "wait", f"{words!r} names something built, so it is not marked as waiting"
+    assert (pieces["Foundry writers"], pieces["Harness as a Foundry hosted agent"]) == ("run", "built"), "the Foundry writers run, the hosted agent is built"

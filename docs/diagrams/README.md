@@ -1,7 +1,7 @@
 # Diagrams for the presentation
 
 American Airlines colors and fonts from the app's own theme, with the official AA logo in the corner of every image. Each
-diagram is a live HTML page, and every figure's slide image is in `export/` (2560 by 1440, 16:9). Eleven of them also come as an
+diagram is a live HTML page, and every figure's slide image is in `export/` (2560 by 1440, 16:9). Twelve of them also come as an
 animated page that steps forward one idea at a time. The deck at `/present` (the app's presentation mode, in
 `web/src/deck/`) shows the figures as slides and steps the animated pages with its arrow keys. Two other PNGs sit in
 `export/`: the stills, which are screenshots of the running app, not figures (see "The two stills").
@@ -16,19 +16,19 @@ animated page that steps forward one idea at a time. The deck at `/present` (the
 | Trust | `hairline/opener-sieve.html` | `02-answer-checked.html`: what the account manager sees, and the checks behind the screen |
 | Delegate | `hairline/opener-riffle.html` | `03-delegate.html`: agents draft, a person decides, then the CRM stand-in and Outlook; `03-delegate-animated.html` runs the flow one stage a press |
 | The value | `hairline/opener-query.html` | `04-journey-sales-director.html` and `05-journey-account-manager.html`: each step of the process as a sequence, with the real tools and tables |
-| Proof | | `15-at-aa.html`: the five layers of `01`, each piece marked by what runs today, what is built but not deployed, and what waits on AA's Microsoft account, with every table beside the AA feed that would replace it |
+| Proof | | `15-at-aa.html`: the five layers of `01`, each piece marked by what runs today, what is built but not deployed, and what waits on AA's Microsoft account, with every table beside the AA feed that would replace it; `15-at-aa-animated.html` brings in a kind of mark a press, then the feeds hardest first |
 
 There is no figure 13. `hairline/png/title-b.png` is the title slide image, and its caption is the talk title, set in
 `hairline/src/pages.mjs`; `hairline/png/titles-abc.png` shows the three that were compared.
 
 ## The animated pages
 
-`01`, `02`, `03`, `04`, `05`, `06`, `08`, `09a`, `09b`, `11` and `12` also come as `<name>-animated.html`: the same figure as its
+`01`, `02`, `03`, `04`, `05`, `06`, `08`, `09a`, `09b`, `11`, `12` and `15` also come as `<name>-animated.html`: the same figure as its
 static page, in diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays
-complete. Each step brings in one idea. On `01` each layer lifts clear; on the other ten the marks only fade in, and nothing
+complete. Each step brings in one idea. On `01` each layer lifts clear; on the other eleven the marks only fade in, and nothing
 moves. The logo band, the headers, lane labels or actors, the lifelines, axes or tier cards, a chart's lines, and the legend
 stay in place, except what gives the point away: the legend key that names the focal item or the check, a caption, a payoff
-line and a chart's notes come in with the step they belong to.
+line and a chart's notes come in with the step they belong to, and so does each entry of `15`'s legend, with the marks it names.
 
 | Page | Steps | What each step brings in |
 |---|---|---|
@@ -43,6 +43,7 @@ line and a chart's notes come in with the step they belong to.
 | `09b-numbers-gaps-animated.html` | 5 | the share gap in points, the share gap in dollars, year over year and pace, a card a press in the same way, then the same close |
 | `11-revenue-by-month-animated.html` | 4 | the band over March and April 2026 with each month's net change against 2025, then one note a press beside it: Sunbelt sent nothing, Harbor's AA revenue fell, the other agencies grew (the title, the axes, both lines with their years and the source line show from the start) |
 | `12-share-vs-fair-animated.html` | 5 | fair share's hollow dots with their name, the note under the chart that says why fair share barely moves (every agency spreads its sales over the same routes in similar proportions) and that the seat shares are made up, AA share's solid dots with their name and connectors, then one callout a press: the agency furthest above fair share (the top row) and the one furthest below (the bottom row), each with its two values (the title, the agencies' names, the axis and the source line show from the start) |
+| `15-at-aa-animated.html` | 7 | what runs today, with the legend's rule, its heading and its first entry; what is built but not deployed; what waits on AA's Microsoft account; each kind of mark a press with its legend entry, every piece under its layer's name. Then the AA feed beside each made-up table, hardest first: the agency's sales with the note on why they are the hardest, the seat capacity, then two a press (the five layers at rest as on `01`'s static page, their names, the headings and the made-up tables show from the start) |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
 reduced motion, or with no JavaScript, the whole figure shows at once. A figure that prints values from the data says
@@ -56,7 +57,7 @@ fits the figure to the frame (`EMBED_CSS` in `src/aa.py`), then sends Home or En
 chart draws in once, when the frame shows: on `11` each line traces itself left to right over 900ms, and its dots and
 its year come in after it; under reduced motion, and on a backward arrival or a load, it shows drawn. The newest item
 leads: an item marked `data-recede` (the notes on `11`, the cards on `09a` and `09b`, the note under the chart and the
-two callouts on `12`) has its words in ink while its press is the current one, and on `09a` and `09b` its card is
+two callouts on `12`, every step on `15`) has its words in ink while its press is the current one, and on `09a` and `09b` its card is
 outlined in blue, as a native slide's newest tile is; when the next press comes, its words recede to the muted text and
 the outline goes. A text in it marked `data-keep` keeps the color it is drawn in, so AA share's values on `12` stay
 blue. Which slide uses which page is in `web/src/deck/slides.ts`. An animated page has no PNG of its own: the static
@@ -124,7 +125,7 @@ from `deck_facts.py`, so they run in the repo's virtual environment (`.venv/bin/
 
 ```
 FAIRSHARE_BACKEND=duckdb .venv/bin/python docs/diagrams/src/deck_facts.py   # every number: writes web/src/deck/facts.json
-python3 docs/diagrams/src/exploded.py                 # 01 (both versions) and 15
+python3 docs/diagrams/src/exploded.py                 # 01 and 15 (both versions each)
 python3 docs/diagrams/src/blueprint.py                # 02 (both versions)
 python3 docs/diagrams/src/swimlane.py                 # 03 (both versions)
 .venv/bin/python docs/diagrams/src/journeys.py        # 04, 05 (both versions)

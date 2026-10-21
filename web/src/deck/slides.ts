@@ -249,8 +249,8 @@ export const slides: Slide[] = [
 
   // 5. Starting at AA: the same layers on AA's own data, the possibilities on Azure, the first four steps and how we'd know
   {
-    id: "at-aa", part: "aa", kind: "image", title: "The same layers at AA", min: 1.5,
-    asset: "export/15-at-aa.png",
+    id: "at-aa", part: "aa", kind: "animated", title: "The same layers at AA", min: 1.5,
+    asset: "15-at-aa-animated.html", thumb: "export/15-at-aa.png",
     note: "At AA it's the same layers, each made-up table next to the feed that would replace it. The hardest is the agency's sales on other airlines, since AA only sees its own. The Microsoft pieces wait on AA's account.",
   },
   {

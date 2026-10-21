@@ -190,6 +190,10 @@ describe("what the talk's slides hold", () => {
     const d = byId("delegate");
     expect([d.kind, d.asset, d.thumb, d.data]).toEqual(["animated", "03-delegate-animated.html", "export/03-delegate.png", undefined]);
   });
+  it("steps through the same layers at AA on its animated page, with the static figure as its thumb, as a figure that prints no data", () => {
+    const a = byId("at-aa");
+    expect([a.kind, a.asset, a.thumb, a.data]).toEqual(["animated", "15-at-aa-animated.html", "export/15-at-aa.png", undefined]);
+  });
   it("steps through revenue by month on its animated page, with the static figure as its thumb, as a figure that prints data", () => {
     const r = byId("revenue");
     expect([r.kind, r.asset, r.thumb, r.data]).toEqual(["animated", "11-revenue-by-month-animated.html", "export/11-revenue-by-month.png", true]);

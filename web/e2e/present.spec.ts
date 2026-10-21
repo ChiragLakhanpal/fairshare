@@ -238,6 +238,47 @@ test("delegate shows its lanes on arrival, then its flow one stage a press in th
   await expect(page).toHaveURL(/#precall$/);
 });
 
+test("at-aa shows its five layers on arrival, then what runs, what is built and what waits a press each, then the feeds hardest first, and then Azure", async ({ page }) => {
+  const [INK, MUTED] = ["rgb(54, 73, 90)", "rgb(90, 113, 129)"];
+  await openSlide(page, "limits"); // a load lands complete, so the next press moves on
+  await page.keyboard.press("ArrowRight"); // at-aa arrives on its first step going forward
+  await expect(page).toHaveURL(/#at-aa$/);
+  await expect(ready(page)).toBeVisible();
+  await expect(root(page)).toHaveAttribute("data-step-current", "0");
+  const figure = page.frameLocator("iframe[data-slide-frame]");
+  // the five layers stand on arrival as 01's static page draws them: every slab shown and in place, none of them a step
+  const slabs = figure.locator("[data-part]");
+  await expect(slabs).toHaveCount(5);
+  const atRest = await slabs.evaluateAll((els) => els.map((el) => [getComputedStyle(el).opacity, getComputedStyle(el).transform]));
+  expect(atRest, "the stack, assembled and still").toEqual(Array.from({ length: 5 }, () => ["1", "none"]));
+  await expect(figure.locator('[data-role="name"]')).toHaveText(["Data", "Definitions", "Agents", "Checks", "The app"]);
+  for (const item of await itemStates(page)) expect(item.opacity, `step ${item.step} before its press`).toBe("0");
+  // a press each: a kind of mark with its legend entry, then the feeds beside their tables, hardest first
+  const plan: [string[], string[]][] = [[["run"], []], [["built"], []], [["wait"], []], [[], ["fact_agency_sales_monthly"]], [[], ["fact_market_capacity"]],
+    [[], ["fact_corporate_bookings", "contract_clauses"]], [[], ["crm_contacts", "agency_goals"]]];
+  const count = Number(await root(page).getAttribute("data-step-count"));
+  expect(count, "a press for each kind of mark, then four for the feeds").toBe(plan.length);
+  const shown = (attr: string) => () => figure.locator(`[${attr}]`).evaluateAll((els, attr) =>
+    [...new Set(els.filter((el) => getComputedStyle(el.closest("[data-motion-item]")!).opacity === "1").map((el) => el.getAttribute(attr)))], attr);
+  // each step's words but the legend's heading, which keeps its color: the current step's in ink, every other step's muted
+  const fills = () => figure.locator("[data-motion-item]").evaluateAll((els) => els.map((el) =>
+    [Number(el.getAttribute("data-step")), [...new Set([...el.querySelectorAll("text:not([data-keep])")].map((t) => getComputedStyle(t).fill))]] as [number, string[]]));
+  const steps = (await fills()).map(([s]) => s);
+  for (let step = 1; step <= count; step++) {
+    await page.keyboard.press("ArrowRight");
+    await expect(root(page)).toHaveAttribute("data-step-current", String(step));
+    const reached = async () => (await itemStates(page)).every((i) => (i.step <= step ? i.opacity === "1" : i.opacity === "0"));
+    await expect.poll(reached, `step ${step}`).toBe(true);
+    const marks = plan.slice(0, step).flatMap(([m]) => m);
+    await expect.poll(shown("data-piece"), `the marks by step ${step}`).toEqual(marks);
+    await expect.poll(shown("data-key"), `the legend by step ${step}, an entry with its marks`).toEqual(marks);
+    await expect.poll(shown("data-feed"), `the feeds by step ${step}`).toEqual(plan.slice(0, step).flatMap(([, f]) => f));
+    await expect.poll(fills, `the newest press leads, step ${step}`).toEqual(steps.map((s) => [s, [s === step ? INK : MUTED]]));
+  }
+  await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#azure$/);
+});
+
 test("a load on an animated slide, a reload or the way back from a demo, shows its whole figure, and the first press moves on", async ({ page }) => {
   await openSlide(page, "pipeline");
   await expect(ready(page)).toBeVisible();
