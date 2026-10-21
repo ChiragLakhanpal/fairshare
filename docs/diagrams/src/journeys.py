@@ -7,7 +7,8 @@ calls solid with a filled head, replies dashed with a filled head, a one-way not
 messages as U loops, at most one combined fragment, two accent elements. A label sits in one gap between two lifelines,
 never over a third; builder asserts keep every label mask clear of every lifeline. The animated twins keep the actors, the lifelines and the
 legend in place and bring in the messages a few at a time: each diagram's `groups` lists the motion steps, a label and the step indexes it shows.
-The payoff, the italic line on the legend's right, gives the point away, so it comes in with the last step.
+The payoff, the italic line on the legend's right, gives the point away, so it comes in with the last step, and the legend key for the
+accent, which names the check, comes in with the verifier's group, the first to hold an accent message.
 
 The numbers on 04 come from src/deck_facts.py (Harbor Business Travel, Sep 2026 vs Sep 2025, ops.decomposition):
 harbor_volume_usd, harbor_mix_usd and harbor_share_usd, shown in $ thousands to one decimal.
@@ -224,6 +225,17 @@ def build(d, motion=False) -> str:
     rule_y = life_bottom + 8  # the legend strip's rule; its keys and the payoff sit on one baseline under it
     assert rule_y + 20 + aa.TEXT_DESCENT * 14 <= aa.STAGE_BOTTOM, f"{d['file']}: the legend runs under the deck's footer"
     payoff = text(VW - 40, rule_y + 20, d["payoff"], size=14, fill=aa.INK, family=aa.SANS, anchor="end", italic=True)
+    keys, lx = [], 40  # the legend's keys, left to right, each an arrow and its words
+    for kind, words in d["legend"]:
+        tone = aa.ACCENT if kind == "accent" else aa.MUTED
+        head = "arrow-accent" if kind == "accent" else ("arrow-open" if kind == "async" else "arrow")
+        dash = ' stroke-dasharray="5,4"' if kind in ("ret", "async") else ""
+        keys.append((kind, [f'<line x1="{lx}" y1="{rule_y + 16}" x2="{lx + 28}" y2="{rule_y + 16}" stroke="{tone}" stroke-width="1.2"{dash} marker-end="url(#{head})"/>',
+                            text(lx + 36, rule_y + 20, words, size=11, fill=aa.MUTED, family=aa.SANS)]))
+        lx += 36 + len(words) * 6 + 32
+    checked_key = [m for kind, key_marks in keys if kind == "accent" for m in key_marks]
+    first_hot = next(i for i, (*_, hot) in enumerate(d["steps"]) if hot)
+    checked_group = next(n for n, (_, idxs) in enumerate(d["groups"], 1) if first_hot in idxs)
 
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag=d["tag"]) if "tag" in d else aa.brand()]
     out.append('<defs>'
@@ -294,7 +306,8 @@ def build(d, motion=False) -> str:
         last = len(d["groups"])
         for n, (words, idxs) in enumerate(d["groups"], 1):
             shown = [m for part in marks.values() for i, m in part if i in idxs]
-            out.append(aa.motion_item(n, f"{words}. {d['payoff']}" if n == last else words, shown + ([payoff] if n == last else [])))
+            shown += ([payoff] if n == last else []) + (checked_key if n == checked_group else [])
+            out.append(aa.motion_item(n, f"{words}. {d['payoff']}" if n == last else words, shown))
     else:
         out += [m for part in marks.values() for _, m in part]
 
@@ -302,16 +315,11 @@ def build(d, motion=False) -> str:
     for key, cx, w, icons, name, subs in d["actors"]:
         out += actor_box(cx, w, icons, name, subs)
 
-    # legend strip, with the one italic line on its right
+    # legend strip, with the one italic line on its right; on the animated page the accent key and the payoff wait for their steps
     out.append(f'<line x1="40" y1="{rule_y}" x2="{VW - 40}" y2="{rule_y}" stroke="rgba(54,73,90,0.10)" stroke-width="0.8"/>')
-    lx = 40
-    for kind, words in d["legend"]:
-        tone = aa.ACCENT if kind == "accent" else aa.MUTED
-        head = "arrow-accent" if kind == "accent" else ("arrow-open" if kind == "async" else "arrow")
-        dash = ' stroke-dasharray="5,4"' if kind in ("ret", "async") else ""
-        out.append(f'<line x1="{lx}" y1="{rule_y + 16}" x2="{lx + 28}" y2="{rule_y + 16}" stroke="{tone}" stroke-width="1.2"{dash} marker-end="url(#{head})"/>')
-        out.append(text(lx + 36, rule_y + 20, words, size=11, fill=aa.MUTED, family=aa.SANS))
-        lx += 36 + len(words) * 6 + 32
+    for kind, key_marks in keys:
+        if kind != "accent" or not motion:
+            out += key_marks
     if not motion:
         out.append(payoff)
     return "\n        ".join(out)

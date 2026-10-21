@@ -81,11 +81,13 @@ def pipeline(motion=False) -> str:
         ("Defined once", "gold.sales_metrics", str(fact("kpis")), "numbers", [f"{DATED['twins_checked']['value']} checked each night", "pace in gold.agency_pace"]),
     ]
     arcs = [("CLEAN", False), ("SHAPE", False), ("DEFINE", True)]
-    # Every mark is kept with its motion step (1 to 7), in paint order. Static flattens them as they are; motion groups them by step,
-    # and inside a step the marks keep that order, so a bridge still paints under the tier it points at.
+    # Every mark is kept with its motion step (1 to 7), in paint order. A mark with no step is structure, which shows on arrival: the
+    # two headings, and each tier card's outline, name and schema line. Static flattens the marks as they are; motion paints the
+    # structure first and then groups the rest by step, and inside a step the marks keep their order.
     parts = []
 
     def put(step, markup):
+        """step: the motion step that brings the mark in, or None for structure."""
         parts.append((step, markup))
 
     # promotions as orthogonal bridges over the top, drawn before the cards (connector rule 1: no curves): up from the
@@ -105,8 +107,8 @@ def pipeline(motion=False) -> str:
     sources = [("csv", None, "Seat shares", "made up, one per route"), ("users", None, "Agency sales", "synthetic"),
                ("file", None, f"{fact('agreements')} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
     readers = [("desktop", "The app"), ("monitoring", "Dashboard"), ("search", "Genie"), ("robot", "Agents")]
-    put(1, eyebrow(40, ATTACH[0] - 44, "Sources"))
-    put(6, eyebrow(tier_x(3) + TIER_W + 52, ATTACH[0] - 44, "Read by"))
+    put(None, eyebrow(40, ATTACH[0] - 44, "Sources"))
+    put(None, eyebrow(tier_x(3) + TIER_W + 52, ATTACH[0] - 44, "Read by"))
     for y, (tab, brand, name, tag) in zip(ATTACH, sources):
         put(2, f'<line x1="260" y1="{y}" x2="{TIER_X0 - 2}" y2="{y}" stroke="{aa.MUTED}" stroke-width="1.4" marker-end="url(#arrow)"/>')  # into bronze
         put(1, tabler(tab, 40, y - 14, 28) if tab else aa.icon(brand, 42, y - 12, 24))
@@ -124,17 +126,19 @@ def pipeline(motion=False) -> str:
         cx = x + TIER_W / 2
         fill, stroke, sw, band = (("rgba(0,108,191,0.07)", aa.ACCENT, 1.6, "rgba(0,108,191,0.14)") if focal
                                   else ("#ffffff", aa.MUTED if i == 0 else aa.INK, 1, "rgba(90,113,129,0.10)" if i == 0 else "rgba(54,73,90,0.06)"))
-        put(2 + i, f'<g data-tier="{schema}"><rect x="{x}" y="{TIER_Y}" width="{TIER_W}" height="{TIER_H}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
-        put(2 + i, f'<path d="M {x + 6},{TIER_Y} H {x + TIER_W - 6} A 6 6 0 0 1 {x + TIER_W},{TIER_Y + 6} V {TIER_Y + 48} H {x} V {TIER_Y + 6} A 6 6 0 0 1 {x + 6},{TIER_Y} Z" fill="{band}"/>')
-        put(2 + i, text(cx, TIER_Y + 30, name, size=16, anchor="middle"))
-        put(2 + i, text(cx, TIER_Y + 76, schema, size=12, weight=400, color=aa.ACCENT if focal else aa.MUTED, anchor="middle", mono=True))
+        # the card is structure: its outline, its band, its name and its schema show on arrival
+        put(None, f'<g data-tier="{schema}"><rect x="{x}" y="{TIER_Y}" width="{TIER_W}" height="{TIER_H}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
+        put(None, f'<path d="M {x + 6},{TIER_Y} H {x + TIER_W - 6} A 6 6 0 0 1 {x + TIER_W},{TIER_Y + 6} V {TIER_Y + 48} H {x} V {TIER_Y + 6} A 6 6 0 0 1 {x + 6},{TIER_Y} Z" fill="{band}"/>')
+        put(None, text(cx, TIER_Y + 30, name, size=16, anchor="middle"))
+        put(None, text(cx, TIER_Y + 76, schema, size=12, weight=400, color=aa.ACCENT if focal else aa.MUTED, anchor="middle", mono=True))
+        put(None, "</g>")
+        # what the tier holds waits for its step: its number and what the step did
         put(2 + i, text(cx, TIER_Y + 156, big, size=40, color=aa.ACCENT if focal else aa.INK, anchor="middle"))
         put(2 + i, text(cx, TIER_Y + 182, unit, size=12, weight=400, color=aa.MUTED, anchor="middle", mono=True))
         for k, chip in enumerate(chips):
             cy = TIER_Y + 232 + k * 36
             put(2 + i, f'<rect x="{x + 8}" y="{cy}" width="{TIER_W - 16}" height="24" rx="2" fill="#ffffff" stroke="{aa.RULE_SOLID}" stroke-width="1"/>')
             put(2 + i, text(cx, cy + 16, chip, size=11, weight=400, color=aa.INK, anchor="middle"))  # plain words, so Inter, not mono
-        put(2 + i, "</g>")
 
     # who can see what: the one sentence of governance, on a quiet strip under the tiers
     sy = TIER_Y + TIER_H + 36
@@ -144,7 +148,8 @@ def pipeline(motion=False) -> str:
     put(7, text(tier_x(3) + TIER_W - 16, sy + 26, "Unity Catalog aa_demo", size=12, weight=400, color=aa.MUTED, anchor="end", mono=True))
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', markers()]
     if motion:
-        assert {n for n, _ in parts} == set(range(1, len(PIPELINE_STEPS) + 1)), "every motion step needs its marks"
+        assert {n for n, _ in parts if n is not None} == set(range(1, len(PIPELINE_STEPS) + 1)), "every motion step needs its marks"
+        out += [m for step, m in parts if step is None]
         out += [aa.motion_item(n, words, [m for step, m in parts if step == n]) for n, words in enumerate(PIPELINE_STEPS, 1)]
     else:
         out += [m for _, m in parts]

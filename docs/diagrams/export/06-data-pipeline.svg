@@ -57,42 +57,42 @@
         <path d="M 302,200 H 458 A 6 6 0 0 1 464,206 V 248 H 296 V 206 A 6 6 0 0 1 302,200 Z" fill="#5a7181" fill-opacity="0.10"/>
         <text x="380.0" y="230" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">As delivered</text>
         <text x="380.0" y="276" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">bronze</text>
+        </g>
         <text x="380.0" y="356" fill="#36495a" font-size="40" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">27,967</text>
         <text x="380.0" y="382" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">booking rows</text>
         <rect x="304" y="432" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <text x="380.0" y="448" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">11 tables, as sent</text>
-        </g>
         <g data-tier="silver"><rect x="492" y="200" width="168" height="332" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
         <path d="M 498,200 H 654 A 6 6 0 0 1 660,206 V 248 H 492 V 206 A 6 6 0 0 1 498,200 Z" fill="#36495a" fill-opacity="0.06"/>
         <text x="576.0" y="230" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">Cleaned</text>
         <text x="576.0" y="276" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">silver</text>
+        </g>
         <text x="576.0" y="356" fill="#36495a" font-size="40" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">27,961</text>
         <text x="576.0" y="382" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">booking rows</text>
         <rect x="500" y="432" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <text x="576.0" y="448" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">−6 tickets loaded twice</text>
         <rect x="500" y="468" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <text x="576.0" y="484" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">16 channel spellings → 4</text>
-        </g>
         <g data-tier="gold"><rect x="688" y="200" width="168" height="332" rx="6" fill="#ffffff" stroke="#36495a" stroke-width="1"/>
         <path d="M 694,200 H 850 A 6 6 0 0 1 856,206 V 248 H 688 V 206 A 6 6 0 0 1 694,200 Z" fill="#36495a" fill-opacity="0.06"/>
         <text x="772.0" y="230" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">Ready to use</text>
         <text x="772.0" y="276" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">gold</text>
+        </g>
         <text x="772.0" y="356" fill="#36495a" font-size="40" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">3,000</text>
         <text x="772.0" y="382" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">rows</text>
         <rect x="696" y="432" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <text x="772.0" y="448" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">per agency, route, month</text>
-        </g>
         <g data-tier="gold.sales_metrics"><rect x="884" y="200" width="168" height="332" rx="6" fill="#006cbf" stroke="#006cbf" stroke-width="1.6" fill-opacity="0.07"/>
         <path d="M 890,200 H 1046 A 6 6 0 0 1 1052,206 V 248 H 884 V 206 A 6 6 0 0 1 890,200 Z" fill="#006cbf" fill-opacity="0.14"/>
         <text x="968.0" y="230" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">Defined once</text>
         <text x="968.0" y="276" fill="#006cbf" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">gold.sales_metrics</text>
+        </g>
         <text x="968.0" y="356" fill="#006cbf" font-size="40" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">7</text>
         <text x="968.0" y="382" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">numbers</text>
         <rect x="892" y="432" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <text x="968.0" y="448" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">6 checked each night</text>
         <rect x="892" y="468" width="152" height="24" rx="2" fill="#ffffff" stroke="#d0dae0" stroke-width="1"/>
         <text x="968.0" y="484" fill="#36495a" font-size="11" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">pace in gold.agency_pace</text>
-        </g>
         <rect x="296" y="568" width="756" height="40" rx="6" fill="#f2f5f8"/>
         <svg x="312" y="576" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#36495a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6" /> <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /> <path d="M8 11v-4a4 4 0 1 1 8 0v4" /></svg>
         <text x="348" y="594" fill="#36495a" font-size="16" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="start">Every query runs as the person asking</text>

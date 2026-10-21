@@ -5,8 +5,8 @@ corner says where that work runs.
     python3 docs/diagrams/src/blueprint.py   # writes docs/diagrams/02-answer-checked.html and 02-answer-checked-animated.html
 
 The data-* contract is diagram-design's; scripts/verify-service-blueprint.py in the plugin reads it back. The animated page steps
-one layer at a time: the stage headers, the three lines and the legend stay put, and each row of cells comes in as one group. The
-caption and the legend entry that name the verifier give the point away, so they come in with its row.
+one layer at a time: the stage headers, the lane labels, the three lines and the legend stay put, and each row of cells comes in as
+one group. The caption and the legend entry that name the verifier give the point away, so they come in with its row.
 """
 from __future__ import annotations
 
@@ -103,11 +103,11 @@ def body(motion=False):
                  text(896, 628, "Focal: the verifier", size=11, fill=aa.MUTED, family=aa.SANS, anchor="start")]
     assert len(STEPS) == len(ROWS)
     for n, (layer, label, top, cells) in enumerate(ROWS):
-        row = [f'<g data-layer="{layer}">']
         mid = top + ROW // 2
-        for k, line in enumerate(label):
+        for k, line in enumerate(label):  # the lane's label is a row heading, so it shows on arrival, outside the row's step
             y = mid + 3 + (k - (len(label) - 1) / 2) * 12
-            row.append(text(LEFT - 8, int(y), line, size=8, fill=aa.MUTED, family=aa.MONO, anchor="end", spacing="0.12em"))
+            out.append(text(LEFT - 8, int(y), line, size=8, fill=aa.MUTED, family=aa.MONO, anchor="end", spacing="0.12em"))
+        row = [f'<g data-layer="{layer}">']
         for (sid, _), x, (name, real, marks) in zip(STAGES, X, cells):
             row += cell(layer, sid, x, top, name, real, marks, (layer, sid) == FOCAL)
         row.append("</g>")

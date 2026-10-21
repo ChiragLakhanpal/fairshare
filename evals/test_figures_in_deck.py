@@ -206,6 +206,49 @@ def texts(root: Node, pattern: str) -> list[Node]:
     return [n for n in root.walk() if n.tag == "text" and re.search(pattern, n.words())]
 
 
+def in_logo(node: Node) -> bool:
+    while node is not None:
+        if "data-brand" in node.attrs:
+            return True
+        node = node.parent
+    return False
+
+
+@pytest.mark.parametrize("name", [n for n in ANIMATED if n != "01-system-exploded"])
+def test_a_figure_shows_some_structure_in_words_on_arrival(name):
+    # 01 arrives as its assembled stack, which has no words; every other figure names what the room is looking at before the first press
+    fig = figure(f"{name}-animated")
+    shown = [n for n in fig.walk() if n.tag == "text" and step_of(n) is None and not in_logo(n)]
+    assert shown, f"{name} arrives with every word held back for a step"
+
+
+def test_06_shows_its_headings_and_tier_cards_on_arrival_and_keeps_each_number_for_its_step():
+    fig = figure("06-data-pipeline-animated")
+    for words in ("SOURCES", "READ BY", "As delivered", "bronze", "Cleaned", "silver", "Ready to use", "gold", "Defined once", "gold.sales_metrics"):
+        found = texts(fig, rf"^{re.escape(words)}$")
+        assert found and all(step_of(n) is None for n in found), f"{words!r} is structure, so it shows on arrival"
+    cards = [n for n in fig.walk() if n.tag == "g" and "data-tier" in n.attrs]
+    assert len(cards) == 4 and all(step_of(c) is None for c in cards), "the four tier cards' outlines show on arrival"
+    numbers = [n for n in fig.walk() if n.tag == "text" and n.attrs.get("font-size") == "40"]
+    assert len(numbers) == 4 and all(step_of(n) is not None for n in numbers), "each tier's number waits for its step"
+
+
+def test_02_shows_its_lane_labels_on_arrival():
+    labels = texts(figure("02-answer-checked-animated"), r"^(ACCOUNT|MANAGER|THE APP|BEHIND THE|SCREEN|FOUNDATIONS)$")
+    assert len(labels) == 6 and all(step_of(n) is None for n in labels), "the blueprint's row headings are structure"
+
+
+@pytest.mark.parametrize("name", ["04-journey-sales-director-animated", "05-journey-account-manager-animated"])
+def test_a_journey_shows_its_checked_key_only_with_the_verifier(name):
+    fig = figure(name)
+    key = texts(fig, r"^Checked, then (answered|approved)$")
+    verifier = texts(fig, r"^verifier: every number")
+    assert len(key) == 1 and verifier, "one legend key for the checked style, and the verifier's message"
+    assert step_of(key[0]) is not None and step_of(key[0]) == step_of(verifier[0]), "the key that names the check comes in with the verifier"
+    arrow = key[0].parent.kids[key[0].parent.kids.index(key[0]) - 1]
+    assert arrow.tag == "line" and step_of(arrow) == step_of(key[0]), "and so does its arrow"
+
+
 def rules(css: str) -> list[tuple[list[str], str]]:
     """The top-level rules of a stylesheet as (selectors, declarations); at-rules such as media queries and keyframes are left out."""
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)

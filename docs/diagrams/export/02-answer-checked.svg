@@ -35,9 +35,9 @@
         <line x1="112" y1="212" x2="1236" y2="212" stroke="#36495a" stroke-width="1" data-role="interaction" stroke-opacity="0.18"/>
         <line x1="112" y1="300" x2="1236" y2="300" stroke="#36495a" stroke-width="2" data-role="visibility" stroke-opacity="0.65"/>
         <line x1="112" y1="388" x2="1236" y2="388" stroke="#36495a" stroke-width="1" data-role="internal-interaction" stroke-opacity="0.18"/>
-        <g data-layer="customer">
         <text x="104" y="165" fill="#5a7181" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.12em">ACCOUNT</text>
         <text x="104" y="177" fill="#5a7181" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.12em">MANAGER</text>
+        <g data-layer="customer">
         <rect x="112" y="128" width="212" height="80" rx="4" fill="#ffffff"/>
         <rect x="112" y="128" width="212" height="80" rx="4" fill="#ffffff" stroke="#36495a" stroke-width="1" data-stage="ask" data-name="Asks a question"/>
         <text x="218" y="176" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" text-anchor="middle" font-weight="600">Asks a question</text>
@@ -54,8 +54,8 @@
         <rect x="1024" y="128" width="212" height="80" rx="4" fill="#ffffff" stroke="#36495a" stroke-width="1" data-stage="show" data-name="Clicks a number"/>
         <text x="1130" y="176" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" text-anchor="middle" font-weight="600">Clicks a number</text>
         </g>
-        <g data-layer="frontstage">
         <text x="104" y="259" fill="#5a7181" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.12em">THE APP</text>
+        <g data-layer="frontstage">
         <rect x="112" y="216" width="212" height="80" rx="4" fill="#ffffff"/>
         <rect x="112" y="216" width="212" height="80" rx="4" fill="#ffffff" stroke="#36495a" stroke-width="1" data-stage="ask" data-name="Suggested questions"/>
         <text x="218" y="264" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" text-anchor="middle" font-weight="600">Suggested questions</text>
@@ -72,9 +72,9 @@
         <rect x="1024" y="216" width="212" height="80" rx="4" fill="#ffffff" stroke="#36495a" stroke-width="1" data-stage="show" data-name="Answer with its query"/>
         <text x="1130" y="264" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" text-anchor="middle" font-weight="600">Answer with its query</text>
         </g>
-        <g data-layer="backstage">
         <text x="104" y="341" fill="#5a7181" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.12em">BEHIND THE</text>
         <text x="104" y="353" fill="#5a7181" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.12em">SCREEN</text>
+        <g data-layer="backstage">
         <rect x="112" y="304" width="212" height="80" rx="4" fill="#36495a" stroke="#5a7181" stroke-width="1" data-stage="ask" data-name="Router picks tools" fill-opacity="0.06"/>
         <text x="218" y="352" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" text-anchor="middle" font-weight="600">Router picks tools</text>
         <rect x="340" y="304" width="212" height="80" rx="4" fill="#36495a" stroke="#5a7181" stroke-width="1" data-stage="look-up" data-name="Genie runs the query" fill-opacity="0.06"/>
@@ -93,8 +93,8 @@
         <text x="1130" y="346" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" text-anchor="middle" font-weight="600">Trace on laptop runs</text>
         <text x="1130" y="366" fill="#5a7181" font-size="12" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">MLflow fairshare</text>
         </g>
-        <g data-layer="support">
         <text x="104" y="435" fill="#5a7181" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.12em">FOUNDATIONS</text>
+        <g data-layer="support">
         <rect x="112" y="392" width="212" height="80" rx="4" fill="#36495a" stroke="#5a7181" stroke-width="1" data-stage="ask" data-name="Runs as the viewer" fill-opacity="0.06"/>
         <svg x="300" y="400" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
         <text x="218" y="434" fill="#36495a" font-size="16" font-family="'Inter', system-ui, sans-serif" text-anchor="middle" font-weight="600">Runs as the viewer</text>

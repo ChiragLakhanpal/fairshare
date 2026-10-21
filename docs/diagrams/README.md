@@ -26,16 +26,17 @@ There is no figure 13. `hairline/png/title-b.png` is the title slide image, and 
 `01`, `02`, `04`, `05`, `06` and `08` also come as `<name>-animated.html`: the same figure as its static page, in
 diagram-design's reveal mode (`aa.animated()` in `src/aa.py`). The page plays once when it opens and then stays complete.
 Each step brings in one idea. On `01` each layer lifts clear; on the other five the marks only fade in, and nothing
-moves. The logo band, the headers or actors, the lifelines or axes, and the legend stay in place, except what gives the
-point away: the legend key that names the focal item, a caption and a payoff line come in with the step they belong to.
+moves. The logo band, the headers, lane labels or actors, the lifelines, axes or tier cards, and the legend stay in place,
+except what gives the point away: the legend key that names the focal item or the check, a caption and a payoff line come
+in with the step they belong to.
 
 | Page | Steps | What each step brings in |
 |---|---|---|
 | `01-system-exploded-animated.html` | 5 | the app lifts clear, then the checks, the agents and the definitions; the last step shows the data, where each layer lives and the caption |
-| `02-answer-checked-animated.html` | 4 | the account manager's row, the app's row, the work behind the screen with the verifier, its caption and its legend key, the foundations |
-| `04-journey-sales-director-animated.html` | 7 | the question, Genie and its rows, the change explained, the model's draft, the verifier, the answer with its query, the click on a number and the payoff line |
-| `05-journey-account-manager-animated.html` | 7 | the nightly job's request, the fixed SQL, the writer's draft, the verifier, the waiting page and Monday's look, the approve branch, the reject branch and the payoff line |
-| `06-data-pipeline-animated.html` | 7 | the sources, bronze, silver, gold, the numbers defined once, the readers, the one sentence on who can see what |
+| `02-answer-checked-animated.html` | 4 | the account manager's row, the app's row, the work behind the screen with the verifier, its caption and its legend key, the foundations (each lane's label shows from the start) |
+| `04-journey-sales-director-animated.html` | 7 | the question, Genie and its rows, the change explained, the model's draft, the verifier with the legend key for the check, the answer with its query, the click on a number and the payoff line |
+| `05-journey-account-manager-animated.html` | 7 | the nightly job's request, the fixed SQL, the writer's draft, the verifier with the legend key for the check, the waiting page and Monday's look, the approve branch, the reject branch and the payoff line |
+| `06-data-pipeline-animated.html` | 7 | the sources, then what bronze, silver, gold and the definitions hold, the readers, the one sentence on who can see what (the two headings and the four tier cards, each with its name and schema, show from the start) |
 | `08-why-it-moved-animated.html` | 5 | September 2025, volume, the shift between routes (mix) with its note, share with the callout and its legend key, September 2026 with the sum, each with the line that carries the total into it |
 
 On its own, a page has Previous, Next, Play, Pause and Replay buttons, and the arrow keys, Home and End step it. With
