@@ -278,6 +278,7 @@ def test_watch_and_mismatch_items_have_summaries_and_sections(state):
     w = agents.run("watch", {"region": "All", "month": "2026-08"}, "tester", mode="template")
     tier = next(i for i in w.items if "incentive tier" in i.title).to_json()
     assert "tier" in tier["summary"].lower() and "$60K" in tier["summary"] and [s["title"] for s in tier["sections"]] == ["The alert", "What to do"] and tier["email"]
+    assert len(tier["email"]["paragraphs"]) == 4 and tier["email"]["paragraphs"][0][0]["text"].startswith("Hello ")
     m = agents.run("mismatch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
     harbor = next(i for i in m.items if "Harbor" in i.title).to_json()
     assert "On track" in harbor["summary"] and len(harbor["sections"]) == 2 and harbor["email"] is None and harbor["note"]

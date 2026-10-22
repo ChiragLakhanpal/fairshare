@@ -13,11 +13,13 @@ sys.path.insert(0, str(ROOT))
 
 from fairshare import db  # noqa: E402
 
-# Words that would call the made-up data real: the agencies and their sales, the goals, the bookings and the corporates, the agreements and the CRM.
-# The seats are the DOT's T-100 and may be called real; nothing else may.
+# Words that would call the made-up data real: the agencies and their sales, the goals, the bookings and the corporates, the agreements and the CRM,
+# alone or as their data ("the agency data is real", "real data on the agencies"). The seats are the DOT's T-100 and may be called real; nothing
+# else may.
 MADE_UP = r"(?:agenc(?:y|ies)|agency sales|sales(?: data)?|goals?|bookings?|corporates?|companies|contracts?|agreements?|CRM(?: data)?)"
 # "Not a real contract", as each agreement says of itself, is the opposite claim, so a "real" after "not a" or "never a" passes.
-AGENCY_REAL = re.compile(rf"\b{MADE_UP} (?:is|are) real\b|(?<!not a )(?<!never a )\breal {MADE_UP}\b|\b{MADE_UP} (?:is|are) not made up\b", re.I)
+AGENCY_REAL = re.compile(rf"\b{MADE_UP}(?: data)? (?:is|are) real\b|(?<!not a )(?<!never a )\breal {MADE_UP}\b|\b{MADE_UP}(?: data)? (?:is|are) not made up\b"
+                         rf"|\breal data (?:on|for|from|about|of) (?:the |its |their )?{MADE_UP}", re.I)
 # Words that would still call the seats made up, as the repo did before the switch to T-100 on Oct 21, 2026.
 # A dated record of the switch ("until this day the seat shares were made up") is history, so the past tense passes.
 SEATS_MADE_UP = re.compile(r"made.up (?:seat|capacity)|seat (?:shares?|counts?|data|numbers)(?: here)? (?:are|is) (?:all )?made up"

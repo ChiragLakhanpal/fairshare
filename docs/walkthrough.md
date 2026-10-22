@@ -39,7 +39,7 @@ data." (August tells the same story: 386K, down 15.5%, share 45.6% to 35.4%, 110
 51.8% to 52.5%, with August's seats last year's too.)
 
 **5:00 Ask (two and a half minutes).** Three questions in the chat bar, in this order. Summit on DFW to ORD, Q3 2026 vs
-Q3 2025: revenue $221K to $298K, AA share 46.3% to 53.5%, fair share 65.7% to 63.7%, so Summit went from 19.3 points below
+Q3 2025: revenue $221K to $298K, AA share 46.3% to 53.5%, fair share 65.7% to 63.7%, so Summit went from about 19 points below
 fair share to 10.2 below; "Show the query" opens the MEASURE() query Genie wrote against the metric view, and "Open in Genie" opens the same
 conversation in Genie. The contract question: clause 5.1 quoted with file and
 page (below 45% for two consecutive quarters), and the quarterly shares from 45.1% to 52.6% showing it has not happened. Then
@@ -101,7 +101,7 @@ director should want: rules, a review loop, a gate.
 - What about per-agency security? Genie runs as the asking user; Unity Catalog row filters do the rest; the harness carries the user's token, never a service principal.
 - How do you know it is right? Twenty questions with known answers before and after every change, the verifier on every answer, and MLflow traces on the laptop runs (the App itself runs without them).
 - What is fake? The agencies, the corporates, their sales and goals, the contracts and the CRM. The seats are real: the DOT's T-100, with the two newest months repeating last year until the DOT publishes them. The Power BI twin is a second SQL implementation because Power BI Desktop is Windows only.
-- Why is almost every agency below fair share? The sales are made up, drawn at 27% to 52% AA share per agency, while fair share on these twelve routes, weighted by where the agencies sell, comes out at 51% to 53%. So most of the made-up agencies land under it: in Q3 2026 only Lone Star is above it, by a point, and Summit is about level.
+- Why is almost every agency below fair share? The sales are made up and were set before the real seats came in, at 27% to 52% AA share per agency, while fair share on these twelve routes, weighted by where the agencies sell, comes out at 51% to 53%. So most of the made-up agencies land under it: in Q3 2026 only Lone Star is above it, by a point, and Summit is about level.
 - Why an app and not just the dashboard? The dashboard is the leadership view: what and where, one glance. The app is the conversation: why, the agreement, a verified summary, and the query one click away. Both read one metric view, so they cannot disagree.
 - Why React and FastAPI and not Streamlit? Granular control of the experience for non-technical people: progressive disclosure, a floating chat bar, windows where the information is needed, exports; and a per-request identity so two viewers never share a token or a fact pool.
 - What about Genie App Builder? It would let a sales team describe a view and get an app inside an App Space, one governance boundary for identities, scopes and cost. It is in Beta and not on Free Edition, so this app is a classic Databricks App. The harness and the verifier are what would make those self-built views trustworthy.
