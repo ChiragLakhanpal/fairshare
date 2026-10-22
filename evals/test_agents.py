@@ -217,6 +217,31 @@ def test_prospect_clt_lga_offline(state):
     assert "headroom" in item.verified_text.lower() and "[1]" in item.verified_text
 
 
+# ---------------------------------------------------------------- a month whose seats the DOT has not published
+NO_SEATS = "The DOT has not published this month's seats yet, so there is no seat comparison with last year"
+
+
+def test_a_month_whose_seats_are_borrowed_gets_no_seat_comparison(state):
+    """September 2026's seats repeat September 2025's until the DOT publishes them, so a comparison with last year would read 0.0% on every
+    route. The pre-call page and the prospect brief say there is no comparison and carry no seat-change number. July 2026, which the DOT
+    has published, still compares."""
+    from harness import precall, prospect  # noqa: F401
+    pack = lambda month: next(i for i in agents.run("precall", {"manager": "Marcus Lee", "month": month}, "tester", mode="template").items  # noqa: E731
+                              if i.title.startswith("Harbor"))
+    sep, jul = pack("2026-09"), pack("2026-07")
+    sched = fact(sep, "schedule").df
+    assert sched["is_projected"].all() and sched["seats_change_pct"].isna().all(), "no seat-change number in the page's facts"
+    assert fact(sep, "phrases").df.iloc[0]["seats"].startswith(NO_SEATS) and NO_SEATS in sep.verified_text and not sep.flagged
+    assert "AA seats versus last year" not in sep.verified_text
+    assert fact(jul, "phrases").df.iloc[0]["seats"].startswith("On the agency's top markets, AA seats versus last year: ") and not jul.flagged
+    brief = lambda month: agents.run("prospect", {"market": "CLT-LGA", "month": month}, "tester", mode="template").items[0]  # noqa: E731
+    sep, jul = brief("2026-09"), brief("2026-07")
+    cap = fact(sep, "capacity").df.iloc[0]
+    assert bool(cap["is_projected"]) and pd.isna(cap["seats_change_pct"]), "no seat-change number in the brief's facts"
+    assert NO_SEATS in sep.verified_text and "with seats" not in sep.verified_text and not sep.flagged
+    assert "with seats -9.3% against last year" in jul.verified_text and not jul.flagged
+
+
 def test_prospect_unknown_market_fails_honestly(state):
     from harness import prospect  # noqa: F401
     run = agents.run("prospect", {"market": "XXX-YYY", "month": "2026-09"}, "tester", mode="template")

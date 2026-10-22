@@ -106,9 +106,12 @@ def crm_block(aid: int, mo: str) -> tuple[Fact, Fact, Fact]:
 
 
 def schedule_block(aid: int, mo: str, prior: str) -> Fact:
+    """AA seats on the agency's top five markets against the same month last year. A month the DOT has not published yet repeats last year's
+    seats (is_projected), so it gets no change: a 0.0% there would present borrowed seats as a measurement."""
     sql = f"""
         SELECT CONCAT(m.origin, '-', m.dest) AS market, ROUND(s.aa_revenue, 0) AS aa_revenue, c.aa_seats AS aa_seats_now, p.aa_seats AS aa_seats_prior_year,
-               ROUND((c.aa_seats - p.aa_seats) * 100.0 / NULLIF(p.aa_seats, 0), 1) AS seats_change_pct, ROUND(c.aa_seat_share * 100, 1) AS aa_seat_share_pct
+               CASE WHEN c.is_projected THEN NULL ELSE ROUND((c.aa_seats - p.aa_seats) * 100.0 / NULLIF(p.aa_seats, 0), 1) END AS seats_change_pct,
+               ROUND(c.aa_seat_share * 100, 1) AS aa_seat_share_pct, c.is_projected
         FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.dim_market m ON m.market_id = s.market_id
         JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
         LEFT JOIN aa_demo.gold.fact_market_capacity p ON p.market_id = s.market_id AND p.sales_month = DATE '{prior}'
@@ -249,8 +252,11 @@ def phrases(seed: dict, fs: list[Fact]) -> dict:
         crm += f" The CRM says the {r.opp_name} is {r.health}, but AA share is {'down' if r.share_chg_pts < 0 else 'up'} {num(abs(r.share_chg_pts))} points against last year, so the record needs a correction."
     ph["crm"] = crm
     moved = sched.dropna(subset=["seats_change_pct"]) if not sched.empty else sched
-    ph["seats"] = ("There is no seat comparison with last year for the agency's top markets this month." if moved.empty else
-                   "On the agency's top markets, AA seats versus last year: " + ", ".join(f"{r.market} {'up' if r.seats_change_pct >= 0 else 'down'} {num(abs(r.seats_change_pct))}%" for r in moved.head(3).itertuples()) + ".")
+    if not sched.empty and sched["is_projected"].fillna(False).astype(bool).any():
+        ph["seats"] = "The DOT has not published this month's seats yet, so there is no seat comparison with last year for the agency's top markets."
+    else:
+        ph["seats"] = ("There is no seat comparison with last year for the agency's top markets this month." if moved.empty else
+                       "On the agency's top markets, AA seats versus last year: " + ", ".join(f"{r.market} {'up' if r.seats_change_pct >= 0 else 'down'} {num(abs(r.seats_change_pct))}%" for r in moved.head(3).itertuples()) + ".")
     points = [f"the share gap is worth {money(abs(n.get('share_gap_usd') or 0))} {'below' if gap < 0 else 'above'} fair share"]
     if not mk.empty:
         points.append(f"{mk.iloc[0]['market']} {'lost' if mk.iloc[0]['share_effect'] < 0 else 'gained'} {money(abs(mk.iloc[0]['share_effect']))} of share")

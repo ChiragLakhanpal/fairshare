@@ -42,6 +42,19 @@ def test_harbor_august_is_a_share_story():
     assert "parts_sum" in text
 
 
+def test_the_capacity_exclusion_cannot_be_checked_in_a_month_whose_seats_are_borrowed():
+    """Summit's clause 5.3 leaves out a quarter in which AA cut seats on a route by more than 15% year over year. August and September 2026
+    repeat 2025's seats until the DOT publishes them, so their change would read 0% on every route: those months are not_checkable, with no
+    value. The months the DOT has published are checked."""
+    rows = db.query("""SELECT k.as_of, k.status, k.value, MAX(CASE WHEN c.is_projected THEN 1 ELSE 0 END) AS projected
+                       FROM aa_demo.ops.agreement_checks k JOIN aa_demo.gold.fact_market_capacity c ON c.sales_month = k.as_of
+                       WHERE k.clause_type = 'capacity_exclusion' GROUP BY k.as_of, k.status, k.value ORDER BY k.as_of""")
+    borrowed, published = rows[rows["projected"] == 1], rows[rows["projected"] == 0]
+    assert [pd.Timestamp(d).month for d in borrowed["as_of"]] == [8, 9] and len(published) == 7
+    assert set(borrowed["status"]) == {"not_checkable"} and borrowed["value"].isna().all()
+    assert set(published["status"]) <= {"ok", "watch"} and published["value"].notna().all()
+
+
 def test_run_sql_is_read_only():
     facts.reset()
     assert run_sql.func(sql="DROP TABLE aa_demo.gold.dim_agency").startswith("Rejected")

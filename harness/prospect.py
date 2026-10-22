@@ -54,9 +54,11 @@ def facts(scope: dict, seed: dict) -> list[Fact]:
                ROUND(SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0) * 100, 1) AS fair_share_pct
         FROM aa_demo.gold.fact_agency_sales_monthly s JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = s.market_id AND c.sales_month = s.sales_month
         WHERE s.market_id = {mid} AND s.sales_month <= DATE '{mo}' AND s.sales_month > DATE '{mo}' - INTERVAL 12 MONTH GROUP BY ALL ORDER BY s.sales_month"""
+    # a month the DOT has not published yet repeats last year's seats (is_projected), so it gets no change against last year
     csql = f"""
-        SELECT c.aa_seats AS aa_seats_now, p.aa_seats AS aa_seats_prior_year, ROUND((c.aa_seats - p.aa_seats) * 100.0 / NULLIF(p.aa_seats, 0), 1) AS seats_change_pct,
-               ROUND(c.aa_seat_share * 100, 1) AS aa_seat_share_pct, c.total_seats, c.source
+        SELECT c.aa_seats AS aa_seats_now, p.aa_seats AS aa_seats_prior_year,
+               CASE WHEN c.is_projected THEN NULL ELSE ROUND((c.aa_seats - p.aa_seats) * 100.0 / NULLIF(p.aa_seats, 0), 1) END AS seats_change_pct,
+               ROUND(c.aa_seat_share * 100, 1) AS aa_seat_share_pct, c.total_seats, c.source, c.is_projected
         FROM aa_demo.gold.fact_market_capacity c LEFT JOIN aa_demo.gold.fact_market_capacity p ON p.market_id = c.market_id AND p.sales_month = DATE '{prior}'
         WHERE c.market_id = {mid} AND c.sales_month = DATE '{mo}'"""
     return [Fact("headroom", f"Each agency on {seed['market']} this year: AA share against fair share, and the gap in dollars (the headroom)", db.query(hsql), hsql.strip(), "gold.fact_agency_sales_monthly, gold.fact_market_capacity"),
@@ -91,7 +93,9 @@ def template(seed: dict, fs: list[Fact]) -> str:
         p1 += "No agency sells AA below fair share on this market, so the headroom is in growing the market, not in share."
     else:
         p1 += "The headroom sits with " + ", ".join(f"{r.agency_name} ({money(abs(r.share_gap_usd))} below fair share at {num(r.aa_share_pct)}% against {num(r.fair_share_pct)}%)" for r in below.head(3).itertuples()) + "."
-    if cap.get("seats_change_pct") is not None:
+    if cap.get("is_projected"):
+        p1 += " The DOT has not published this month's seats yet, so there is no seat comparison with last year."
+    elif cap.get("seats_change_pct") is not None:
         p1 += f" AA's seat share on the route is {num(cap.get('aa_seat_share_pct'))}% this month, with seats {num(cap['seats_change_pct'])}% against last year."
     srcs = research.sources(market)
     if srcs:
