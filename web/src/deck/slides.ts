@@ -155,7 +155,7 @@ export const slides: Slide[] = [
   {
     id: "share-fair", part: "numbers", kind: "animated", title: "AA share against fair share, Q3 2026", min: 1, data: true,
     asset: "12-share-vs-fair-animated.html", thumb: "export/12-share-vs-fair.png",
-    note: "Fair share first, and why it barely moves. Then AA share, Lone Star on top at {agency_q3_aa_share_lonestar}, FareHub last at {agency_q3_aa_share_farehub}, most under fair share because I set the sales before the seats came in. Then why Harbor fell.",
+    note: "Fair share first, and why it barely moves. Then AA share, Lone Star on top at {agency_q3_aa_share_lonestar}, FareHub last at {agency_q3_aa_share_farehub}. Most sit under fair share because I set the sales before the seats came in. Then Harbor.",
   },
   {
     id: "moved", part: "numbers", kind: "animated", title: "Why Harbor fell in September", min: 1.5, data: true,

@@ -49,7 +49,7 @@ publishes: scheduled passenger service on the twelve routes, both directions, Ja
 turns the BTS files into `data/t100/aa_seat_share.csv`, which `data/make_data.py` reads, so every row says `source = t100`).
 AA's seats are AA's network: AA plus its own regional airlines Envoy (MQ), PSA (OH) and Piedmont (PT). Republic and SkyWest fly
 for several airlines, American Eagle among them, and T-100 cannot tell which of their flights are AA's, so they count as other
-airlines and AA's share is low. It is lowest on DCA-BOS, where Republic and SkyWest fly about a third of the seats (17.7% on
+airlines and AA's share runs low. The undercount is largest on DCA-BOS, where Republic and SkyWest fly about a third of the seats (17.7% on
 PHX-LAX and 8.5% on CLT-LGA, Jan 2025 to Jul 2026). BTS publishes about three months late: on
 Oct 21, 2026 July was the newest month, so August and September 2026 repeat the same months of 2025 and say
 `is_projected = true` (the metric view's `capacity_is_projected`; the home page and the deck say so too). Two routes where AA
