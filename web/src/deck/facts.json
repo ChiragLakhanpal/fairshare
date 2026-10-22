@@ -70,7 +70,7 @@
    "key": "latest_month",
    "name": "Sales and seats both run through September 2026",
    "ok": true,
-   "why": "Catches a table that stops early, because fair share needs sales and seats for the same month."
+   "why": "Catches a table that stops early, because fair share needs sales and seats for the same month, and the seats reach September only by repeating last year."
   },
   {
    "actual": 4920.87,

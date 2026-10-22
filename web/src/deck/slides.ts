@@ -20,7 +20,7 @@ export const slides: Slide[] = [
     id: "welcome", part: "open", kind: "live", title: "Fairshare: sales answers you can check", min: 0.5, short: 0.5,
     asset: "hairline/title-b-airliner.html", thumb: "hairline/png/title-b.png",
     byline: ["Chirag Lakhanpal", "Analyst/Sr Analyst, Sales AI & Innovation", "The agencies and their sales are made up, and the seats are real T-100 data."],
-    note: "Say my name and one line about me. Before anyone asks, the agencies, their sales, the contracts and the CRM are made up, and the seats are real T-100 data. Then I walk through the plan.",
+    note: "Say my name and a line about me. Only the seats are real, T-100 data. Most agencies sit under fair share because I set their made-up sales before the seats came in. Then the plan.",
   },
   {
     id: "agenda", part: "open", kind: "native", title: "Share questions and pre-call packs, in five parts", min: 0.5, short: 0.5,
@@ -155,7 +155,7 @@ export const slides: Slide[] = [
   {
     id: "share-fair", part: "numbers", kind: "animated", title: "AA share against fair share, Q3 2026", min: 1, data: true,
     asset: "12-share-vs-fair-animated.html", thumb: "export/12-share-vs-fair.png",
-    note: "Fair share first, then why it barely moves, since every agency spreads its sales over the same routes in similar proportions. Then AA share, Lone Star on top at {agency_q3_aa_share_lonestar}, FareHub last at {agency_q3_aa_share_farehub}. Then why Harbor fell.",
+    note: "Fair share first, and why it barely moves. Then AA share, Lone Star on top at {agency_q3_aa_share_lonestar}, FareHub last at {agency_q3_aa_share_farehub}, most under fair share because I set the sales before the seats came in. Then why Harbor fell.",
   },
   {
     id: "moved", part: "numbers", kind: "animated", title: "Why Harbor fell in September", min: 1.5, data: true,
@@ -239,7 +239,7 @@ export const slides: Slide[] = [
       layout: "statement",
       lines: [
         "It does not flag a single corporate's drop yet.",
-        "The two newest months of seats are last year's until the DOT publishes.",
+        "The newest two months of seats repeat 2025 until the DOT publishes them.",
         "The goals are made up and soft, so pace is a ranking more than a grade.",
         "An account manager cannot mark an answer as wrong yet.",
         "Ask as a Foundry hosted agent is built but not deployed.",
@@ -273,12 +273,12 @@ export const slides: Slide[] = [
       layout: "statement",
       lines: [
         "Time today's work first: how long a pre-call pack takes, and how many share questions become tickets.",
-        "Add AA's own schedule to the one seat table that fair share reads, for the newest months and the partner flights T-100 leaves out.",
+        "Fill the seat table's newest months from a schedule feed, and add the American Eagle flights that T-100 files under Republic and SkyWest.",
         "Connect AA's own agency sales, and match each number to the reports people use now.",
         "Give account managers a way to mark an answer as wrong, and read every one.",
       ],
     },
-    note: "First I'd time today's work, so there's a before, then a press each for AA's own schedule, AA's agency sales and a way to flag a wrong answer. Then how we'd know it worked, if there's time.",
+    note: "First I'd time today's work, so there's a before, then a press each for a schedule feed, AA's agency sales and a way to flag a wrong answer. Then how we'd know it worked, if there's time.",
   },
   {
     id: "know", part: "aa", kind: "native", title: "How AA would know Fairshare worked", min: 1,
@@ -330,7 +330,7 @@ export const slides: Slide[] = [
   {
     id: "checks-all", part: "backup", kind: "native", title: "All eight tests on the data", min: 0,
     native: { layout: "checks" },
-    note: "All eight, for when someone asks. {sales_rows} rows is {agencies} agencies by {routes} routes by {months} months, minus Sunbelt's {sunbelt_missing_rows} missing. The same tests run before every commit.",
+    note: "All eight, for when someone asks. {sales_rows} rows is {agencies} agencies by {routes} routes by {months} months, minus Sunbelt's {sunbelt_missing_rows} missing. The seats reach September only by repeating last year's. The same tests run before every commit.",
   },
   {
     id: "words", part: "backup", kind: "native", title: "Booking, seat, share, fair share and pace, in plain words", min: 0,

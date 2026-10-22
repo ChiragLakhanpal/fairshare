@@ -287,6 +287,9 @@ def build(rows, motion=False) -> str:
         marks = []
         for series, x, anchor in ((left, lx - 12, "end"), (right, rx + 12, "start")):
             accent = series == "aa"
+            # a paper patch under the value, as under the verdict, so a gridline does not run through it; 4px clear of the dot beside it
+            w = width(shown[series], VALUE_SIZE, mono=True)
+            marks.append(f'<rect x="{x - w - 4 if anchor == "end" else x - 4:g}" y="{y - 10}" width="{w + 8:g}" height="20" fill="{aa.PAPER}"/>')
             attrs = (f' data-agency="{name}" data-series="{series}" data-fact="agency_q3_{series}_share_{slug}" data-callout="{name}"'
                      + (" data-keep" if accent else ""))
             marks.append(text(x, y + 5, shown[series], size=VALUE_SIZE, weight=600 if accent else 400, fill=aa.ACCENT if accent else aa.MUTED,

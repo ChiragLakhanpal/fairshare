@@ -84,11 +84,15 @@
         <circle data-agency="Golden Coast Travel" data-series="aa" data-value="31.0" cx="633" cy="458" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Midway Travel Services" data-series="aa" data-value="30.5" cx="627" cy="488" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="FareHub Online" data-series="aa" data-value="18.7" cx="471" cy="518" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
+        <rect x="865" y="178" width="47" height="20" fill="#ffffff"/>
         <text x="908" y="193" fill="#5a7181" font-size="13" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" data-agency="Lone Star Travel Group" data-series="fair" data-fact="agency_q3_fair_share_lonestar" data-callout="Lone Star Travel Group">52.7%</text>
+        <rect x="941" y="178" width="47" height="20" fill="#ffffff"/>
         <text x="945" y="193" fill="#006cbf" font-size="13" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" data-agency="Lone Star Travel Group" data-series="aa" data-fact="agency_q3_aa_share_lonestar" data-callout="Lone Star Travel Group" data-keep="">53.7%</text>
         <rect x="994" y="178" width="187" height="20" fill="#ffffff"/>
         <text x="1000" y="193" fill="#5a7181" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="above" data-callout="Lone Star Travel Group">Furthest above fair share</text>
+        <rect x="416" y="508" width="47" height="20" fill="#ffffff"/>
         <text x="459" y="523" fill="#006cbf" font-size="13" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" data-agency="FareHub Online" data-series="aa" data-fact="agency_q3_aa_share_farehub" data-callout="FareHub Online" data-keep="">18.7%</text>
+        <rect x="909" y="508" width="47" height="20" fill="#ffffff"/>
         <text x="913" y="523" fill="#5a7181" font-size="13" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" data-agency="FareHub Online" data-series="fair" data-fact="agency_q3_fair_share_farehub" data-callout="FareHub Online">51.3%</text>
         <rect x="962" y="508" width="187" height="20" fill="#ffffff"/>
         <text x="968" y="523" fill="#5a7181" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="below" data-callout="FareHub Online">Furthest below fair share</text>

@@ -811,7 +811,8 @@ CHECKS: list[tuple[str, str, str, str, object, str]] = [  # (key, sentence, why,
         SELECT COUNT(*) AS value FROM aa_demo.gold.fact_agency_sales_monthly
         WHERE aa_revenue > market_revenue OR aa_pax > market_pax""", 0, "int"),
     ("latest_month", "Sales and seats both run through September 2026",
-     "Catches a table that stops early, because fair share needs sales and seats for the same month.", """
+     "Catches a table that stops early, because fair share needs sales and seats for the same month, and the seats reach September only by "
+     "repeating last year.", """
         SELECT CONCAT(CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_agency_sales_monthly) AS STRING), ' and ',
                       CAST((SELECT MAX(sales_month) FROM aa_demo.gold.fact_market_capacity) AS STRING)) AS value""", "2026-09-01 and 2026-09-01", "months"),
     ("duplicates_removed", "Cleaning removed the duplicates' revenue",
