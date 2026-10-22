@@ -150,7 +150,7 @@ export const slides: Slide[] = [
   {
     id: "gaps", part: "numbers", kind: "animated", title: "The other four numbers, and what goes into each", min: 1, data: true,
     asset: "09b-numbers-gaps-animated.html", thumb: "export/09b-numbers-gaps.png",
-    note: "The other four, a press each. Harbor's gap is {harbor_gap_pts_sep26} points, or {harbor_gap_usd_sep26}, and revenue is {harbor_yoy_sep26} on last September. Pace counts only the months an agency reported. Last press, where they're defined. Then every agency against fair share.",
+    note: "The other four, a press each. Harbor's gap is {harbor_gap_pts_sep26} points, or {harbor_gap_usd_sep26}, on last year's seats, and revenue is {harbor_yoy_sep26} on last September. Pace counts only reported months. Last, where they're defined. Then every agency against fair share.",
   },
   {
     id: "share-fair", part: "numbers", kind: "animated", title: "AA share against fair share, Q3 2026", min: 1, data: true,
