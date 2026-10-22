@@ -8,7 +8,7 @@ run offline (app/cache/kpi_parity.csv, written by harness/cache.py).
 """
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -25,7 +25,8 @@ def run(retired: bool = False) -> pd.DataFrame:
     if not db.is_databricks():
         raise SystemExit("parity compares against MEASURE() and needs FAIRSHARE_BACKEND=databricks")
     defs = db.query("SELECT kpi, twin_sql, twin_version, twin_sql_retired FROM aa_demo.ops.kpi_definitions WHERE kpi IN ('aa_revenue','aa_share','fair_share','share_gap_pts','share_gap_usd','yoy_revenue_pct')")
-    run_id, run_at = uuid.uuid4().hex[:12], datetime.now().isoformat(timespec="seconds")
+    # UTC, as the nightly job on serverless stamps it, so a run from the laptop sorts in time with the job's runs
+    run_id, run_at = uuid.uuid4().hex[:12], datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds")
     out = []
     for d in defs.itertuples():
         twin_sql, version = d.twin_sql, d.twin_version

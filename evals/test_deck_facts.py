@@ -95,9 +95,8 @@ SEAT_KPIS = ("fair_share", "share_gap_pts", "share_gap_usd")
 def test_harbors_september_on_the_numbers_cards_is_what_the_metric_view_says():
     """The numbers and gaps slides print each number for Harbor in Sep 2026. Six are the metric view's measures, so each must equal the value the
     metric view itself returned on Databricks (the parity file, newest run); pace comes from gold.agency_pace, which has no measure to compare.
-    Three of the six read the seats. Until a parity run from after the switch to T-100 seats is exported, the parity file holds them for the
-    old seat shares, so those three are held to the SQL copy of each measure (ops.kpi_definitions.twin_sql) run on the local build, the copy
-    every parity run has found equal to the metric view. Once a newer run is exported, all six are held to the metric view again."""
+    Three of the six read the seats, so the newest parity run in the file must come from after the switch to T-100 seats; an older export
+    holds them for the old seat shares and fails here until parity runs again on Databricks and `python -m harness.cache` exports it."""
     mv = db.query(f"""SELECT kpi, mv_value, run_at FROM read_csv('{ROOT / "app/cache/kpi_parity.csv"}')
                       WHERE agency = 'Harbor Business Travel' AND sales_month = DATE '2026-09-01' AND twin_version IN ('v1', 'v2')
                       QUALIFY ROW_NUMBER() OVER (PARTITION BY kpi ORDER BY run_at DESC) = 1""")
@@ -106,13 +105,7 @@ def test_harbors_september_on_the_numbers_cards_is_what_the_metric_view_says():
     assert (round(got["aa_revenue"]), round(100 * got["aa_share"], 1), round(100 * got["yoy_revenue_pct"], 1)) == \
         (v["harbor_revenue_sep26_usd"], v["harbor_share_sep26"], v["harbor_yoy_sep26"])
     newest = max(datetime.date.fromisoformat(str(r)[:10]) for r, k in zip(mv["run_at"], mv["kpi"]) if k in SEAT_KPIS)
-    if newest < SEATS_SWITCH:
-        twins = db.query(f"SELECT kpi, twin_sql FROM aa_demo.ops.kpi_definitions WHERE kpi IN {SEAT_KPIS}")
-        assert set(twins["kpi"]) == set(SEAT_KPIS)
-        for kpi, sql in zip(twins["kpi"], twins["twin_sql"]):
-            rows = db.query(f"SELECT value FROM ({sql}) AS t WHERE agency = 'Harbor Business Travel' AND sales_month = DATE '2026-09-01'")
-            assert len(rows) == 1, kpi
-            got[kpi] = float(rows["value"].iloc[0])
+    assert newest >= SEATS_SWITCH, f"the parity export's newest seat run is {newest}, from before the T-100 seats: rerun parity and harness.cache"
     assert (round(100 * got["fair_share"], 1), round(got["share_gap_pts"], 1), round(got["share_gap_usd"])) == \
         (v["harbor_fair_share_sep26"], v["harbor_gap_pts_sep26"], v["harbor_gap_usd_sep26"])
 
