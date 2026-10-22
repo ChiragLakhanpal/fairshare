@@ -158,17 +158,20 @@ def test_pack_rejects_an_unknown_manager(state):
 
 # ---------------------------------------------------------------- agreement watch
 def test_watch_september(state):
+    # With the T-100 seats Summit's share premium is -0.7 points year to date, 5.7 from its next tier, so September flags no Summit tier.
+    # A tier item still comes up in August 2026, where BlueSky's share is 3.0 points under its 43% tier line.
     from harness import watch  # noqa: F401
     run = agents.run("watch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
     assert run.status == "needs_approval", run.error
     titles = [i.title for i in run.items]
-    assert any("Harbor" in t for t in titles) and any("BlueSky" in t for t in titles) and any("Summit" in t for t in titles)
+    assert titles == ["Harbor Business Travel: revenue commitment (clause 2.1)", "BlueSky Corporate Travel: share floor (clause 3)"]
     harbor = next(i for i in run.items if "Harbor" in i.title)
     assert harbor.kind == "clause" and harbor.severity in ("watch", "risk") and {f.name for f in harbor.facts} >= {"check", "trend", "contacts"}
     assert harbor.action["type"] == "email" and harbor.action["subject"].startswith("Agreement watch") and harbor.action["crm"]["agency_id"] == 5
-    summit = next(i for i in run.items if "Summit" in i.title)
-    assert not fact(summit, "tiers").df.empty and "tier" in summit.verified_text.lower()
-    for item in run.items:
+    august = agents.run("watch", {"region": "All", "month": "2026-08"}, "tester", mode="template")
+    tier = next(i for i in august.items if "incentive tier" in i.title)
+    assert tier.title.startswith("BlueSky") and not fact(tier, "tiers").df.empty and "tier" in tier.verified_text.lower()
+    for item in run.items + august.items:
         assert not item.flagged, (item.title, item.flagged)
         assert "Could not verify" in item.draft and "Hello " in item.draft
 
@@ -244,9 +247,12 @@ def test_item_sections_email_note_and_summary(state):
 def test_watch_and_mismatch_items_have_summaries_and_sections(state):
     from harness import mismatch, watch  # noqa: F401
     w = agents.run("watch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
-    summit = next(i for i in w.items if "Summit" in i.title).to_json()
-    assert "tier" in summit["summary"].lower() and "$188K" in summit["summary"] and [s["title"] for s in summit["sections"]] == ["The alert", "What to do"] and summit["email"]
-    assert len(summit["email"]["paragraphs"]) == 4 and summit["email"]["paragraphs"][0][0]["text"].startswith("Hello ")
+    harbor = next(i for i in w.items if "Harbor" in i.title).to_json()
+    assert "commitment" in harbor["summary"].lower() and "$46K" in harbor["summary"] and [s["title"] for s in harbor["sections"]] == ["The alert", "What to do"] and harbor["email"]
+    assert len(harbor["email"]["paragraphs"]) == 4 and harbor["email"]["paragraphs"][0][0]["text"].startswith("Hello ")
+    w = agents.run("watch", {"region": "All", "month": "2026-08"}, "tester", mode="template")
+    tier = next(i for i in w.items if "incentive tier" in i.title).to_json()
+    assert "tier" in tier["summary"].lower() and "$60K" in tier["summary"] and [s["title"] for s in tier["sections"]] == ["The alert", "What to do"] and tier["email"]
     m = agents.run("mismatch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
     harbor = next(i for i in m.items if "Harbor" in i.title).to_json()
     assert "On track" in harbor["summary"] and len(harbor["sections"]) == 2 and harbor["email"] is None and harbor["note"]
@@ -265,12 +271,12 @@ def test_ready_made_phrases_travel_with_the_facts(state):
     run = agents.run("precall", {"manager": "Marcus Lee", "month": "2026-09"}, "tester", mode="template")
     harbor = next(i for i in run.items if i.title.startswith("Harbor"))
     ph = fact(harbor, "phrases").df.iloc[0]
-    assert ph["gap"] == "a gap of 5.9 points worth $57K below fair share" and ph["share_move"].endswith("down 10.1 points") and ph["volume"] == "volume added $33K"
+    assert ph["gap"] == "a gap of 17.8 points worth $172K below fair share" and ph["share_move"].endswith("down 10.1 points") and ph["volume"] == "volume added $33K"
     assert ph["gap"] in harbor.draft and ph["crm"] in harbor.draft and not harbor.flagged
     w = agents.run("watch", {"region": "All", "month": "2026-09"}, "tester", mode="template")
-    summit = next(i for i in w.items if "Summit" in i.title)
-    ph = fact(summit, "phrases").df.iloc[0]
-    assert ph["distance"] == "2.2 points below the line" and ph["dollars"].startswith("$188K") and not summit.flagged
+    harbor = next(i for i in w.items if "Harbor" in i.title)
+    ph = fact(harbor, "phrases").df.iloc[0]
+    assert ph["distance"] == "3.9% below the line" and ph["dollars"].startswith("$46K") and not harbor.flagged
 
 
 def test_sql_literals_keep_quotes_and_backslashes_on_databricks(monkeypatch):

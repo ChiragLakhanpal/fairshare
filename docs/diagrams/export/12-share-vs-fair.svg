@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="12-share-vs-fair-title 12-share-vs-fair-desc" id="d-12-share-vs-fair-root">
         <title id="12-share-vs-fair-title">AA share against fair share, Q3 2026</title>
-        <desc id="12-share-vs-fair-desc">Dumbbell chart of twelve agencies' AA share against fair share in Q3 2026, on all routes together, the rows running from furthest above fair share to furthest below: Lone Star Travel Group at 53.7% against 38.8%, FareHub Online at 18.7% against 38.0%. Fair share stays between 37.9% and 39.9% for every agency because each one spreads its sales over the same twelve routes in similar proportions. The seat shares are made up, one base share per route, moved a little each month.</desc>
+        <desc id="12-share-vs-fair-desc">Dumbbell chart of twelve agencies' AA share against fair share in Q3 2026, on all routes together, the rows running from furthest above fair share to furthest below: Lone Star Travel Group at 53.7% against 52.7%, FareHub Online at 18.7% against 51.3%. Fair share stays between 50.6% and 53.4% for every agency because each one spreads its sales over the same twelve routes in similar proportions. The seat shares are real T-100 data, and August and September 2026 repeat the same months of 2025 until the DOT publishes them.</desc>
   <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #d-12-share-vs-fair-root { --color-paper:  #ffffff;
@@ -37,59 +37,61 @@
         <text x="208" y="253" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Atlantic Premier Travel">Atlantic Premier Travel</text>
         <text x="208" y="283" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Northstar Leisure">Northstar Leisure</text>
         <text x="208" y="313" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="BlueSky Corporate Travel">BlueSky Corporate Travel</text>
-        <text x="208" y="343" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Sunbelt Vacations">Sunbelt Vacations</text>
-        <text x="208" y="373" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Capitol Corporate Travel">Capitol Corporate Travel</text>
+        <text x="208" y="343" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Capitol Corporate Travel">Capitol Corporate Travel</text>
+        <text x="208" y="373" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Sunbelt Vacations">Sunbelt Vacations</text>
         <text x="208" y="403" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Pacific Gateway Travel">Pacific Gateway Travel</text>
         <text x="208" y="433" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Harbor Business Travel">Harbor Business Travel</text>
         <text x="208" y="463" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Golden Coast Travel">Golden Coast Travel</text>
         <text x="208" y="493" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="Midway Travel Services">Midway Travel Services</text>
         <text x="208" y="523" fill="#36495a" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="end" data-row-label="FareHub Online">FareHub Online</text>
-        <text x="737" y="164" fill="#5a7181" font-size="12" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" data-label="fair">Fair share</text>
-        <circle data-agency="Lone Star Travel Group" data-series="fair" data-value="38.8" cx="736" cy="188" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Summit Travel Partners" data-series="fair" data-value="38.5" cx="732" cy="218" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Atlantic Premier Travel" data-series="fair" data-value="39.9" cx="751" cy="248" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Northstar Leisure" data-series="fair" data-value="38.7" cx="735" cy="278" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="BlueSky Corporate Travel" data-series="fair" data-value="39.9" cx="751" cy="308" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Sunbelt Vacations" data-series="fair" data-value="38.7" cx="735" cy="338" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Capitol Corporate Travel" data-series="fair" data-value="39.8" cx="749" cy="368" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Pacific Gateway Travel" data-series="fair" data-value="37.9" cx="724" cy="398" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Harbor Business Travel" data-series="fair" data-value="39.8" cx="749" cy="428" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Golden Coast Travel" data-series="fair" data-value="37.9" cx="724" cy="458" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="Midway Travel Services" data-series="fair" data-value="38.4" cx="731" cy="488" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
-        <circle data-agency="FareHub Online" data-series="fair" data-value="38.0" cx="726" cy="518" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <text x="920" y="164" fill="#5a7181" font-size="12" font-weight="500" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" data-label="fair">Fair share</text>
+        <circle data-agency="Lone Star Travel Group" data-series="fair" data-value="52.7" cx="920" cy="188" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Summit Travel Partners" data-series="fair" data-value="52.6" cx="918" cy="218" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Atlantic Premier Travel" data-series="fair" data-value="53.4" cx="929" cy="248" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Northstar Leisure" data-series="fair" data-value="52.5" cx="917" cy="278" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="BlueSky Corporate Travel" data-series="fair" data-value="53.0" cx="924" cy="308" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Capitol Corporate Travel" data-series="fair" data-value="52.9" cx="922" cy="338" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Sunbelt Vacations" data-series="fair" data-value="52.7" cx="920" cy="368" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Pacific Gateway Travel" data-series="fair" data-value="51.1" cx="899" cy="398" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Harbor Business Travel" data-series="fair" data-value="53.0" cx="924" cy="428" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Golden Coast Travel" data-series="fair" data-value="50.6" cx="892" cy="458" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="Midway Travel Services" data-series="fair" data-value="52.0" cx="910" cy="488" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
+        <circle data-agency="FareHub Online" data-series="fair" data-value="51.3" cx="901" cy="518" r="6" fill="#ffffff" stroke="#5a7181" stroke-width="1.5"/>
         <text x="40" y="596" fill="#5a7181" font-size="15" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="seats">Fair share is nearly the same for every agency because each one spreads its sales over the same twelve routes in similar proportions.</text>
-        <text x="40" y="618" fill="#5a7181" font-size="15" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="seats">The seat shares are made up, one base share per route, moved a little each month.</text>
-        <text x="933" y="164" fill="#006cbf" font-size="12" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" data-label="aa">AA share</text>
+        <text x="40" y="618" fill="#5a7181" font-size="15" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="seats">The seat shares are real T-100 data, and August and September 2026 repeat the same months of 2025 until the DOT publishes them.</text>
+        <text x="933" y="164" fill="#006cbf" font-size="12" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" data-label="aa">AA share</text>
         <text x="364.0" y="120" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">The rows run from furthest above fair share to furthest below.</text>
-        <line data-agency="Lone Star Travel Group" x1="742.75" y1="188" x2="933" y2="188" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="Summit Travel Partners" x1="738.75" y1="218" x2="918" y2="218" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="Atlantic Premier Travel" x1="757.75" y1="248" x2="906" y2="248" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="Northstar Leisure" x1="741.75" y1="278" x2="864" y2="278" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="Pacific Gateway Travel" x1="717.25" y1="398" x2="708" y2="398" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="Harbor Business Travel" x1="742.25" y1="428" x2="687" y2="428" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="Golden Coast Travel" x1="717.25" y1="458" x2="633" y2="458" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="Midway Travel Services" x1="724.25" y1="488" x2="627" y2="488" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
-        <line data-agency="FareHub Online" x1="719.25" y1="518" x2="471" y2="518" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Lone Star Travel Group" x1="926.75" y1="188" x2="933" y2="188" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Atlantic Premier Travel" x1="922.25" y1="248" x2="906" y2="248" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Northstar Leisure" x1="910.25" y1="278" x2="864" y2="278" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="BlueSky Corporate Travel" x1="917.25" y1="308" x2="753" y2="308" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Capitol Corporate Travel" x1="915.25" y1="338" x2="747" y2="338" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Sunbelt Vacations" x1="913.25" y1="368" x2="734" y2="368" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Pacific Gateway Travel" x1="892.25" y1="398" x2="708" y2="398" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Harbor Business Travel" x1="917.25" y1="428" x2="687" y2="428" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Golden Coast Travel" x1="885.25" y1="458" x2="633" y2="458" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="Midway Travel Services" x1="903.25" y1="488" x2="627" y2="488" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
+        <line data-agency="FareHub Online" x1="894.25" y1="518" x2="471" y2="518" stroke="#36495a" stroke-width="1" stroke-opacity="0.6"/>
         <circle data-agency="Lone Star Travel Group" data-series="aa" data-value="53.7" cx="933" cy="188" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Summit Travel Partners" data-series="aa" data-value="52.6" cx="918" cy="218" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Atlantic Premier Travel" data-series="aa" data-value="51.7" cx="906" cy="248" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Northstar Leisure" data-series="aa" data-value="48.5" cx="864" cy="278" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="BlueSky Corporate Travel" data-series="aa" data-value="40.1" cx="753" cy="308" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
-        <circle data-agency="Sunbelt Vacations" data-series="aa" data-value="38.6" cx="734" cy="338" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
-        <circle data-agency="Capitol Corporate Travel" data-series="aa" data-value="39.6" cx="747" cy="368" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
+        <circle data-agency="Capitol Corporate Travel" data-series="aa" data-value="39.6" cx="747" cy="338" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
+        <circle data-agency="Sunbelt Vacations" data-series="aa" data-value="38.6" cx="734" cy="368" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Pacific Gateway Travel" data-series="aa" data-value="36.7" cx="708" cy="398" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Harbor Business Travel" data-series="aa" data-value="35.1" cx="687" cy="428" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Golden Coast Travel" data-series="aa" data-value="31.0" cx="633" cy="458" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="Midway Travel Services" data-series="aa" data-value="30.5" cx="627" cy="488" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
         <circle data-agency="FareHub Online" data-series="aa" data-value="18.7" cx="471" cy="518" r="6" fill="#006cbf" stroke="#36495a" stroke-width="1"/>
-        <text x="724" y="193" fill="#5a7181" font-size="13" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" data-agency="Lone Star Travel Group" data-series="fair" data-fact="agency_q3_fair_share_lonestar" data-callout="Lone Star Travel Group">38.8%</text>
+        <text x="908" y="193" fill="#5a7181" font-size="13" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" data-agency="Lone Star Travel Group" data-series="fair" data-fact="agency_q3_fair_share_lonestar" data-callout="Lone Star Travel Group">52.7%</text>
         <text x="945" y="193" fill="#006cbf" font-size="13" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" data-agency="Lone Star Travel Group" data-series="aa" data-fact="agency_q3_aa_share_lonestar" data-callout="Lone Star Travel Group" data-keep="">53.7%</text>
         <rect x="994" y="178" width="187" height="20" fill="#ffffff"/>
         <text x="1000" y="193" fill="#5a7181" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="above" data-callout="Lone Star Travel Group">Furthest above fair share</text>
         <text x="459" y="523" fill="#006cbf" font-size="13" font-weight="600" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" data-agency="FareHub Online" data-series="aa" data-fact="agency_q3_aa_share_farehub" data-callout="FareHub Online" data-keep="">18.7%</text>
-        <text x="738" y="523" fill="#5a7181" font-size="13" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" data-agency="FareHub Online" data-series="fair" data-fact="agency_q3_fair_share_farehub" data-callout="FareHub Online">38.0%</text>
-        <rect x="787" y="508" width="187" height="20" fill="#ffffff"/>
-        <text x="793" y="523" fill="#5a7181" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="below" data-callout="FareHub Online">Furthest below fair share</text>
+        <text x="913" y="523" fill="#5a7181" font-size="13" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" data-agency="FareHub Online" data-series="fair" data-fact="agency_q3_fair_share_farehub" data-callout="FareHub Online">51.3%</text>
+        <rect x="962" y="508" width="187" height="20" fill="#ffffff"/>
+        <text x="968" y="523" fill="#5a7181" font-size="14" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" data-note="below" data-callout="FareHub Online">Furthest below fair share</text>
         <svg x="40" y="651" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#5a7181"/></svg>
         <text x="60" y="662" fill="#5a7181" font-size="11" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">AA share and fair share for each agency, Jul to Sep 2026 · gold.fact_agency_sales_monthly, gold.fact_market_capacity</text>
       </svg>

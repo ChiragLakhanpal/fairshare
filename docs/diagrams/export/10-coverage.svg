@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="10-coverage-title 10-coverage-desc" id="d-10-coverage-root">
         <title id="10-coverage-title">Every agency, every month</title>
-        <desc id="10-coverage-desc">Grid of 12 agencies by 21 months, Jan 2025 to Sep 2026, where 250 of 252 agency-months have rows with all twelve routes: Sunbelt Vacations has none for Mar and Apr 2026, and Northstar Leisure's Jan 2026 is reported with AA at $0 on SEA-DEN.</desc>
+        <desc id="10-coverage-desc">Grid of 12 agencies by 21 months, Jan 2025 to Sep 2026, where 250 of 252 agency-months have rows with all twelve routes: Sunbelt Vacations has none for Mar and Apr 2026, and Northstar Leisure's Jan 2026 is reported with AA at $0 on SEA-ORD.</desc>
   <defs>
       <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
       #d-10-coverage-root { --color-paper:  #ffffff;
@@ -564,7 +564,7 @@
         <text x="950.0" y="576" fill="#006cbf" font-size="14" font-weight="600" font-family="'Inter', system-ui, sans-serif" text-anchor="middle">Sunbelt Vacations sent nothing for Mar and Apr 2026</text>
         <circle cx="46" cy="612" r="4.5" fill="#36495a"/>
         <text x="58" y="616" fill="#36495a" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">Northstar Leisure, Jan 2026</text>
-        <text x="280" y="616" fill="#36495a" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">Reported, with AA at $0 on SEA-DEN: a zero is not a gap</text>
+        <text x="280" y="616" fill="#36495a" font-size="16" font-weight="400" font-family="'Inter', system-ui, sans-serif" text-anchor="start" font-style="italic">Reported, with AA at $0 on SEA-ORD: a zero is not a gap</text>
         <svg x="280" y="631" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M.95 14.184L12 20.403l9.919-5.55v2.21L12 22.662l-10.484-5.96-.565.308v.77L12 24l11.05-6.218v-4.317l-.515-.309L12 19.118l-9.867-5.653v-2.21L12 16.805l11.05-6.218V6.32l-.515-.308L12 11.974 2.647 6.681 12 1.388l7.76 4.368.668-.411v-.566L12 0 .95 6.27v.72L12 13.207l9.919-5.55v2.26L12 15.52 1.516 9.56l-.565.308Z" fill="#36495a"/></svg>
         <text x="304" y="644" fill="#5a7181" font-size="12" font-weight="400" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start">a cell is shaded by how many routes an agency has rows for · gold.fact_agency_sales_monthly</text>
         <line x1="40" y1="664" x2="1240" y2="664" stroke="#36495a" stroke-width="0.8" stroke-opacity="0.14"/>

@@ -70,14 +70,14 @@ markets = [
     (2, "DFW", "ORD", "Central", True),
     (3, "CLT", "LGA", "East", True),
     (4, "MIA", "JFK", "East", True),
-    (5, "PHX", "SEA", "West", True),
+    (5, "PHX", "LAX", "West", True),
     (6, "DFW", "DCA", "East", True),
     (7, "ORD", "SFO", "West", True),
     (8, "DCA", "BOS", "East", True),
     (9, "LAX", "JFK", "East", True),
     (10, "DFW", "DEN", "Central", True),
     (11, "AUS", "ORD", "Central", False),
-    (12, "SEA", "DEN", "West", False),
+    (12, "SEA", "ORD", "West", False),
 ]
 
 # Synthetic AA seat share by market, used only when the T-100 file is missing

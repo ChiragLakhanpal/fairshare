@@ -1,5 +1,8 @@
 """The home page's "Worth knowing this month" block: fixed queries, template prose, the verifier, no model. Offline
-(conftest: DuckDB, no model); the data is deterministic (seed 88201), so the September lines are pinned here."""
+(conftest: DuckDB, no model); the sales are deterministic (seed 88201) and the seats are the committed T-100 file
+(data/t100/aa_seat_share.csv), so the September lines are pinned here. September 2026's seats repeat September 2025's until the
+DOT publishes them, so no route moved that month and the line that says so takes the capacity line's place; July 2026, the newest
+month the DOT has published, still has a capacity line."""
 import re
 import sys
 from pathlib import Path
@@ -25,19 +28,33 @@ def _texts(out):
 
 
 def test_september_lines_rank_dollars_at_stake_first_then_the_rest_in_a_fixed_order():
+    # With the T-100 seats Summit's share premium is -0.7 points year to date, 5.7 from its next tier, so its tier is no longer within reach
+    # and has no line; Harbor's commitment, with dollars at stake, leads.
     facts.reset()
     out = signals.build("All", "2026-09")
-    assert [s["kind"] for s in out] == ["clause", "clause", "mismatch", "clause", "capacity", "bookings"]
+    assert [s["kind"] for s in out] == ["clause", "mismatch", "clause", "projected", "bookings"]
     t = _texts(out)
-    assert t[0] == "Summit Travel Partners is 2.2 points from an incentive tier worth $188K year to date."
-    assert t[1] == "Harbor Business Travel is at 96.1% of its revenue commitment, with $46K of advanced incentive at risk."
+    assert t[0] == "Harbor Business Travel is at 96.1% of its revenue commitment, with $46K of advanced incentive at risk."
     assert re.fullmatch(r"Harbor Business Travel's \$5\.2[67]M 2027 renewal is marked On track in the CRM stand-in while AA share fell 10\.1 points against last year\. "
-                        r"Four more open deals disagree with the data\.", t[2])
-    assert t[3] == "BlueSky Corporate Travel is 0.1 points above its share floor."
-    assert t[4] == "AA cut seats 4.4% on ORD-SFO against last September, and fair share there fell 1.3 points, the largest capacity move this month."
-    assert t[5] == "Corporate bookings the week of September 21 were $416K, up 12.4% week over week."
-    assert [s["severity"] for s in out] == ["watch", "watch", "risk", "watch", "watch", "ok"]
-    assert [s["agency"] for s in out] == ["Summit Travel Partners", "Harbor Business Travel", "Harbor Business Travel", "BlueSky Corporate Travel", None, None]
+                        r"Four more open deals disagree with the data\.", t[1])
+    assert t[2] == "BlueSky Corporate Travel is 0.1 points above its share floor."
+    assert t[3] == "The seat data for September 2026 is last year's, because this month's seat file is not in yet, so fair share is an estimate until it is."
+    assert t[4] == "Corporate bookings the week of September 21 were $416K, up 12.4% week over week."
+    assert [s["severity"] for s in out] == ["watch", "risk", "watch", "watch", "ok"]
+    assert [s["agency"] for s in out] == ["Harbor Business Travel", "Harbor Business Travel", "BlueSky Corporate Travel", None, None]
+
+
+def test_a_month_with_published_seats_names_the_largest_capacity_move():
+    # July 2026 is the newest month the DOT has published. The West's lines leave room for the network's capacity line, which the All view
+    # ranks past its six.
+    facts.reset()
+    out = signals.build("West", "2026-07")
+    assert [s["kind"] for s in out] == ["mismatch", "streak", "bookings", "capacity"]
+    cap = out[3]
+    assert cap["sentence"]["text"] == "AA cut seats 9.3% on CLT-LGA against last July, and fair share there rose 7.0 points, the largest capacity move this month."
+    assert cap["severity"] == "ok" and cap["agency"] is None
+    assert cap["action"] == {"kind": "ask", "question": "How did AA's seats on CLT-LGA change against last year?", "label": "Ask about the market"}
+    assert cap["chip"] == cap["action"]["question"]
 
 
 def test_every_line_is_checked_against_the_query_that_produced_it():
@@ -61,30 +78,30 @@ def test_a_region_only_names_its_own_agencies_and_keeps_the_network_lines():
     out = signals.build("West", "2026-09")
     named = [s["agency"] for s in out if s["agency"]]
     assert named and set(named) <= west
-    assert [s["kind"] for s in out] == ["mismatch", "capacity", "bookings"]
+    assert [s["kind"] for s in out] == ["mismatch", "projected", "bookings"]
     assert _texts(out)[0] == "FareHub Online's $1.68M NDC adoption is marked On track in the CRM stand-in while AA share fell 8.1 points against last year."
     facts.reset()
     central = _texts(signals.build("Central", "2026-09"))
-    assert central[1].endswith("Two more open deals disagree with the data.")
-    assert "rose 3.4 points" in central[1]
+    assert central[0].endswith("Two more open deals disagree with the data.")
+    assert "rose 3.4 points" in central[0]
 
 
-def test_each_line_carries_one_action_and_a_question_for_the_chips():
+def test_each_line_carries_one_action_and_a_question_for_the_chips_except_the_note_on_last_years_seats():
     facts.reset()
     out = signals.build("All", "2026-09")
     assert out[0]["action"] == {"kind": "delegate", "agent": "watch", "label": "Open Agreement watch"}
-    assert out[0]["chip"] == "What does Summit Travel Partners' agreement say about its incentive tier?"
-    assert out[2]["action"] == {"kind": "delegate", "agent": "mismatch", "label": "Open CRM versus reality"}
-    assert out[2]["chip"] == "Why is Harbor Business Travel down in September 2026?"
-    assert out[4]["action"]["kind"] == "ask" and out[4]["action"]["question"] == out[4]["chip"] == "How did AA's seats on ORD-SFO change against last year?"
-    assert out[5]["action"]["kind"] == "ask" and out[5]["chip"] == "Show corporate bookings by week for September 2026."
+    assert out[0]["chip"] == "What does Harbor Business Travel's agreement say about its revenue commitment?"
+    assert out[1]["action"] == {"kind": "delegate", "agent": "mismatch", "label": "Open CRM versus reality"}
+    assert out[1]["chip"] == "Why is Harbor Business Travel down in September 2026?"
+    assert out[3]["action"] == {"kind": "definitions", "kpi": "fair_share", "label": "See how fair share is defined"} and out[3]["chip"] is None
+    assert out[4]["action"]["kind"] == "ask" and out[4]["chip"] == "Show corporate bookings by week for September 2026."
 
 
 def test_the_route_returns_the_lines_with_their_calls(client):
     r = client.get("/api/signals", params={"region": "All", "month": "2026-09"})
     assert r.status_code == 200, r.text
     j = r.json()
-    assert j["region"] == "All" and j["month"] == "2026-09" and len(j["signals"]) == 6
+    assert j["region"] == "All" and j["month"] == "2026-09" and len(j["signals"]) == 5
     assert j["calls"] and all(c["sql"] for c in j["calls"]) and j["calls"][0]["tool"] == "signals"
     assert {c["args"]["block"] for c in j["calls"]} >= {"agreement checks", "CRM versus the data", "share streaks", "capacity moves", "corporate weekly bookings"}
     assert client.get("/api/signals", params={"region": "All", "month": "2026-13"}).status_code == 422

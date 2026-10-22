@@ -105,7 +105,7 @@ def pipeline(motion=False) -> str:
         put(3 + i, text(mid, run_y - 13, label, size=12, weight=400, color=stroke, anchor="middle", mono=True, spacing="0.08em"))
 
     # sources into the first tier, and the readers out of the last, on straight runs at the shared ports
-    sources = [("csv", None, "Seat shares", "made up, per route and month"), ("users", None, "Agency sales", "synthetic"),
+    sources = [("csv", None, "Seat shares", "real, from DOT T-100"), ("users", None, "Agency sales", "synthetic"),
                ("file", None, f"{fact('agreements')} agreements", "clauses by page"), (None, "dynamics365", "CRM", "Dynamics 365, stand-in")]
     readers = [("desktop", "The app"), ("monitoring", "Dashboard"), ("search", "Genie"), ("robot", "Agents")]
     put(None, eyebrow(40, ATTACH[0] - 44, "Sources", size=12))
@@ -161,28 +161,34 @@ def pipeline(motion=False) -> str:
 # ---------------------------------------------------------------- 07 what fair share means
 
 PITCH, CELL = 26, 20
+QUARTER_REPEATS = "Aug and Sep"  # the months of Q3 2026 whose seats repeat 2025 until the DOT publishes them; check_claims() holds it to the data
 GRID = 10 * PITCH - (PITCH - CELL)  # 254
 
 
+# How a cell is drawn: AA, AA beyond fair share (above it), a dollar fair share would send AA that went to another airline (below it), or another
+# airline. The last two only ever show in the sales grid, and only one of them at a time.
+STATES = {"aa": (aa.ACCENT, aa.ACCENT, 1, ""), "premium": ("rgba(0,108,191,0.16)", aa.ACCENT, 1.4, ""),
+          "short": ("#ffffff", aa.ACCENT, 1.4, ' stroke-dasharray="3 2"'), "other": ("#ffffff", aa.RULE_SOLID, 1, "")}
+
+
 def seat(x, y, state):
-    """A seat: a back and a cushion. AA, AA above fair share, or another airline."""
-    fill, stroke, sw = {"aa": (aa.ACCENT, aa.ACCENT, 1), "premium": ("rgba(0,108,191,0.16)", aa.ACCENT, 1.4),
-                        "other": ("#ffffff", aa.RULE_SOLID, 1)}[state]
-    return (f'<rect x="{x + 3}" y="{y}" width="14" height="13" rx="3" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>'
-            f'<rect x="{x + 1}" y="{y + 13}" width="18" height="7" rx="2" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
+    """A seat: a back and a cushion. AA, or another airline."""
+    fill, stroke, sw, dash = STATES[state]
+    return (f'<rect x="{x + 3}" y="{y}" width="14" height="13" rx="3" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{dash}/>'
+            f'<rect x="{x + 1}" y="{y + 13}" width="18" height="7" rx="2" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{dash}/>')
 
 
 def square(x, y, state):
     """One dollar of every hundred the agency sold on the route."""
-    fill, stroke, sw = {"aa": (aa.ACCENT, aa.ACCENT, 1), "premium": ("rgba(0,108,191,0.16)", aa.ACCENT, 1.4),
-                        "other": ("#ffffff", aa.RULE_SOLID, 1)}[state]
-    return f'<rect x="{x + 1}" y="{y + 1}" width="18" height="18" rx="4" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>'
+    fill, stroke, sw, dash = STATES[state]
+    return f'<rect x="{x + 1}" y="{y + 1}" width="18" height="18" rx="4" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"{dash}/>'
 
 
-def grid(x0, y0, aa_cells, premium, glyph):
+def grid(x0, y0, aa_cells, extra, glyph, extra_state="premium"):
+    """A hundred cells: aa_cells of AA, then extra cells drawn as extra_state, then the rest as another airline."""
     out = []
     for k in range(100):
-        state = "aa" if k < aa_cells else "premium" if k < aa_cells + premium else "other"
+        state = "aa" if k < aa_cells else extra_state if k < aa_cells + extra else "other"
         out.append(glyph(x0 + (k % 10) * PITCH, y0 + (k // 10) * PITCH, state))
     return "".join(out)
 
@@ -190,39 +196,42 @@ def grid(x0, y0, aa_cells, premium, glyph):
 def fair_share() -> str:
     fair, share, gap, usd = fact("summit_q3_fair_share"), fact("summit_q3_aa_share"), fact("summit_q3_gap_pts"), fact("summit_q3_gap_usd")
     fair_cells, share_cells = round(fair), round(share)  # ponytail: a 100-cell grid rounds to whole cells; the labels carry the decimals
+    above = gap >= 0  # Summit sends AA more than fair share would, or less; the grids, the payoff and the legend follow
+    assert above == (usd >= 0) == (share >= fair) == (share_cells >= fair_cells), "the gap in points, the gap in dollars and the two grids should agree"
+    side, extra = ("premium", "above fair share") if above else ("short", "below fair share")
     gy, ax, bx = 168, 96, 456
     out = [f'<rect width="100%" height="100%" fill="{aa.PAPER}"/>', aa.brand(tag="fairshare · synthetic data")]
-    # A: seats on the route, the fair share
+    # A: seats on the route, the fair share; two of the quarter's three months repeat 2025, which the line under the heading says
     out.append(text(ax, gy - 46, "Seats on DFW to Chicago", size=16))
-    out.append(text(ax, gy - 24, "made-up seat shares · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
+    out.append(text(ax, gy - 24, f"T-100 seats · Q3 2026, {QUARTER_REPEATS} from 2025", size=12, weight=400, color=aa.MUTED, mono=True))
     out.append(f'<g data-grid="seats">{grid(ax, gy, fair_cells, 0, seat)}</g>')
     out.append(text(ax, gy + GRID + 56, f"{fair}%", size=40, color=aa.ACCENT))
-    out.append(text(ax, gy + GRID + 84, "AA's made-up seat share: the fair share", size=16, color=aa.MUTED))
-    # B: the agency's sales on the same route, the AA share and the premium above fair share
+    out.append(text(ax, gy + GRID + 84, "AA's share of the seats: the fair share", size=16, color=aa.MUTED))
+    # B: the agency's sales on the same route, the AA share, and the gap to fair share above or below it
     out.append(text(bx, gy - 46, "Summit's sales on the same route", size=16))
     out.append(text(bx, gy - 24, "Summit Travel Partners · Q3 2026", size=12, weight=400, color=aa.MUTED, mono=True))
-    out.append(f'<g data-grid="sales">{grid(bx, gy, fair_cells, share_cells - fair_cells, square)}</g>')
+    out.append(f'<g data-grid="sales">{grid(bx, gy, min(fair_cells, share_cells), abs(share_cells - fair_cells), square, side)}</g>')
     out.append(text(bx, gy + GRID + 56, f"{share}%", size=40, color=aa.ACCENT))
     out.append(text(bx, gy + GRID + 84, "went to AA: the AA share", size=16, color=aa.MUTED))
     # the payoff
     px = 836
     out.append(f'<line x1="{px - 36}" y1="{gy}" x2="{px - 36}" y2="{gy + GRID + 84}" stroke="{aa.RULE_SOLID}" stroke-width="1"/>')
-    out.append(eyebrow(px, gy + 8, "Share premium"))
-    out.append(text(px, gy + 64, f"+{gap} points", size=40, color=aa.ACCENT))
-    out.append(text(px, gy + 92, "above fair share", size=16, color=aa.MUTED))
-    out.append(text(px, gy + 172, f"${fmt(usd)}", size=40))
-    out.append(text(px, gy + 200, "more AA revenue than", size=16, color=aa.MUTED))
+    out.append(eyebrow(px, gy + 8, "Share gap"))
+    out.append(text(px, gy + 64, f"{'+' if above else ''}{abs(gap)} points", size=40, color=aa.ACCENT))
+    out.append(text(px, gy + 92, extra, size=16, color=aa.MUTED))
+    out.append(text(px, gy + 172, f"${fmt(abs(usd))}", size=40))
+    out.append(text(px, gy + 200, f"{'more' if above else 'less'} AA revenue than", size=16, color=aa.MUTED))
     out.append(text(px, gy + 222, "fair share would bring", size=16, color=aa.MUTED))
     out.append(text(px, gy + 252, "same route, same quarter", size=12, weight=400, color=aa.MUTED, mono=True))
     # the one sentence that defines it
     cy = gy + GRID + 140
-    out.append(text(ax, cy, f"With the made-up seat shares, an agency that sold every airline in proportion to its seats would give AA {fair}% here. Summit gives {share}%.",
+    out.append(text(ax, cy, f"An agency that sold every airline in proportion to its seats would give AA {fair}% here. Summit gives {share}%.",
                     size=14, weight=400, color=aa.INK, italic=True))
     # legend strip, its keys ending 8px above the bottom of the deck's stage
     ly = aa.STAGE_BOTTOM - 16
     out.append(f'<line x1="{ax}" y1="{ly - 28}" x2="{VW - 40}" y2="{ly - 28}" stroke="{aa.RULE}" stroke-width="1"/>')
     out.append(eyebrow(ax, ly + 4, "Legend"))
-    keys = [(seat, "aa", "AA seat"), (square, "aa", "$1 of every $100 to AA"), (square, "premium", "above fair share"),
+    keys = [(seat, "aa", "AA seat"), (square, "aa", "$1 of every $100 to AA"), (square, side, extra),
             (square, "other", "another airline")]
     kx = ax + 96
     for glyph, state, label in keys:
@@ -240,9 +249,16 @@ def check_claims() -> None:
     assert one("""SELECT COUNT(*) AS value FROM (SELECT DISTINCT agency_id, market_id, sales_month
                                                FROM aa_demo.gold.fact_agency_sales_monthly) AS t""") == fact("sales_rows"), \
         "gold should hold one row per agency, route and month"
-    assert one("""SELECT COUNT(*) AS value FROM aa_demo.gold.fact_market_capacity
-                  WHERE is_projected AND sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'""") == 0, \
-        "Q3 2026 capacity should not be a projection"
+    # 07's line under its heading: of Q3 2026's three months, August and September repeat 2025's seats, on every route
+    projected = query("""SELECT EXTRACT(MONTH FROM c.sales_month) AS month, COUNT(*) AS routes,
+                                 COUNT(*) FILTER (WHERE c.aa_seats = p.aa_seats AND c.total_seats = p.total_seats) AS repeats
+                          FROM aa_demo.gold.fact_market_capacity c
+                          JOIN aa_demo.gold.fact_market_capacity p ON p.market_id = c.market_id
+                           AND EXTRACT(YEAR FROM p.sales_month) = 2025 AND EXTRACT(MONTH FROM p.sales_month) = EXTRACT(MONTH FROM c.sales_month)
+                          WHERE c.is_projected AND c.sales_month BETWEEN DATE '2026-07-01' AND DATE '2026-09-01'
+                          GROUP BY ALL ORDER BY month""")
+    assert [(r["month"], r["routes"], r["repeats"]) for r in projected] == [(8, fact("routes"), fact("routes")), (9, fact("routes"), fact("routes"))] \
+        and QUARTER_REPEATS == "Aug and Sep", "Q3 2026's projected seats should be August and September on every route, each the same as that month of 2025"
 
 
 if __name__ == "__main__":
@@ -251,7 +267,9 @@ if __name__ == "__main__":
               "Four sources pass through three Unity Catalog tiers, delivered, cleaned and ready to use, before seven numbers are defined once, six in the metric view that Genie, the dashboard, the app and the Ask agent read and pace in gold.agency_pace.",
               pipeline()),
              ("07-fair-share", "What fair share means", "fairshare · the data",
-              f"Two grids of one hundred: the made-up seat share for AA on DFW to Chicago in Q3 2026, {fact('summit_q3_fair_share')}%, and the {fact('summit_q3_aa_share')}% of Summit Travel Partners' sales on that route that went to AA, a premium of {fact('summit_q3_gap_pts')} points.",
+              f"Two grids of one hundred: AA's share of the seats on DFW to Chicago in Q3 2026, {fact('summit_q3_fair_share')}% from T-100 with August and September repeating 2025, "
+              f"and the {fact('summit_q3_aa_share')}% of Summit Travel Partners' sales on that route that went to AA, {abs(fact('summit_q3_gap_pts'))} points "
+              f"{'above' if fact('summit_q3_gap_pts') >= 0 else 'below'} fair share.",
               fair_share())]
     for slug, title, eyebrow_text, desc, body in pages:
         (aa.OUT / f"{slug}.html").write_text(aa.page(slug=slug, title=title, desc=desc, eyebrow=eyebrow_text, body=body), encoding="utf-8")

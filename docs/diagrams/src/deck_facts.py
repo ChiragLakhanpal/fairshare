@@ -135,8 +135,8 @@ FORMATS = {  # name: (read the value from the query, show it)
 
 def _summit_q3(expr: str) -> str:
     """Summit Travel Partners on DFW-ORD in Q3 2026, one number. The metric view's definitions are written out here: AA share is
-    AA revenue over everything the agency sold; fair share is AA's seat share (made up, one base share per route, moved a little each month)
-    weighted by that revenue."""
+    AA revenue over everything the agency sold; fair share is AA's seat share (T-100 seats from the DOT, with Aug and Sep 2026 repeating the
+    same months of 2025 until the DOT publishes them) weighted by that revenue."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -215,8 +215,8 @@ AGENCIES = (("summit", "Summit Travel Partners"), ("bluesky", "BlueSky Corporate
 
 def _agency_q3(agency: str, expr: str) -> str:
     """One agency's number for Q3 2026 over all routes together, one number. Like _summit_q3 for one route, the metric view's
-    definitions are written out: AA share is AA revenue over everything the agency sold; fair share is AA's seat share (made up,
-    one base share per route, moved a little each month) weighted by that revenue."""
+    definitions are written out: AA share is AA revenue over everything the agency sold; fair share is AA's seat share (T-100,
+    with Aug and Sep 2026 repeating 2025) weighted by that revenue."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -234,15 +234,15 @@ def _agency_q3_facts() -> list[tuple[str, str, str, str]]:
                     f"{name}, Q3 2026, all routes together: AA revenue over everything the agency sold."))
         out.append((f"agency_q3_fair_share_{slug}",
                     _agency_q3(name, "ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
-                    f"{name}, Q3 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) "
+                    f"{name}, Q3 2026, all routes together: AA's seat share (T-100, with Aug and Sep 2026 repeating 2025) "
                     "weighted by what the agency sold."))
     return out
 
 
 def _harbor_sep26(expr: str) -> str:
     """Harbor Business Travel in Sep 2026 over all routes together, one number. Like _agency_q3, the metric view's definitions are
-    written out: fair share is AA's seat share (made up, one base share per route, moved a little each month) weighted by what the agency
-    sold on each route."""
+    written out: fair share is AA's seat share (T-100, with Sep 2026 repeating Sep 2025) weighted by what the agency sold on each
+    route."""
     return f"""
         SELECT {expr} AS value
         FROM aa_demo.gold.fact_agency_sales_monthly s
@@ -368,11 +368,11 @@ FACTS: list[tuple[str, str, str, str]] = [
     ("summit_q3_aa_share", _summit_q3("ROUND(100 * SUM(s.aa_revenue) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
      "Summit Travel Partners on DFW-ORD, Q3 2026: AA revenue over everything Summit sold on the route."),
     ("summit_q3_fair_share", _summit_q3("ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
-     "Summit Travel Partners on DFW-ORD, Q3 2026: AA's seat share (made up) weighted by what Summit sold."),
+     "Summit Travel Partners on DFW-ORD, Q3 2026: AA's seat share (T-100, with Aug and Sep 2026 repeating 2025) weighted by what Summit sold."),
     ("summit_q3_gap_pts", _summit_q3("ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pts",
-     "Summit Travel Partners on DFW-ORD, Q3 2026: AA share minus fair share, in points. Fair share comes from made-up seat shares."),
+     "Summit Travel Partners on DFW-ORD, Q3 2026: AA share minus fair share, in points. Fair share comes from T-100 seat shares."),
     ("summit_q3_gap_usd", _summit_q3("ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share))"), "usd",
-     "Summit Travel Partners on DFW-ORD, Q3 2026: AA revenue minus the revenue fair share would bring. Fair share comes from made-up seat shares."),
+     "Summit Travel Partners on DFW-ORD, Q3 2026: AA revenue minus the revenue fair share would bring. Fair share comes from T-100 seat shares."),
     ("summit_q3_pax_share", _summit_q3("ROUND(100.0 * SUM(s.aa_pax) / NULLIF(SUM(s.market_pax), 0), 1)"), "pct",
      "Summit Travel Partners on DFW-ORD, Q3 2026: AA passengers over all passengers Summit booked on the route."),
     ("pax_rev_max_gap_pts", """
@@ -402,7 +402,8 @@ FACTS: list[tuple[str, str, str, str]] = [
     ("harbor_revenue_sep26_usd", _harbor_move("revenue_now", "2026-09-01"), "usd",
      "Harbor Business Travel: AA revenue in Sep 2026, where the waterfall ends."),
     ("harbor_fair_share_effect_usd", _harbor_move("fair_share_effect", "2026-09-01"), "usd_signed",
-     "Harbor Business Travel, Sep 2025 to Sep 2026: the change the made-up seat shares would have predicted. A side check, not part of the total."),
+     "Harbor Business Travel, Sep 2025 to Sep 2026: the change AA's seat shares alone would have predicted. A side check, not part of the total. "
+     "Zero, because the Sep 2026 seats repeat Sep 2025 until the DOT publishes them."),
 
     # --- Harbor's slow slide, by month
     ("harbor_share_sep25", _harbor_share("2025-09-01"), "pct", "Harbor Business Travel, Sep 2025: AA share, all routes together."),
@@ -413,13 +414,15 @@ FACTS: list[tuple[str, str, str, str]] = [
     # --- Harbor in Sep 2026, the example beside each definition on the numbers and gaps slides; harbor_revenue_sep26_usd, harbor_share_sep26
     # and harbor_pace_sep26 are the other three
     ("harbor_fair_share_sep26", _harbor_sep26("ROUND(100 * SUM(s.market_revenue * c.aa_seat_share) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pct",
-     "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (made up, one base share per route, moved a little each month) "
+     "Harbor Business Travel, Sep 2026, all routes together: AA's seat share (T-100, with Sep 2026 repeating Sep 2025) "
      "weighted by what Harbor sold."),
     ("harbor_gap_pts_sep26",
      _harbor_sep26("ROUND(100 * (SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share)) / NULLIF(SUM(s.market_revenue), 0), 1)"), "pts",
-     "Harbor Business Travel, Sep 2026, all routes together: AA share minus fair share, in points. Fair share comes from made-up seat shares."),
+     "Harbor Business Travel, Sep 2026, all routes together: AA share minus fair share, in points. Fair share comes from T-100 seat shares, "
+     "with Sep 2026 repeating Sep 2025."),
     ("harbor_gap_usd_sep26", _harbor_sep26("ROUND(SUM(s.aa_revenue) - SUM(s.market_revenue * c.aa_seat_share))"), "usd_signed",
-     "Harbor Business Travel, Sep 2026, all routes together: AA revenue minus the revenue fair share would bring. Fair share comes from made-up seat shares."),
+     "Harbor Business Travel, Sep 2026, all routes together: AA revenue minus the revenue fair share would bring. Fair share comes from T-100 "
+     "seat shares, with Sep 2026 repeating Sep 2025."),
     ("harbor_yoy_sep26", """
         SELECT ROUND(100 * (SUM(CASE WHEN s.sales_month = DATE '2026-09-01' THEN s.aa_revenue END)
                             - SUM(CASE WHEN s.sales_month = DATE '2025-09-01' THEN s.aa_revenue END))
@@ -547,6 +550,9 @@ DATED: dict[str, dict] = {
 
 # ---------------------------------------------------------------- the tables a slide shows, column by column
 
+# what the seat shares are, as the seats row's meaning says it and figure 12's note repeats it word for word
+SEATS_ARE = "The seat shares are real T-100 data, and August and September 2026 repeat the same months of 2025 until the DOT publishes them."
+
 SUMMIT = "(SELECT agency_id FROM aa_demo.gold.dim_agency WHERE agency_name = 'Summit Travel Partners')"
 SUNBELT = "(SELECT agency_id FROM aa_demo.gold.dim_agency WHERE agency_name = 'Sunbelt Vacations')"
 HARBOR = "(SELECT agency_id FROM aa_demo.gold.dim_agency WHERE agency_name = 'Harbor Business Travel')"
@@ -567,16 +573,17 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "market_pax": "Passengers on all of the agency's tickets on this route in this month, on all airlines.",
         },
     ),
-    "gold.fact_market_capacity": (
-        f"market_id = {DFW_ORD} AND sales_month = DATE '2026-09-01'",
+    "gold.fact_market_capacity": (  # slide `seats`: DFW-ORD in Jul 2026, the newest month the DOT has published
+        f"market_id = {DFW_ORD} AND sales_month = DATE '2026-07-01'",
         {
             "market_id": "Which route the seats are on. It matches market_id in dim_market.",
             "sales_month": "The month of the seats, stored as the first day of that month.",
-            "aa_seats": "Seats AA flies on this route in this month. Made up.",
-            "total_seats": "Seats all airlines fly on this route in this month. Made up.",
-            "aa_seat_share": "AA's seats divided by all seats on the route, which is the route's fair share. The seat shares are made up, one base share per route, moved a little each month.",
-            "is_projected": "True when this month's seat numbers are borrowed from last year because the seat file for the month is not in yet. It is never true for the made-up seat shares.",
-            "source": "Where the seat numbers came from. Here it always says synthetic, which means made up.",
+            "aa_seats": "Seats AA and its own regional airlines fly on this route in this month. Republic and SkyWest count as other airlines.",
+            "total_seats": "Seats all airlines fly on this route in this month.",
+            "aa_seat_share": "AA's seats divided by all seats on the route, which is the route's fair share. " + SEATS_ARE,
+            "is_projected": "True when the month's seats are borrowed from the same month a year earlier, because the DOT has not published the month yet. "
+                            "True for August and September 2026.",
+            "source": "Where the seat numbers came from. It always says t100 here, the DOT's T-100 data.",
         },
     ),
     "gold.dim_agency": (  # slide `dict-agencies`
@@ -721,12 +728,14 @@ COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
             "market_delta_pct": "The change in the agency's all-airline sales, as a percent.",
             "aa_share_now": "AA's share of the agency's sales this month, kept as a number between zero and one.",
             "aa_share_prior": "AA's share of the agency's sales a year earlier, kept as a number between zero and one.",
-            "fair_share_now": "Fair share this month, which is AA's seat share on the agency's routes, kept as a number between zero and one. The seat shares are made up.",
-            "fair_share_prior": "Fair share a year earlier. The seat shares are made up.",
+            "fair_share_now": "Fair share this month, which is AA's seat share on the agency's routes, kept as a number between zero and one. "
+                              "August and September 2026 repeat the seats of the same months of 2025.",
+            "fair_share_prior": "Fair share a year earlier, from the same T-100 seat data.",
             "volume_effect": "The part of the change that comes from the agency selling more or less travel overall.",
             "mix_effect": "The part of the change that comes from the agency moving sales between routes.",
             "share_effect": "The part of the change that comes from AA winning or losing share inside the routes.",
-            "fair_share_effect": "The change that the made-up seat shares would have predicted. A side check, not part of the total.",
+            "fair_share_effect": "The change that AA's seat shares alone would have predicted. A side check, not part of the total. "
+                                 "It is zero when the month repeats last year's seats.",
             "residual": "What is left when volume, mix and share are added up and compared with the change. Zero means they add up exactly.",
         },
     ),

@@ -202,7 +202,7 @@ function svgTexts(page: string, only?: "data-title"): string[] {
 }
 /** Words a title may capitalize after its first: the names of people, places, products and things in this talk. An all-caps word (AA, SQL,
  * DFW-ORD, Q3, T-100, AI/BI) passes as it is, and a possessive is read without its 's. */
-const PROPER = new Set(["Fairshare", "Ask", "Delegate", "Genie", "Foundry", "Harbor", "Summit", "Travel", "Partners", "Sep", "September", "Azure", "Power",
+const PROPER = new Set(["Fairshare", "Ask", "Delegate", "Genie", "Foundry", "Harbor", "Summit", "Travel", "Partners", "Jul", "Sep", "September", "Azure", "Power",
   "Databricks", "Free", "Edition", "English", "Monday", "March", "April", "Microsoft", "Teams", "Copilot", "Studio", "Entra", "Dataverse", "OneLake", "Fabric", "Dynamics",
   "Lone", "Star", "FareHub", "Online", "Sunbelt", "Northstar", "App", "I", "I'd", "I'm", "Outlook", "Unity", "Catalog"]);
 
@@ -352,12 +352,12 @@ describe("what the talk's slides hold", () => {
     return n as Extract<Native, { layout: L }>;
   };
 
-  it("opens on the airliner page, with his name, the role as the posting names it and a line that the data is made up", () => {
+  it("opens on the airliner page, with his name, the role as the posting names it and a line on what is made up and what is real", () => {
     const w = byId("welcome");
     expect([w.part, w.kind, w.asset, w.thumb]).toEqual(["open", "live", "hairline/title-b-airliner.html", "hairline/png/title-b.png"]);
     expect(w.byline?.slice(0, 2)).toEqual(["Chirag Lakhanpal", "Analyst/Sr Analyst, Sales AI & Innovation"]);
     expect(w.byline).toHaveLength(3);
-    expect(w.byline![2]).toMatch(/^Every number in this talk comes from made-up data\.$/);
+    expect(w.byline![2]).toBe("The agencies and their sales are made up, and the seats are real T-100 data.");
   });
   it("lists the five topics on the agenda", () => expect(byId("agenda").native).toEqual({ layout: "agenda" }));
   it("ends on a thank-you with his name, his email and a question to the room, and no link", () => {
@@ -701,7 +701,7 @@ describe("what the frame draws", () => {
   });
 });
 
-import { arrivalStep, framePoint, showsData, stepCount, type Facts, type Native, type Result, type Tile } from "./deck";
+import { arrivalStep, framePoint, PUBLIC_TABLES, showsData, stepCount, type Facts, type Native, type Result, type Tile } from "./deck";
 
 describe("native steps", () => {
   const native = (n: Native): Slide => ({ ...s("x", "steps", 1), native: n });
@@ -789,6 +789,13 @@ describe("a slide that shows data", () => {
     expect(showsData(byId("checks"), facts)).toBe(true);
     expect(showsData(byId("row"), facts)).toBe(true);
     expect(showsData(byId("problem"), facts)).toBe(false);
+  });
+  it("is not a table slide that shows only the T-100 seats, which are real, so the two seat slides keep the talk's title", () => {
+    expect(showsData(native({ layout: "table", tables: ["gold.fact_market_capacity"] }), f)).toBe(false);
+    expect(showsData(native({ layout: "table", tables: ["gold.fact_market_capacity", "gold.dim_agency"] }), f)).toBe(true);
+    expect(PUBLIC_TABLES).toEqual(["gold.fact_market_capacity"]);
+    for (const id of ["seats", "dict-seats"]) expect(showsData(byId(id), facts), id).toBe(false);
+    expect(slides.filter((s) => s.native?.layout === "table" && !showsData(s, facts)).map((s) => s.id)).toEqual(["seats", "dict-seats"]);
   });
 });
 

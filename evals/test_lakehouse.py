@@ -38,7 +38,7 @@ def test_harbor_august_is_a_share_story():
     text = explain_change.func(agency="Harbor", month="2026-08")
     s = facts.current().calls[0].preview.iloc[0]
     assert s["delta_pct"] < -10 and s["share_effect"] < 0 and abs(s["share_effect"]) > abs(s["volume_effect"])
-    assert abs(s["fair_share_now_pct"] - s["fair_share_prior_pct"]) < 2, "AA capacity barely moved; the story is the agency"
+    assert abs(s["fair_share_now_pct"] - s["fair_share_prior_pct"]) < 2, "fair share barely moved (August's seats repeat last year's); the story is the agency"
     assert "parts_sum" in text
 
 

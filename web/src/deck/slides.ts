@@ -19,8 +19,8 @@ export const slides: Slide[] = [
   {
     id: "welcome", part: "open", kind: "live", title: "Fairshare: sales answers you can check", min: 0.5, short: 0.5,
     asset: "hairline/title-b-airliner.html", thumb: "hairline/png/title-b.png",
-    byline: ["Chirag Lakhanpal", "Analyst/Sr Analyst, Sales AI & Innovation", "Every number in this talk comes from made-up data."],
-    note: "Say my name and one line about me. Before anyone asks, all the data in this talk is made up, the agencies, the sales, the contracts, the seats and so on. Then I walk through the plan.",
+    byline: ["Chirag Lakhanpal", "Analyst/Sr Analyst, Sales AI & Innovation", "The agencies and their sales are made up, and the seats are real T-100 data."],
+    note: "Say my name and one line about me. Before anyone asks, the agencies, their sales, the contracts and the CRM are made up, and the seats are real T-100 data. Then I walk through the plan.",
   },
   {
     id: "agenda", part: "open", kind: "native", title: "Share questions and pre-call packs, in five parts", min: 0.5, short: 0.5,
@@ -110,7 +110,7 @@ export const slides: Slide[] = [
   {
     id: "system", part: "numbers", kind: "animated", title: "Fairshare's five layers, with the checks in blue", min: 2.25, short: 1.5,
     asset: "01-system-exploded-animated.html", thumb: "export/01-system-exploded.png",
-    note: "A press per layer from the top, and blue is the checks. Ask runs on Genie and Qwen3-Next, Delegate's writers run in Foundry, and the data is made up. Then where that data comes from, if there's time.",
+    note: "A press per layer from the top, and blue is the checks. Ask runs on Genie and Qwen3-Next, Delegate's writers run in Foundry, and only the seats are real. Then where the data comes from, if there's time.",
   },
   {
     id: "elevator-opener", part: "numbers", kind: "live", title: "Four floors under the seven numbers", min: 0.25,
@@ -120,7 +120,7 @@ export const slides: Slide[] = [
   {
     id: "pipeline", part: "numbers", kind: "animated", title: "Where the seven numbers come from", min: 1.5, data: true,
     asset: "06-data-pipeline-animated.html", thumb: "export/06-data-pipeline.png",
-    note: "Four sources come first, and the seat shares are made up. Then a press each for bronze as delivered, silver cleaned, gold at {sales_rows} rows, the {kpis} numbers, who reads them, and Unity Catalog. Next, one actual row.",
+    note: "Four sources come first, and only the seats are real. Then a press each for bronze as delivered, silver cleaned, gold at {sales_rows} rows, the {kpis} numbers, who reads them, and Unity Catalog. Next, one actual row.",
   },
   {
     id: "row", part: "numbers", kind: "native", title: "Summit Travel Partners on DFW-ORD in Sep 2026", min: 1,
@@ -128,9 +128,9 @@ export const slides: Slide[] = [
     note: "One press brings in Summit's row of the sales table. AA revenue is beside everything Summit sold on that route that month, and AA share is one over the other. Next are the seats on that route.",
   },
   {
-    id: "seats", part: "numbers", kind: "native", title: "AA's seats on DFW-ORD in Sep 2026, made up", min: 1,
+    id: "seats", part: "numbers", kind: "native", title: "AA's seats on DFW-ORD in Jul 2026, from T-100", min: 1,
     native: { layout: "table", tables: ["gold.fact_market_capacity"], columns: ["aa_seats", "total_seats", "aa_seat_share", "source"] },
-    note: "One press brings in the seat row, all made up, and the source column even says synthetic. AA's seats over all the seats is the fair share on that route. Next is AA revenue by month.",
+    note: "One press brings in July's row, the newest month the DOT has published, and its source column names T-100. AA's seats over all the seats is the fair share on that route. Next is AA revenue by month.",
   },
   {
     id: "revenue", part: "numbers", kind: "animated", title: "AA revenue by month, and the March and April dip", min: 0.75, data: true,
@@ -145,7 +145,7 @@ export const slides: Slide[] = [
   {
     id: "numbers", part: "numbers", kind: "animated", title: "Three of the seven numbers, and what goes into each", min: 1, data: true,
     asset: "09a-numbers-share-animated.html", thumb: "export/09a-numbers-share.png",
-    note: "A press each, Harbor's September is the example, and fair share runs on made-up seats. Last press, shares are worked out per query, since averaging the agencies' Q3 shares gives {avg_of_shares_q3}, not the true {share_of_total_q3}. Then the other four.",
+    note: "A press each, Harbor's September is the example, and September's seats are last year's. Last press, shares are worked out per query, since averaging the agencies' Q3 shares gives {avg_of_shares_q3}, not the true {share_of_total_q3}. Then the other four.",
   },
   {
     id: "gaps", part: "numbers", kind: "animated", title: "The other four numbers, and what goes into each", min: 1, data: true,
@@ -160,7 +160,7 @@ export const slides: Slide[] = [
   {
     id: "moved", part: "numbers", kind: "animated", title: "Why Harbor fell in September", min: 1.5, data: true,
     asset: "08-why-it-moved-animated.html", thumb: "export/08-why-it-moved.png",
-    note: "A press per bar, from {harbor_revenue_sep25_usd} to {harbor_revenue_sep26_usd}. Volume added {harbor_volume_usd}, the shift between routes barely moved it, and share was {harbor_share_usd}, more than the whole drop. The made-up seats predicted {harbor_fair_share_effect_usd}, so it's not seats. Then the checks.",
+    note: "A press per bar, from {harbor_revenue_sep25_usd} to {harbor_revenue_sep26_usd}. Volume added {harbor_volume_usd}, the shift between routes barely moved it, and share was {harbor_share_usd}, more than the whole drop. Seats predict {harbor_fair_share_effect_usd}, since September's seats are last year's. Then the checks.",
   },
 
   // 4. Checks and misses: how an answer gets checked, the guardrails around it, what the tests found, and what it can't do yet
@@ -239,7 +239,7 @@ export const slides: Slide[] = [
       layout: "statement",
       lines: [
         "It does not flag a single corporate's drop yet.",
-        "The seat shares are made up, and the T-100 loader has never run.",
+        "The two newest months of seats are last year's until the DOT publishes.",
         "The goals are made up and soft, so pace is a ranking more than a grade.",
         "An account manager cannot mark an answer as wrong yet.",
         "Ask as a Foundry hosted agent is built but not deployed.",
@@ -273,12 +273,12 @@ export const slides: Slide[] = [
       layout: "statement",
       lines: [
         "Time today's work first: how long a pre-call pack takes, and how many share questions become tickets.",
-        "Swap my made-up seat shares for AA's own in the one capacity table that fair share reads.",
+        "Add AA's own schedule to the one seat table that fair share reads, for the newest months and the partner flights T-100 leaves out.",
         "Connect AA's own agency sales, and match each number to the reports people use now.",
         "Give account managers a way to mark an answer as wrong, and read every one.",
       ],
     },
-    note: "First I'd time today's work, so there's a before, then a press each for AA's own seat shares, AA's agency sales and a way to flag a wrong answer. Then how we'd know it worked, if there's time.",
+    note: "First I'd time today's work, so there's a before, then a press each for AA's own schedule, AA's agency sales and a way to flag a wrong answer. Then how we'd know it worked, if there's time.",
   },
   {
     id: "know", part: "aa", kind: "native", title: "How AA would know Fairshare worked", min: 1,
@@ -305,12 +305,12 @@ export const slides: Slide[] = [
   {
     id: "ask-still", part: "backup", kind: "image", still: true, title: "A good run of the Harbor question", min: 0,
     asset: "export/ask-still.png",
-    note: "Say it's a still from an earlier run on the App, with made-up numbers. The share effect is {harbor_share_usd}, more than the whole drop. Then pick the next slide from the outline.",
+    note: "Say it's a still from before the T-100 seats, with made-up sales, so its fair share is out of date. The share effect is {harbor_share_usd}, more than the whole drop. Then pick the next slide from the outline.",
   },
   {
     id: "precall-still", part: "backup", kind: "image", still: true, title: "A good run of the pre-call pack", min: 0,
     asset: "export/precall-still.png",
-    note: "Say it's a still of a page the 6 am job wrote, with made-up numbers. If asked, fine means {tier_watch_band_pts} or more points from a tier line. Then pick the next slide from the outline.",
+    note: "Say it's a still from the 6 am job, before the T-100 seats, so its fair share is out of date. Fine means {tier_watch_band_pts} or more points from a tier line. Then pick the next slide from the outline.",
   },
   {
     id: "manager", part: "backup", kind: "animated", title: "An account manager's Monday before agency calls", min: 0,
@@ -320,7 +320,7 @@ export const slides: Slide[] = [
   {
     id: "fair", part: "backup", kind: "image", title: "Summit's fair share on DFW-ORD in Q3", min: 0, data: true,
     asset: "export/07-fair-share.png",
-    note: "Fair share is AA's share of the seats, and these seat shares are made up. On DFW-ORD in Q3, Summit sent {summit_q3_aa_share} to AA against {summit_q3_fair_share}, {summit_q3_gap_usd} above fair share. By passengers it's {summit_q3_pax_share}, nearly the same.",
+    note: "Fair share is AA's share of the seats, from T-100, and August and September repeat last year. On DFW-ORD in Q3, Summit sent {summit_q3_aa_share} to AA against {summit_q3_fair_share}, below fair share. By passengers it's {summit_q3_pax_share}, nearly the same.",
   },
   {
     id: "planted", part: "backup", kind: "image", title: "What I planted, and what cleaning did", min: 0, data: true,
@@ -338,13 +338,13 @@ export const slides: Slide[] = [
       layout: "tiles",
       tiles: [
         { head: "Booking", body: "A company's purchase of one or more tickets, with the route, the day and the fare." },
-        { head: "Seat", body: "A seat an airline flies on a route in a month. The seat counts here are made up." },
+        { head: "Seat", body: "A seat an airline flies on a route in a month. The seat counts here are the DOT's T-100 data." },
         { head: "Share", body: "AA revenue divided by everything the agency sold on the same routes." },
-        { head: "Fair share", body: "AA's share of the seats on those routes, which is what a neutral agency would send AA. The seat shares here are made up." },
+        { head: "Fair share", body: "AA's share of the seats on those routes, which is what a neutral agency would send AA. The seat shares here come from T-100." },
         { head: "Pace", body: "Revenue so far as a percent of the goal so far. Over a hundred is ahead. The goals are made up." },
       ],
     },
-    note: "Five words in plain English, for when someone asks what one means. The seat counts and the goals behind fair share and pace are made up.",
+    note: "Five words in plain English, for when someone asks what one means. The goals behind pace are made up, and the seat counts behind fair share are the DOT's.",
   },
   {
     id: "dashboard", part: "backup", kind: "native", title: "The AI/BI dashboard on the same metric view", min: 0,
@@ -357,7 +357,7 @@ export const slides: Slide[] = [
         "For why a number moved, ask the app.",
       ],
     },
-    note: "Click Open the sales dashboard, and it opens in a new tab. It reads the same metric view and stands in for Power BI, and fair share on it uses the made-up seats. Close the tab to come back.",
+    note: "Click Open the sales dashboard, and it opens in a new tab. It reads the same metric view and stands in for Power BI, and fair share on it uses the T-100 seats. Close the tab to come back.",
   },
   {
     id: "choices", part: "backup", kind: "native", title: "What I chose for Fairshare, and what I chose against", min: 0,
@@ -380,9 +380,9 @@ export const slides: Slide[] = [
     note: "The sales table in full, for when someone asks. One row per agency, route and month, {sales_rows} rows in all. Share is AA revenue over market revenue.",
   },
   {
-    id: "dict-seats", part: "backup", kind: "native", title: "Seats by route and month, every column, made up", min: 0,
+    id: "dict-seats", part: "backup", kind: "native", title: "Seats by route and month, every column, from T-100", min: 0,
     native: { layout: "table", tables: ["gold.fact_market_capacity"] },
-    note: "The seat table in full, all made up, one row per route and month. The projected flag would mark a month borrowed from last year, and it's never set here.",
+    note: "The seat table in full, T-100 data, one row per route and month. The projected flag marks August and September, which repeat last year until the DOT publishes them.",
   },
   {
     id: "dict-agencies", part: "backup", kind: "native", title: "The made-up agencies, column by column", min: 0,
@@ -450,7 +450,7 @@ export const slides: Slide[] = [
       tables: ["ops.decomposition"],
       columns: ["revenue_now", "revenue_prior", "delta_revenue", "volume_effect", "mix_effect", "share_effect", "fair_share_effect", "residual"],
     },
-    note: "The decomposition row for Harbor's September. Volume, mix and share add up to the change exactly, so nothing is left over.",
+    note: "The decomposition row for Harbor's September. Volume, mix and share add up to the change exactly, so nothing is left over. The seat check is zero, since September's seats are last year's.",
   },
   {
     id: "dict-ops-shares", part: "backup", kind: "native", title: "AA share and fair share in Harbor's September row", min: 0,

@@ -107,7 +107,7 @@ def app_detail(P, r, z, sk, focal):
 DETAIL = {"data": data_detail, "defs": defs_detail, "agents": agents_detail, "checks": checks_detail, "app": app_detail}
 
 PARTS = [  # bottom to top: (key, name, two sublabel lines, thickness, closed z); the counts read deck_facts.py, as 06 does
-    ("data", "Data", ("made-up seats · Dynamics 365 Sales (stand-in)", f"{fact('agreements')} agreements · Unity Catalog aa_demo"), 24, 0),
+    ("data", "Data", ("T-100 seats · Dynamics 365 Sales (stand-in)", f"{fact('agreements')} agreements · Unity Catalog aa_demo"), 24, 0),
     ("defs", "Definitions", (f"metric view gold.sales_metrics · {fact('kpis')} numbers",
                              f"{DATED['twins_checked']['value']} of {fact('kpis')} checked nightly vs a SQL twin"), 12, 24),
     ("agents", "Agents", ('Genie space "fairshare sales metrics"', "Agent Framework · Qwen3-Next · Foundry writers"), 16, 36),
@@ -264,10 +264,10 @@ def build(motion: bool):
 #
 # The same five slabs through the same stack_svg(), at rest as 01's static page draws them. What changes is what stands next to them: 01 had a column
 # of platform logos with a dot per layer; here every piece under a layer carries one of three marks, drawn in 01's own dot grammar (solid, half,
-# hollow), and the right half lists each made-up table beside the AA feed that would replace it, hardest first. The focal slab is the data, because
+# hollow), and the right half lists each table in the demo beside the AA feed that would replace it, hardest first. The focal slab is the data, because
 # the feeds are the work and the first row of the list is the hard one. Nothing on it is a number from the data, so its logo band keeps the default tag.
 #
-# The animated page arrives with what the room looks at: the stack, the layers' names, the headings and the made-up tables. Then a press each for what
+# The animated page arrives with what the room looks at: the stack, the layers' names, the headings and the demo's tables. Then a press each for what
 # runs today, what is built but not deployed and what waits on AA's Microsoft account, each with its legend entry (the legend arrives with the first
 # marks), then the feeds hardest first. A step's words lead while it is current and recede once a later one comes (aa.EMBED_CSS). No slab is a step,
 # so the stack never lifts, and in the deck the rule that leaves 01's lifting slabs alone never has to.
@@ -291,7 +291,7 @@ FEEDS = [
      ("AA's own agency sales from ARC and BSP, and", "the agency's sales on other airlines from MIDT bookings", "or ticketed sales with fares such as IATA DDS."),
      ("The hardest, because AA sees its own sales and not the", "agency's sales elsewhere, and MIDT carries no fares.")),
     (("fact_market_capacity",),
-     ("One schedule source for every carrier (such as OAG or", "Cirium), then T-100 for every carrier once DOT publishes it,", "since Summit's agreement defines fair share by DOT data."), ()),
+     ("T-100 as today, since Summit's agreement uses DOT data,", "with a schedule source such as OAG or Cirium for months", "the DOT has not published and AA's own for partner flights."), ()),
     (("fact_corporate_bookings",), ("AA ticketing, by corporate account.",), ()),
     (("contract_clauses",), ("The agency agreements, read the same way.",), ()),
     (("crm_contacts", "crm_opportunities", "crm_activities"), ("Dynamics 365 Sales, through the Dataverse mirror.",), ()),
@@ -360,9 +360,9 @@ def feed_rows():
 
 
 def feed_frame(rows):
-    """What the right half shows on arrival: the three headings, the rule under them, each made-up table and a hairline between rows. A table
+    """What the right half shows on arrival: the three headings, the rule under them, each table in the demo and a hairline between rows. A table
     heads its row, so it is structure; the feed beside it is the point, so it waits for its press."""
-    out = [eyebrow(STRIP_L, HEAD_Y, "Table of made-up data"), eyebrow(FEED_X, HEAD_Y, "AA feed that would replace it"), eyebrow(STRIP_R, HEAD_Y, "Hardest first", "end"),
+    out = [eyebrow(STRIP_L, HEAD_Y, "Table in the demo"), eyebrow(FEED_X, HEAD_Y, "AA feed that would replace it"), eyebrow(STRIP_R, HEAD_Y, "Hardest first", "end"),
            f'<line x1="{STRIP_L}" y1="{RULE_Y}" x2="{STRIP_R}" y2="{RULE_Y}" stroke="{aa.RULE_SOLID}" stroke-width="1"/>']
     for i, (tables, _, _, top, bottom) in enumerate(rows):
         base = top + ROW_PAD + 15
@@ -462,7 +462,7 @@ def check_at_aa(body: str):
 
 AT_AA_TITLE = "The same layers at AA"
 AT_AA_DESC = ("The five layers of fairshare with a mark on each piece for what runs today, what is built but not deployed and what waits on AA's Microsoft "
-              "account, beside each made-up table and the AA feed that would replace it, hardest first.")
+              "account, beside each table in the demo and the AA feed that would replace it, hardest first.")
 AT_AA_EYEBROW = "fairshare · at AA"
 
 

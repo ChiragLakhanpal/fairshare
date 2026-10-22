@@ -155,6 +155,15 @@ def check_claims(d: dict) -> None:
     for key, month in HARBOR_POINTS:
         assert round(h[month][0], 1) == fact(key), f"{key} should be the AA share in that month"
     assert min(h, key=lambda m: h[m][0]) == HARBOR_POINTS[1][1], "the low point is June 2026"
+    # the sources line: Harbor's fair share uses T-100 seats, and August and September 2026 repeat the same months of 2025
+    seats = query("""SELECT c.sales_month, COUNT(*) AS routes, COUNT(*) FILTER (WHERE c.source = 't100') AS t100,
+                              COUNT(*) FILTER (WHERE c.aa_seats = p.aa_seats AND c.total_seats = p.total_seats) AS repeats
+                       FROM aa_demo.gold.fact_market_capacity c
+                       LEFT JOIN aa_demo.gold.fact_market_capacity p ON p.market_id = c.market_id
+                        AND EXTRACT(YEAR FROM p.sales_month) = EXTRACT(YEAR FROM c.sales_month) - 1 AND EXTRACT(MONTH FROM p.sales_month) = EXTRACT(MONTH FROM c.sales_month)
+                       WHERE c.is_projected GROUP BY c.sales_month ORDER BY c.sales_month""")
+    assert [(r["sales_month"], r["routes"], r["t100"], r["repeats"]) for r in seats] == \
+        [(date(2026, m, 1), fact("routes"), fact("routes"), fact("routes")) for m in (8, 9)], "the projected seats are August and September 2026, as 2025's"
     # 6 the corporates: the lowest month is the printed one, and the first one's contract ends in it
     for c, key in zip(d["corporates"], LOW_KEYS):
         assert round(c["series"][c["low_month"]]) == fact(key), f"{c['corp_name']}: the lowest month should be the fact"
@@ -273,9 +282,12 @@ def p5(d: dict) -> list[str]:
         out.append(f'<circle data-month="{month_name(month)}" data-value="{fact(key)}" cx="{px(month):.1f}" cy="{py(d["harbor"][month][0]):.1f}" r="3.5" '
                    f'fill="{aa.ACCENT}" stroke="{aa.PAPER}" stroke-width="1.5"/>')
     (k1, m1), (k2, m2), (k3, m3) = HARBOR_POINTS
+    # a value sits over its point, unless the fair share line runs just over the point there, which it does once fair share is above AA share
+    over = lambda m: not 0 < py(d["harbor"][m][0]) - py(d["harbor"][m][1]) < 16  # noqa: E731
+    assert d["harbor"][months[0]][0] > d["harbor"][months[0]][1], "the two lines' names assume AA share starts above fair share"
     out += [note(left, py(d["harbor"][months[0]][0]) - 8, "AA share", fill=aa.ACCENT, size=11),
             note(left, py(d["harbor"][months[0]][1]) + 16, "fair share", size=11),
-            note(px(m1), py(d["harbor"][m1][0]) - 9, display(k1), fill=aa.ACCENT, anchor="middle", size=11),
+            note(px(m1), py(d["harbor"][m1][0]) + (-9 if over(m1) else 18), display(k1), fill=aa.ACCENT, anchor="middle", size=11),
             note(px(m2), py(d["harbor"][m2][0]) + 18, display(k2), fill=aa.ACCENT, anchor="middle", size=11),
             note(px(m3) + 9, py(d["harbor"][m3][0]) + 4, display(k3), fill=aa.ACCENT, size=11)]
     for m, anchor in ((months[0], "start"), (date(2026, 1, 1), "middle"), (months[-1], "end")):
@@ -322,8 +334,8 @@ def build(d: dict) -> str:
     assert sy + 17 + aa.TEXT_DESCENT * 11 <= aa.STAGE_BOTTOM, "the sources run under the deck's footer"
     out.append(aa.icon("databricks", 40, sy - 13, 16))
     out.append(note(64, sy, "bronze, silver and gold tables in aa_demo: corporate bookings, agency sales, pace and corporates", size=11))
-    out.append(note(64, sy + 17, "Harbor's fair share uses made-up seat shares, one base share per route, moved a little each month. The T-100 loader "
-                                 "in data/t100.py has never run.", size=11))
+    out.append(note(64, sy + 17, "Harbor's fair share uses T-100 seats, and August and September 2026 repeat the same months of 2025 until the DOT "
+                                 "publishes them.", size=11))
     return "\n        ".join(out)
 
 

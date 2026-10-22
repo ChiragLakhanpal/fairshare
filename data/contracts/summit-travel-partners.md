@@ -10,7 +10,7 @@ This Agency Incentive Agreement (the "Agreement") is between Example Air ("Carri
 
 ## 2. Covered markets
 
-The Agreement covers Agency's sales on the following markets in both directions: DFW-LAX, DFW-ORD, DFW-DCA, DFW-DEN, CLT-LGA, MIA-JFK, PHX-SEA, ORD-SFO, DCA-BOS, LAX-JFK, AUS-ORD, SEA-DEN (the "Covered Markets").
+The Agreement covers Agency's sales on the following markets in both directions: DFW-LAX, DFW-ORD, DFW-DCA, DFW-DEN, CLT-LGA, MIA-JFK, PHX-LAX, ORD-SFO, DCA-BOS, LAX-JFK, AUS-ORD, SEA-ORD (the "Covered Markets").
 
 ## 3. Definitions
 
