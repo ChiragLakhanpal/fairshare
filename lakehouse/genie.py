@@ -24,11 +24,11 @@ sys.path.insert(0, str(ROOT))
 from fairshare.dbx import workspace_client  # noqa: E402
 
 TITLE = "fairshare sales metrics"
-DESCRIPTION = "Agency sales performance: AA revenue, AA share, fair share (AA seat share, made up per route), share gap, year over year, pace against goal. Synthetic agencies, sales and seat shares."
+DESCRIPTION = "Agency sales performance: AA revenue, AA share, fair share (AA seat share from the DOT T-100 seats), share gap, year over year, pace against goal. Synthetic agencies and sales, real T-100 seats."
 
 INSTRUCTIONS = [
     "AA share is revenue based: AA revenue divided by the agency's all-carrier revenue on the same markets and months. Never average pre-computed shares; use the metric view measures.",
-    "Fair share is AA's share of scheduled seats on the market (made-up seat shares, one per route), weighted by the agency's market revenue. Share gap = AA share minus fair share; positive is above fair share.",
+    "Fair share is AA's share of scheduled seats on the market (DOT T-100 seats, AA with Envoy, PSA and Piedmont; August and September 2026 repeat 2025 until the DOT publishes them, which capacity_is_projected marks), weighted by the agency's market revenue. Share gap = AA share minus fair share; positive is above fair share.",
     "Use MEASURE() on aa_demo.gold.sales_metrics for every KPI. yoy_revenue_pct and aa_revenue_prior_year are ONLY correct when the query groups by sales_month; never select them when grouping by quarter, year or without a month. For a quarter or a year versus the prior one, select aa_revenue for both periods (see the Q3 example) and let the reader compare.",
     "Data covers January 2025 to September 2026. 'Year to date' and '2026' mean sales_month >= '2026-01-01'. The latest month is September 2026.",
     "Pace against goal lives in aa_demo.gold.agency_pace (pace_pct: 100 means on pace to the annual revenue goal, where the year-to-date goal is one twelfth of the annual goal for each month the agency reported, so a missing month never counts as zero). pace_pct and attainment_pct are already percentages (68.0 means 68 percent): never multiply them by 100.",

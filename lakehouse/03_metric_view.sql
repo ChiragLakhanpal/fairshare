@@ -8,7 +8,7 @@
 CREATE OR REPLACE VIEW aa_demo.gold.sales_metrics
 WITH METRICS
 LANGUAGE YAML
-COMMENT 'Agency sales KPIs: AA revenue, AA share of agency sales, fair share (AA seat share; the seat shares are made up, one per route), share gap, year over year. Defined once here; a SQL copy of each Power BI measure is compared with it every night in ops.kpi_parity (six of the seven).'
+COMMENT 'Agency sales KPIs: AA revenue, AA share of agency sales, fair share (AA seat share from the DOT T-100 seats; the newest two months repeat the year before until the DOT publishes them), share gap, year over year. Defined once here; a SQL copy of each Power BI measure is compared with it every night in ops.kpi_parity (six of the seven).'
 AS $$
 version: 1.1
 comment: Agency indirect sales. One row of the source is one agency, one market, one month. Share is revenue based.
@@ -65,7 +65,7 @@ dimensions:
   - name: capacity_is_projected
     expr: cap.is_projected
     display_name: Capacity projected
-    comment: true where the month's seat file is not in yet and the prior year's month stands in. Never true with the made-up seat shares.
+    comment: true where the DOT has not published the month yet and the same month of the year before stands in, as for August and September 2026.
 measures:
   - name: aa_revenue
     expr: SUM(source.aa_revenue)
@@ -100,7 +100,7 @@ measures:
     expr: SUM(source.market_revenue * cap.aa_seat_share) / NULLIF(SUM(source.market_revenue), 0)
     display_name: Fair share
     synonyms: [seat share, capacity share, expected share]
-    comment: AA's share of scheduled seats on the market (made-up seat shares, one per route), weighted by the agency's market revenue so it is comparable with aa_share at any grain
+    comment: AA's share of scheduled seats on the market (DOT T-100 seats, AA with Envoy, PSA and Piedmont), weighted by the agency's market revenue so it is comparable with aa_share at any grain
     format:
       type: percentage
   - name: share_gap_pts
@@ -134,7 +134,7 @@ measures:
       type: percentage
 $$
 
--- Smoke test (expected on first run: 12 agencies, revenue, share near 0.3 to 0.5, fair share near 0.2 to 0.55)
+-- Smoke test (expected on first run: 12 agencies, revenue, share near 0.3 to 0.5, fair share near 0.5)
 -- SELECT agency, MEASURE(aa_revenue) AS aa_revenue, MEASURE(aa_share) AS aa_share, MEASURE(fair_share) AS fair_share,
 --        MEASURE(share_gap_pts) AS gap_pts, MEASURE(share_gap_usd) AS gap_usd
 -- FROM aa_demo.gold.sales_metrics WHERE year = 2026 GROUP BY ALL ORDER BY aa_revenue DESC;
