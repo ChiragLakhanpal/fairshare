@@ -86,8 +86,8 @@ def test_harbor_share_matches_the_metric_view():
     assert list(mv["pct"]) == [v["harbor_share_sep25"]["value"], v["harbor_share_sep26"]["value"]]
 
 
-# The day gold.fact_market_capacity switched from made-up seat shares to the DOT's T-100 (docs/limits.md, Oct 21, 2026), and the metric view's
-# measures that read the seats. A parity run from before that day returned those three for the made-up seats.
+# The day gold.fact_market_capacity switched to the DOT's T-100 seats (docs/limits.md, Oct 21, 2026), and the metric view's measures that read
+# the seats. A parity run from before that day returned those three for the old seat shares.
 SEATS_SWITCH = datetime.date(2026, 10, 21)
 SEAT_KPIS = ("fair_share", "share_gap_pts", "share_gap_usd")
 
@@ -96,7 +96,7 @@ def test_harbors_september_on_the_numbers_cards_is_what_the_metric_view_says():
     """The numbers and gaps slides print each number for Harbor in Sep 2026. Six are the metric view's measures, so each must equal the value the
     metric view itself returned on Databricks (the parity file, newest run); pace comes from gold.agency_pace, which has no measure to compare.
     Three of the six read the seats. Until a parity run from after the switch to T-100 seats is exported, the parity file holds them for the
-    made-up seats, so those three are held to the SQL copy of each measure (ops.kpi_definitions.twin_sql) run on the local build, the copy
+    old seat shares, so those three are held to the SQL copy of each measure (ops.kpi_definitions.twin_sql) run on the local build, the copy
     every parity run has found equal to the metric view. Once a newer run is exported, all six are held to the metric view again."""
     mv = db.query(f"""SELECT kpi, mv_value, run_at FROM read_csv('{ROOT / "app/cache/kpi_parity.csv"}')
                       WHERE agency = 'Harbor Business Travel' AND sales_month = DATE '2026-09-01' AND twin_version IN ('v1', 'v2')

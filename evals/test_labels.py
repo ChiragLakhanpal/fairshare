@@ -1,6 +1,6 @@
-"""The seats are the DOT's T-100 with the months it has not published flagged, the made-up agency data is never called real, Power BI itself is
-never said to be checked, fair share has no wrong synonym, portable SQL never escapes a quote, no $$ body holds a semicolon, and the nightly job cuts
-every SQL file where run.py does."""
+"""The seats are the DOT's T-100 with the months it has not published flagged, the seats are never called made up and the made-up agency data is
+never called real, Power BI itself is never said to be checked, fair share has no wrong synonym, portable SQL never escapes a quote, no $$ body holds
+a semicolon, and the nightly job cuts every SQL file where run.py does."""
 import csv
 import re
 import subprocess
@@ -18,6 +18,11 @@ from fairshare import db  # noqa: E402
 MADE_UP = r"(?:agenc(?:y|ies)|agency sales|sales(?: data)?|goals?|bookings?|corporates?|companies|contracts?|agreements?|CRM(?: data)?)"
 # "Not a real contract", as each agreement says of itself, is the opposite claim, so a "real" after "not a" or "never a" passes.
 AGENCY_REAL = re.compile(rf"\b{MADE_UP} (?:is|are) real\b|(?<!not a )(?<!never a )\breal {MADE_UP}\b|\b{MADE_UP} (?:is|are) not made up\b", re.I)
+# Words that would still call the seats made up, as the repo did before the switch to T-100 on Oct 21, 2026.
+# A dated record of the switch ("until this day the seat shares were made up") is history, so the past tense passes.
+SEATS_MADE_UP = re.compile(r"made.up (?:seat|capacity)|seat (?:shares?|counts?|data|numbers)(?: here)? (?:are|is) (?:all )?made up"
+                           r"|\bseats?\b[^.\n]{0,40}, (?:all )?made up\b|\bseats?\b[^.\n]{0,60}\. made up\b"
+                           r"|(?:seat shares|capacity) \(made up\)|synthetic (?:seat|fair share)|\bsource\b[^.\n]{0,30}\bsynthetic\b|loader[^\n]{0,40}never run", re.I)
 POWER_BI = re.compile(r"Power BI uses the same definition|the Power BI check|kept equal by|checked vs Power BI"
                       r"|check vs Power BI|Power BI twin, checked|Power BI twin of each one")
 # this file, which spells the patterns out
@@ -89,6 +94,11 @@ def test_the_months_the_dot_has_not_published_are_flagged_and_repeat_2025():
 
 def test_nothing_calls_the_made_up_agency_data_real():
     assert not hits(AGENCY_REAL), "\n".join(hits(AGENCY_REAL))
+
+
+def test_nothing_calls_the_seats_made_up():
+    # data/make_data.py keeps a synthetic stand-in for a clone without the T-100 file; its words say so and match none of these
+    assert not hits(SEATS_MADE_UP), "\n".join(hits(SEATS_MADE_UP))
 
 
 def test_nothing_says_power_bi_itself_was_checked():
