@@ -70,7 +70,7 @@ export const slides: Slide[] = [
         "The app matches every number to a query before you see it.",
       ],
     },
-    note: "Three presses, then Ask it live, the box, Enter. Click the share effect, {harbor_share_usd}. A removed sentence likely rounded a dollar figure. Past a minute, use the still. Back through the sidebar, then behind the answer if there's time.",
+    note: "Three presses, then Ask it live, the box, Enter. Click the share effect, {harbor_share_usd}. The breakdown says September's seats are last year's. Past a minute, use the still. Back through the sidebar, then behind the answer if there's time.",
   },
   {
     id: "director", part: "modes", kind: "animated", title: "What ran behind the Harbor answer", min: 1.25, data: true,

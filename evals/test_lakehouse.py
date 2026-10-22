@@ -55,6 +55,25 @@ def test_the_capacity_exclusion_cannot_be_checked_in_a_month_whose_seats_are_bor
     assert set(published["status"]) <= {"ok", "watch"} and published["value"].notna().all()
 
 
+SEATS_REPEAT = "This month's seats repeat the same month last year until the DOT publishes them, so there is no seat comparison"
+
+
+def test_why_on_a_month_whose_seats_are_borrowed_says_so_instead_of_a_seat_number():
+    """explain_change carries the month's projection flag. September 2026's seats repeat September 2025's until the DOT publishes them, so the
+    tool says there is no seat comparison and gives no fair-share diagnostic, and the summary row holds no number for it. July 2026, which
+    the DOT has published, still has one."""
+    facts.reset()
+    text = explain_change.func(agency="Harbor", month="2026-09")
+    s = facts.current().calls[0].preview.iloc[0]
+    assert bool(s["seats_projected"]) and pd.isna(s["fair_share_effect"])
+    assert SEATS_REPEAT in text and "Fair-share diagnostic" not in text
+    facts.reset()
+    text = explain_change.func(agency="Harbor", month="2026-07")
+    s = facts.current().calls[0].preview.iloc[0]
+    assert not bool(s["seats_projected"]) and pd.notna(s["fair_share_effect"])
+    assert "Fair-share diagnostic" in text and SEATS_REPEAT not in text
+
+
 def test_run_sql_is_read_only():
     facts.reset()
     assert run_sql.func(sql="DROP TABLE aa_demo.gold.dim_agency").startswith("Rejected")
