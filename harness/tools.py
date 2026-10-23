@@ -248,6 +248,9 @@ def explain_change(agency: Annotated[str, "Agency name, or a distinctive part of
         return (f"No decomposition for '{agency}' in {mo[:7]}: either the agency name did not match, or there is no same month "
                 f"last year to compare with (data covers Jan 2025 to Sep 2026; comparisons start Jan 2026).")
     r = head.iloc[0]
+    # a month the DOT has not published yet repeats last year's seats, so its seat comparison (the fair-share diagnostic) is not a measurement
+    proj = db.query(f"SELECT MAX(CASE WHEN is_projected THEN 1 ELSE 0 END) AS projected FROM aa_demo.gold.fact_market_capacity WHERE sales_month = DATE '{mo}'")
+    projected = bool(not proj.empty and pd.notna(proj["projected"].iloc[0]) and int(proj["projected"].iloc[0]) == 1)
     markets = db.query(f"""
         SELECT CONCAT(m.origin, '-', m.dest) AS market, ROUND(k.share_effect, 0) AS share_effect, ROUND(k.mix_effect, 0) AS mix_effect,
                ROUND(k.aa_share_now * 100, 1) AS aa_share_now_pct, ROUND(k.aa_share_prior * 100, 1) AS aa_share_prior_pct,
@@ -258,21 +261,25 @@ def explain_change(agency: Annotated[str, "Agency name, or a distinctive part of
         "revenue_now": r["revenue_now"], "revenue_prior": r["revenue_prior"], "delta_revenue": r["delta_revenue"], "delta_pct": r["delta_pct"],
         "market_delta_pct": r["market_delta_pct"], "aa_share_now_pct": round(r["aa_share_now"] * 100, 1), "aa_share_prior_pct": round(r["aa_share_prior"] * 100, 1),
         "fair_share_now_pct": round(r["fair_share_now"] * 100, 1), "fair_share_prior_pct": round(r["fair_share_prior"] * 100, 1),
-        "volume_effect": r["volume_effect"], "mix_effect": r["mix_effect"], "share_effect": r["share_effect"], "fair_share_effect": r["fair_share_effect"],
+        "volume_effect": r["volume_effect"], "mix_effect": r["mix_effect"], "share_effect": r["share_effect"],
+        "fair_share_effect": None if projected else r["fair_share_effect"],
         "parts_sum": round(r["volume_effect"] + r["mix_effect"] + r["share_effect"], 2),
         "share_gap_now_pts": round((r["aa_share_now"] - r["fair_share_now"]) * 100, 1),
+        "seats_projected": projected,
     }])
     ctx.record("explain_change", {"agency": agency, "month": month}, summary, sql="aa_demo.ops.decomposition (lakehouse/06_decomposition.sql)",
                source="ops.decomposition")
     ctx.record("explain_change", {"agency": agency, "month": month, "detail": "markets"}, markets, sql="aa_demo.ops.decomposition_markets",
                source="ops.decomposition_markets")
     prior = mo[:4]
+    seats = (" This month's seats repeat the same month last year until the DOT publishes them, so there is no seat comparison and no "
+             "fair-share diagnostic." if projected else f" Fair-share diagnostic {r['fair_share_effect']:,.0f} (not part of the sum).")
     return (f"{r['agency_name']}, {mo[:7]} vs {int(prior) - 1}-{mo[5:7]}\n"
             f"AA revenue {r['revenue_now']:,.0f} vs {r['revenue_prior']:,.0f}: delta {r['delta_revenue']:,.0f} ({r['delta_pct']:+.1f}%).\n"
             f"Agency total market revenue changed {r['market_delta_pct']:+.1f}%.\n"
             f"AA share {r['aa_share_now'] * 100:.1f}% vs {r['aa_share_prior'] * 100:.1f}%; fair share {r['fair_share_now'] * 100:.1f}% vs {r['fair_share_prior'] * 100:.1f}%.\n"
             f"Effects (sum to the delta): volume {r['volume_effect']:,.0f}; mix {r['mix_effect']:,.0f}; share {r['share_effect']:,.0f}; "
-            f"parts_sum {summary['parts_sum'].iloc[0]:,.0f}. Fair-share diagnostic {r['fair_share_effect']:,.0f} (not part of the sum).\n"
+            f"parts_sum {summary['parts_sum'].iloc[0]:,.0f}.{seats}\n"
             f"Markets by share effect:\n{_table(markets, 12)}\n"
             f"Quote only these numbers. If asked about causes not in the data (contract changes, staff turnover), say they are not in the data.")
 

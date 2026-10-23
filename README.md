@@ -12,7 +12,8 @@ it, built for people who do not write SQL.
 
 1. **The summary**: one sentence, five numbers, the three agencies that moved, who is behind pace. Under them, what is worth
    knowing this month before anyone asks: the clauses close to their line with the dollars at stake, a deal the CRM calls
-   healthy while share fell, a share streak, the largest capacity move, last week's corporate bookings. Each line is template
+   healthy while share fell, a share streak, the largest capacity move (or, for a month the DOT has not published yet, a note
+   that its seats are last year's), last week's corporate bookings. Each line is template
    prose from a fixed query (`harness/signals.py`), checked by the verifier like every other sentence, with one action (ask,
    open the Delegate page, open the definition); the suggested questions under the chat bar follow these lines, and an answer
    about an agency carries the line about that agency. No model runs on this page. Every KPI word opens its definition,
@@ -43,9 +44,17 @@ it, built for people who do not write SQL.
 
 ## Data
 
-Made up: the seat shares. Each route has one AA seat share that moves by about a point a month, with 150,000 seats in
-every market and month (`data/make_data.py`). The T-100 loader (`data/t100.py`) turns real BTS files into seat shares, but
-it has never run, so every row of `gold.fact_market_capacity` says `source = synthetic`.
+Real: the seats. `gold.fact_market_capacity` is public US DOT data, the T-100 Domestic Segment (All Carriers) file that BTS
+publishes: scheduled passenger service on the twelve routes, both directions, January 2025 to September 2026 (`data/t100.py`
+turns the BTS files into `data/t100/aa_seat_share.csv`, which `data/make_data.py` reads, so every row says `source = t100`).
+AA's seats are AA's network: AA plus its own regional airlines Envoy (MQ), PSA (OH) and Piedmont (PT). Republic and SkyWest fly
+for several airlines, American Eagle among them, and T-100 cannot tell which of their flights are AA's, so they count as other
+airlines and AA's share runs low. The undercount is largest on DCA-BOS, where Republic and SkyWest fly about a third of the seats (17.7% on
+PHX-LAX and 8.5% on CLT-LGA, Jan 2025 to Jul 2026). BTS publishes about three months late: on
+Oct 21, 2026 July was the newest month, so August and September 2026 repeat the same months of 2025 and say
+`is_projected = true` (the metric view's `capacity_is_projected`; the home page and the deck say so too). Two routes where AA
+flies almost nothing in T-100, PHX-SEA and SEA-DEN, became PHX-LAX and SEA-ORD with the same ids, regions and hub flags, so no
+made-up sales number changed.
 
 Made up: twelve travel agencies, ten corporate accounts, their monthly sales, goals, ticket-level bookings and four
 agreements. Deterministic (`data/make_data.py`, seed 88201) with data-quality traps planted on purpose: dirty channel
@@ -54,7 +63,7 @@ labels, duplicate tickets, a gap, a collapse, a zero month. Nothing here is conf
 ## Shape
 
 ```
-Made-up seat shares + synthetic agency layer + 4 agreements
+T-100 seats (US DOT) + synthetic agency layer + 4 agreements
   -> Unity Catalog volume -> bronze -> silver -> gold            (Databricks Free Edition, catalog aa_demo)
   -> metric view gold.sales_metrics (one definition per KPI)      ops.kpi_definitions, ops.kpi_parity, ops.decomposition
   -> Genie Agent over the metric view
@@ -82,7 +91,7 @@ American Airlines branded, with slide images in `docs/diagrams/export/`.
 
 ```
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python data/make_data.py            # CSVs (synthetic fair share until data/t100/aa_seat_share.csv exists; see data/t100.py)
+.venv/bin/python data/make_data.py            # CSVs; the seats come from data/t100/aa_seat_share.csv (data/t100.py makes it from the BTS files)
 .venv/bin/python lakehouse/run.py             # local DuckDB lakehouse: silver, gold, definitions, decomposition
 .venv/bin/pytest evals -q                     # identity of the decomposition, the silver traps, the verifier, the contracts
 .venv/bin/uvicorn server.main:app --port 8000  # the API, offline (cached answers, template brief); then in web/: npm install && npm run dev

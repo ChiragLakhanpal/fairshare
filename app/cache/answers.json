@@ -1,26 +1,26 @@
 {
   "How did Summit Travel Partners do on DFW to ORD in Q3 2026 versus Q3 2025, and are they ahead of fair share?": {
-    "text": "Q3 2025: AA revenue $221,326, AA share 46.3%, fair share 37.7%, share gap 8.6 pts, AA passengers 488.  \nQ3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, AA passengers 784, revenue change +34.6% YoY.  \nAre they ahead of fair share? Yes: AA share 53.5% vs fair share 37.6%, ahead by 15.9 pts (Q3 2026).  \nSource: ask_metrics, aa_demo.gold.sales_metrics.  \nCould not verify: decomposition of why share changed (volume/mix/share/fair-share effects); run the explain_change tool or provide ops.decomposition for that breakdown.",
+    "text": "AA revenue: $221,326 (Q3 2025) \u2192 $297,931 (Q3 2026), +$76,604 (34.6%).  \nAA share: 46.3% \u2192 53.5%, +7.2 pts.  \nFair share: 65.7% (Q3 2025), 63.7% (Q3 2026). Share gaps: -19.3 pts (Q3 2025), -10.2 pts (Q3 2026). Summit is Not ahead of fair share in Q3 2026.  \nSource: ask_metrics, aa_demo.gold.sales_metrics.",
     "flagged": [
       {
-        "sentence": "Q3 2026: AA revenue $297,931, AA share 53.5%, fair share 37.6%, share gap 15.9 pts, AA passengers 784, revenue change +34.6% YoY.",
-        "reason": "no query supports +34.6%"
+        "sentence": "AA revenue: $221,326 (Q3 2025) \u2192 $297,931 (Q3 2026), +$76,604 (34.6%).",
+        "reason": "no query supports 34.6%"
       }
     ],
     "sql": [
-      "WITH q AS (\n  SELECT quarter, MEASURE(aa_revenue) AS aa_revenue, MEASURE(aa_share) AS aa_share, MEASURE(fair_share) AS fair_share,\n         MEASURE(share_gap_pts) AS share_gap_pts, MEASURE(aa_pax) AS aa_pax\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')\n  GROUP BY ALL)\nSELECT quarter, ROUND(aa_revenue) AS aa_revenue,\n       ROUND(try_divide((aa_revenue - LAG(aa_revenue) OVER (ORDER BY quarter)),LAG(aa_revenue) OVER (ORDER BY quarter)) * 100, 1) AS revenue_change_pct,\n       ROUND(aa_share * 100, 1) AS aa_share_pct, ROUND(fair_share * 100, 1) AS fair_share_pct, ROUND(share_gap_pts, 1) AS share_gap_pts, aa_pax\nFROM q ORDER BY quarter"
+      "WITH q AS (\n  SELECT quarter, MEASURE(aa_revenue) AS aa_revenue, MEASURE(aa_share) AS aa_share, MEASURE(fair_share) AS fair_share, MEASURE(share_gap_pts) AS share_gap_pts\n  FROM aa_demo.gold.sales_metrics\n  WHERE agency = 'Summit Travel Partners' AND market = 'DFW-ORD' AND quarter IN ('Q3 2025', 'Q3 2026')\n  GROUP BY ALL\n)\nSELECT \n  quarter,\n  ROUND(aa_revenue) AS aa_revenue,\n  ROUND(aa_share * 100, 1) AS aa_share_pct,\n  ROUND(fair_share * 100, 1) AS fair_share_pct,\n  ROUND(share_gap_pts, 1) AS share_gap_pts,\n  ROUND(aa_revenue - LAG(aa_revenue) OVER (ORDER BY quarter)) AS aa_revenue_yoy_change,\n  ROUND(try_divide((aa_revenue - LAG(aa_revenue) OVER (ORDER BY quarter)),LAG(aa_revenue) OVER (ORDER BY quarter)) * 100, 1) AS aa_revenue_yoy_pct,\n  ROUND((aa_share - LAG(aa_share) OVER (ORDER BY quarter)) * 100, 1) AS aa_share_yoy_change_pts,\n  CASE WHEN share_gap_pts > 0 AND quarter = 'Q3 2026' THEN 'Ahead of fair share' ELSE 'Not ahead of fair share' END AS fair_share_status\nFROM q ORDER BY quarter"
     ],
     "sources": [
       "Genie: sales_metrics"
     ],
     "model": "azure/databricks",
-    "recorded": "2026-10-20T09:23"
+    "recorded": "2026-10-21T23:39"
   },
   "What does Summit Travel Partners' agreement say happens if their share drops under 45% for two quarters, and has that happened?": {
-    "text": "\"5.1 If Agency's Carrier revenue share across the Covered Markets falls below 45% for two consecutive calendar quarters, Carrier may review the Agency's tier and reduce it by one tier for the following year.\" (search_contracts: summit-travel-partners.md, page 2)\n\nHas that happened? No. ask_metrics, source aa_demo.gold.sales_metrics returned quarterly AA share: Q1 2025 45.1%, Q2 2025 46.8%, Q3 2025 47.5%, Q4 2025 49.2%, Q1 2026 50.1%, Q2 2026 51.2%, Q3 2026 52.6%. The lowest was 45.1% in Q1 2025; there were no two consecutive quarters below 45% (ask_metrics query attached).\n\nCould not verify: whether the Carrier actually reviewed or reduced Summit Travel Partners' tier; needed: agency tier-change records or Carrier notice of tier adjustments.",
+    "text": "\"5.1 If Agency's Carrier revenue share across the Covered Markets falls below 45% for two consecutive calendar quarters, Carrier may review the Agency's tier and reduce it by one tier for the following year.\" (summit-travel-partners.md, page 2)\n\nHas that happened: No. ask_metrics on aa_demo.gold.sales_metrics reports Summit Travel Partners' quarterly AA share: Q1 2025 45.1%, Q2 2025 46.8%, Q3 2025 47.5%, Q4 2025 49.2%, Q1 2026 50.1%, Q2 2026 51.2%, Q3 2026 52.6%, there are no two consecutive quarters below 45%. (Source: ask_metrics, aa_demo.gold.sales_metrics)\n\nCould not verify: whether Carrier actually performed a tier review or reduced Summit's tier (would need internal tier-change records, amendment notices, or carrier account actions).",
     "flagged": [],
     "sql": [
-      "SELECT quarter, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct, ROUND(MEASURE(fair_share) * 100, 1) AS fair_share_pct, ROUND(MEASURE(aa_revenue)) AS aa_revenue, ROUND(MEASURE(market_revenue)) AS market_revenue\nFROM aa_demo.gold.sales_metrics\nWHERE agency = 'Summit Travel Partners' AND sales_month >= DATE '2025-01-01' AND sales_month <= DATE '2026-09-01' AND quarter IS NOT NULL\nGROUP BY ALL\nORDER BY quarter ASC"
+      "SELECT quarter, ROUND(MEASURE(aa_revenue)) AS aa_revenue, ROUND(MEASURE(market_revenue)) AS market_revenue, ROUND(MEASURE(aa_share) * 100, 1) AS aa_share_pct\nFROM aa_demo.gold.sales_metrics\nWHERE agency = 'Summit Travel Partners' AND quarter IN ('Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026', 'Q3 2026')\nGROUP BY ALL\nORDER BY quarter ASC"
     ],
     "sources": [
       "summit-travel-partners.md p.2",
@@ -28,7 +28,7 @@
       "Genie: sales_metrics"
     ],
     "model": "azure/databricks",
-    "recorded": "2026-10-20T09:24"
+    "recorded": "2026-10-21T23:40"
   },
   "Which agencies are about to churn?": {
     "text": "A proxy, not a prediction: agencies with year-over-year AA revenue decline and behind pace.\n\nFareHub Online: 2026-09 AA revenue 337,460, 2025-09 AA revenue 453,672, YoY -25.6%, pace_pct 97.2.\nHarbor Business Travel: 2026-09 AA revenue 330,114, 2025-09 AA revenue 394,909, YoY -16.4%, pace_pct 96.1.\n\nSource: ask_metrics, tables aa_demo.gold.sales_metrics, aa_demo.gold.dim_agency, aa_demo.gold.agency_pace (query for sales_month 2026-09).  \nCould not verify: true churn labels or a churn prediction model in the data; those are needed to make actual churn predictions.",
@@ -43,7 +43,7 @@
     "recorded": "2026-10-20T09:39"
   },
   "Why is Harbor Business Travel down in September?": {
-    "text": "AA revenue 330,114 vs 394,909, delta -64,795 (-16.4%). Agency market revenue +8.3%. AA share 34.2% vs 44.3%, fair share 40.1% vs 40.1%. Effects (sum to the delta): volume 32,836; mix -140; share -97,491; parts_sum -64,795. Fair-share diagnostic 2,420 (not part of the sum). Top markets by share effect: CLT-LGA (-14,784), LAX-JFK (-12,039), DFW-DCA (-11,341), DFW-LAX (-9,324), DFW-DEN (-8,643).\n\nSource: explain_change, table ops.decomposition.\n\nCould not verify: causes outside the sales/decomposition data (contract changes, staffing, promotions, partner actions); to confirm would need contract text, HR/ops notes, and marketing/activity logs.",
+    "text": "AA revenue 330,114 vs 394,909: delta -64,795 (-16.4%). Agency total market revenue changed +8.3%. Source: functions.explain_change on ops.decomposition.\n\nDecomposition (parts sum to the delta -64,795): volume 32,836; mix -140; share -97,491; parts_sum -64,795. AA share 34.2% vs 44.3%; fair share 52.0% vs 52.4%. This month's seats repeat the same month last year until the DOT publishes them, so there is no seat comparison and no fair-share diagnostic. Source: functions.explain_change on ops.decomposition.\n\nMarkets that moved most (share_effect, mix_effect, aa_share_now_pct, aa_share_prior_pct, market_revenue_now):\nCLT-LGA -14,784 7,455 31.1 44 114,691\nLAX-JFK -12,039 -822 31 42.2 107,357\nDFW-DCA -11,341 -1,948 36.7 46.7 114,489\nDFW-LAX -9,324 -4,108 33.5 47.4 67,113\nDFW-DEN -8,643 -2,546 31.7 43.8 71,215\nMIA-JFK -7,748 -10,528 34.7 42.7 97,393\nPHX-LAX -7,179 -4,362 35.3 45.3 71,861\nDCA-BOS -7,009 5,985 36.5 42.4 119,119\nORD-SFO -6,861 3,673 35.6 45.1 72,545\nDFW-ORD -6,008 3,597 35.4 43.9 70,882\nAUS-ORD -3,524 783 34.4 47 28,046\nSEA-ORD -3,030 2,682 35.9 45.9 30,090\nSource: functions.explain_change on ops.decomposition.\n\nCould not verify: seat-level fair-share diagnostic (DOT seat data not yet published for this month). To verify, need updated gold.fact_market_capacity (aa_seats, total_seats, aa_seat_share) for 2026-09 and any contract/staffing or external-event data to explain non-metric causes.",
     "flagged": [],
     "sql": [
       "aa_demo.ops.decomposition (lakehouse/06_decomposition.sql)",
@@ -54,6 +54,6 @@
       "ops.decomposition_markets"
     ],
     "model": "azure/databricks",
-    "recorded": "2026-10-20T09:25"
+    "recorded": "2026-10-21T23:42"
   }
 }

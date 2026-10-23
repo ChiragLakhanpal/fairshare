@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { copyText, downloadCsv, emailDraft, printElement } from "../lib/export";
-import { money, pct } from "../lib/format";
+import { fairShareLine, money, pct, type FairShareRow } from "../lib/format";
 import { proseParts, type ProsePart } from "../lib/runs";
 import { answerBody, answerHtml, answerText, shownSentences, trustLine } from "../lib/share";
 import { charCount, revealParts, useTyping } from "../lib/typing";
@@ -32,7 +32,6 @@ function Breakdown({ call, markets }: { call: Call; markets?: Call }) {
   const total = Math.abs(s.delta_revenue) || 1;
   const parts = [["Volume", s.volume_effect], ["Mix", s.mix_effect], ["Share", s.share_effect]] as [string, number][];
   const scale = Math.max(...parts.map(([, v]) => Math.abs(v)), total) || 1;
-  const fair = s.fair_share_now_pct - s.fair_share_prior_pct;
   return (
     <div className="mt-3 rounded-[10px] border border-line bg-white px-[18px] py-4">
       <h4 className="mb-2.5 text-sm font-semibold">Here is where the {money(Math.abs(s.delta_revenue), 1)} went.</h4>
@@ -46,7 +45,7 @@ function Breakdown({ call, markets }: { call: Call; markets?: Call }) {
         </div>
       ))}
       <p className="mt-2.5 text-[13.5px] text-ink-2">
-        Volume, mix and share add up to the full change of {money(Math.abs(s.delta_revenue), 1)}. {Math.abs(fair) < 0.05 ? "Fair share did not move, so AA's own capacity explains none of it." : `Fair share moved ${fair > 0 ? "up" : "down"} ${Math.abs(fair).toFixed(1)} points, worth ${money(s.fair_share_effect)}.`}
+        Volume, mix and share add up to the full change of {money(Math.abs(s.delta_revenue), 1)}. {fairShareLine(s as FairShareRow)}
       </p>
       {markets && markets.preview.length > 0 && (
         <Table rows={markets.preview.slice(0, 5).map((m) => ({ market: m.market, "AA share, before": pct(m.aa_share_prior_pct as number), "AA share, now": pct(m.aa_share_now_pct as number), "share effect": money(m.share_effect as number) }))} />

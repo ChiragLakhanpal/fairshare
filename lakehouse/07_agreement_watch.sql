@@ -7,7 +7,7 @@
 --   watch           within two points of a floor (ten for a revenue ratio), within three points of a tier line, one
 --                   quarter short of the window, within five attainment points, or a goal or commitment not on pace
 --   ok              nothing to do
---   not_checkable   notice periods, due dates, service levels, display rules: not in the sales data
+--   not_checkable   notice periods, due dates, service levels, display rules, and seats the DOT has not published yet
 -- Year-to-date measures use the months of the year up to the as-of month; quarter rules use closed calendar quarters only.
 -- The model never computes: projections, distances and dollars are columns here.
 
@@ -119,7 +119,9 @@ WITH months AS (
   JOIN ytd_m y ON y.agency_id = cl.agency_id AND y.as_of = m.as_of
   WHERE cl.clause_type = 'goal' AND cl.metric = 'aa_share'
 ), capv AS (
-  SELECT cl.clause_id, m.as_of, MIN((c.aa_seats - p.aa_seats) * 100.0 / NULLIF(p.aa_seats, 0)) AS value
+  -- a month the DOT has not published repeats last year's seats (is_projected), so its change would read 0% and is not a measurement
+  SELECT cl.clause_id, m.as_of, MIN((c.aa_seats - p.aa_seats) * 100.0 / NULLIF(p.aa_seats, 0)) AS value,
+         MAX(CASE WHEN c.is_projected THEN 1 ELSE 0 END) AS projected
   FROM cl CROSS JOIN months m
   JOIN (SELECT DISTINCT agency_id, market_id FROM aa_demo.gold.fact_agency_sales_monthly) am ON am.agency_id = cl.agency_id
   JOIN aa_demo.gold.fact_market_capacity c ON c.market_id = am.market_id AND c.sales_month = m.as_of
@@ -129,10 +131,11 @@ WITH months AS (
   GROUP BY ALL
 ), capacity_rows AS (
   SELECT cl.clause_id, cl.agency_id, cl.agency_name, v.as_of, cl.clause_type, cl.section, cl.metric,
-         v.value, cl.threshold, v.value - cl.threshold AS distance, 'pct' AS unit,
+         CASE WHEN v.projected = 1 THEN NULL ELSE v.value END AS value, cl.threshold,
+         CASE WHEN v.projected = 1 THEN NULL ELSE v.value - cl.threshold END AS distance, 'pct' AS unit,
          CAST(NULL AS INT) AS quarters_below, cl.window_quarters,
          CAST(NULL AS DOUBLE) AS dollars, CAST(NULL AS STRING) AS dollars_label,
-         CASE WHEN v.value < cl.threshold THEN 'watch' ELSE 'ok' END AS status,
+         CASE WHEN v.projected = 1 THEN 'not_checkable' WHEN v.value < cl.threshold THEN 'watch' ELSE 'ok' END AS status,
          cl.consequence, cl.file, cl.page, cl.quote
   FROM cl JOIN capv v ON v.clause_id = cl.clause_id
 ), incentive_rows AS (

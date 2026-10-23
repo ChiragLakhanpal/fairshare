@@ -29,7 +29,7 @@ INSERT INTO aa_demo.ops.kpi_definitions VALUES
  'v1 was passenger based (AA passengers over agency passengers). Parity against the metric view ran red on every month; retired and replaced by the revenue-based v2 in the same pull request.'),
 
 ('fair_share', 'Fair share',
- 'Fair share is the share of the seats on a route that AA flies, weighted by how much the agency sold on that route. Weighting by sales keeps it comparable with AA share however you group the numbers. It is the share of its sales an agency would send to AA if it had no favorite airline. The seat shares here are made up, one per route; the T-100 loader (data/t100.py) has never run.',
+ 'Fair share is the share of the seats on a route that AA flies, weighted by how much the agency sold on that route. Weighting by sales keeps it comparable with AA share however you group the numbers. It is the share of its sales an agency would send to AA if it had no favorite airline. The seats come from the DOT T-100 data, counting AA with its Envoy, PSA and Piedmont flights, and the newest two months repeat the same months of the year before until the DOT publishes them.',
  'Sales BI', 'gold.fact_market_capacity.aa_seat_share, gold.fact_agency_sales_monthly.market_revenue',
  'SUM(source.market_revenue * capacity.aa_seat_share) / NULLIF(SUM(source.market_revenue), 0)',
  'Fair Share = DIVIDE ( SUMX ( fact_agency_sales_monthly, fact_agency_sales_monthly[market_revenue] * RELATED ( fact_market_capacity[aa_seat_share] ) ), SUM ( fact_agency_sales_monthly[market_revenue] ) )',

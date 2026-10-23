@@ -58,7 +58,7 @@ def test_the_agency_list_is_the_table():
 
 def test_the_numbers_said_out_loud():
     v = {k: f["value"] for k, f in deck_facts.collect()["facts"].items()}
-    assert (v["summit_q3_aa_share"], v["summit_q3_fair_share"], v["summit_q3_gap_usd"], v["summit_q3_pax_share"]) == (53.5, 37.6, 88391, 52.4)
+    assert (v["summit_q3_aa_share"], v["summit_q3_fair_share"], v["summit_q3_gap_usd"], v["summit_q3_pax_share"]) == (53.5, 63.7, -56853, 52.4)
     assert (v["harbor_volume_usd"], v["harbor_mix_usd"], v["harbor_share_usd"], v["harbor_delta_usd"]) == (32836, -140, -97491, -64795)
     assert (v["avg_of_shares_q3"], v["share_of_total_q3"], v["pax_rev_max_gap_pts"]) == (39.7, 38.4, 1.7)
     assert (v["sunbelt_pace_may26_before"], v["sunbelt_pace_may26"], v["duplicate_usd"], v["agency_months_present"]) == (74.2, 123.6, 4920.87, 250)
@@ -86,18 +86,28 @@ def test_harbor_share_matches_the_metric_view():
     assert list(mv["pct"]) == [v["harbor_share_sep25"]["value"], v["harbor_share_sep26"]["value"]]
 
 
+# The day gold.fact_market_capacity switched to the DOT's T-100 seats (docs/limits.md, Oct 21, 2026), and the metric view's measures that read
+# the seats. A parity run from before that day returned those three for the old seat shares.
+SEATS_SWITCH = datetime.date(2026, 10, 21)
+SEAT_KPIS = ("fair_share", "share_gap_pts", "share_gap_usd")
+
+
 def test_harbors_september_on_the_numbers_cards_is_what_the_metric_view_says():
     """The numbers and gaps slides print each number for Harbor in Sep 2026. Six are the metric view's measures, so each must equal the value the
-    metric view itself returned on Databricks (the parity file, newest run); pace comes from gold.agency_pace, which has no measure to compare."""
-    mv = db.query(f"""SELECT kpi, mv_value FROM read_csv('{ROOT / "app/cache/kpi_parity.csv"}')
+    metric view itself returned on Databricks (the parity file, newest run); pace comes from gold.agency_pace, which has no measure to compare.
+    Three of the six read the seats, so the newest parity run in the file must come from after the switch to T-100 seats; an older export
+    holds them for the old seat shares and fails here until parity runs again on Databricks and `python -m harness.cache` exports it."""
+    mv = db.query(f"""SELECT kpi, mv_value, run_at FROM read_csv('{ROOT / "app/cache/kpi_parity.csv"}')
                       WHERE agency = 'Harbor Business Travel' AND sales_month = DATE '2026-09-01' AND twin_version IN ('v1', 'v2')
                       QUALIFY ROW_NUMBER() OVER (PARTITION BY kpi ORDER BY run_at DESC) = 1""")
     got = dict(zip(mv["kpi"], mv["mv_value"]))
     v = {k: f["value"] for k, f in deck_facts.collect()["facts"].items()}
-    assert (round(got["aa_revenue"]), round(100 * got["aa_share"], 1), round(100 * got["fair_share"], 1)) == \
-        (v["harbor_revenue_sep26_usd"], v["harbor_share_sep26"], v["harbor_fair_share_sep26"])
-    assert (round(got["share_gap_pts"], 1), round(got["share_gap_usd"]), round(100 * got["yoy_revenue_pct"], 1)) == \
-        (v["harbor_gap_pts_sep26"], v["harbor_gap_usd_sep26"], v["harbor_yoy_sep26"])
+    assert (round(got["aa_revenue"]), round(100 * got["aa_share"], 1), round(100 * got["yoy_revenue_pct"], 1)) == \
+        (v["harbor_revenue_sep26_usd"], v["harbor_share_sep26"], v["harbor_yoy_sep26"])
+    newest = max(datetime.date.fromisoformat(str(r)[:10]) for r, k in zip(mv["run_at"], mv["kpi"]) if k in SEAT_KPIS)
+    assert newest >= SEATS_SWITCH, f"the parity export's newest seat run is {newest}, from before the T-100 seats: rerun parity and harness.cache"
+    assert (round(100 * got["fair_share"], 1), round(got["share_gap_pts"], 1), round(got["share_gap_usd"])) == \
+        (v["harbor_fair_share_sep26"], v["harbor_gap_pts_sep26"], v["harbor_gap_usd_sep26"])
 
 
 def test_keys_are_placeholders_and_the_text_has_no_long_dashes():
@@ -158,7 +168,7 @@ def test_the_row_slide_examples_carry_their_units():
     seats = {c["name"]: c["example"] for c in STORED["columns"]["gold.fact_market_capacity"]}
     assert (sales["aa_revenue"], sales["market_revenue"]) == ("$80,582.47", "$145,829.00")
     assert (sales["aa_pax"], sales["market_pax"], sales["sales_month"]) == ("275", "500", "Sep 2026")
-    assert (seats["aa_seats"], seats["total_seats"], seats["aa_seat_share"], seats["sales_month"]) == ("57,075", "150,000", "38.05%", "Sep 2026")
+    assert (seats["aa_seats"], seats["total_seats"], seats["aa_seat_share"], seats["sales_month"]) == ("145,362", "231,058", "62.91%", "Jul 2026")
 
 
 def test_every_example_carries_its_unit():
@@ -195,7 +205,7 @@ BANNED_IN_COPY = ("additionally", "crucial", "delve", "enduring", "enhance", "fo
 def test_every_check_has_a_key_and_a_plain_reason():
     """The checks slide names each check by its key and prints its why, a sentence a sales director and a data lead both read. The copy rules
     that a test can see: no digits, no em or en dash, no colon, semicolon or bracket, one whole sentence, none of the stock words or phrases,
-    no -ing tail, and the data is never called real."""
+    no -ing tail, and the data is never called real, since the sales the checks read are made up."""
     checks = STORED["checks"]
     assert len(checks) == len(deck_facts.CHECKS)
     assert all(set(c) == {"key", "name", "why", "expected", "actual", "ok", "display"} for c in checks)
@@ -211,7 +221,7 @@ def test_every_check_has_a_key_and_a_plain_reason():
         assert not re.search(r"\b(?:" + "|".join(BANNED_IN_COPY) + ")", why, re.IGNORECASE), f"{c['key']}: a stock word"
         assert not re.search(r"serves as|stands as|not just|not only", why, re.IGNORECASE), f"{c['key']}: a stock phrase"
         assert not re.search(r",\s+\w+ing\b", why), f"{c['key']}: an -ing tail"
-        assert not re.search(r"\breal\b", why, re.IGNORECASE), f"{c['key']}: the data is made up, never call it real"
+        assert not re.search(r"\breal\b", why, re.IGNORECASE), f"{c['key']}: the sales the checks read are made up, never call them real"
 
 
 def test_genie_earlier_runs_are_dated_from_their_result_files():

@@ -291,11 +291,17 @@ export function texts(s: Slide): string[] {
   return [...shown(s), s.note];
 }
 
-/** Whether a slide shows numbers from the data, so its footer says the data is synthetic: a table or the checks, a figure marked as data, or
- * a text that holds one of the facts. A dated fact is a result kept in a file, not a query on the data, and a note is not on the slide. */
+/** The tables of real public data: the seats, from the DOT's T-100. Everything else the deck shows (the agencies, their sales, goals,
+ * bookings, agreements and the CRM stand-in) is made up. */
+export const PUBLIC_TABLES = ["gold.fact_market_capacity"];
+
+/** Whether a slide shows numbers from the made-up data, so its footer says the data is synthetic: a table or the checks, a figure marked as
+ * data, or a text that holds one of the facts. A table slide that shows only public tables (the T-100 seats) shows nothing made up, so it
+ * keeps the talk's title. A dated fact is a result kept in a file, not a query on the data, and a note is not on the slide. */
 export function showsData(s: Slide, facts: Facts): boolean {
-  const layout = s.native?.layout;
-  return !!s.data || layout === "table" || layout === "checks" || shown(s).flatMap(placeholders).some((k) => Object.hasOwn(facts.facts, k));
+  const n = s.native;
+  const table = n?.layout === "table" && !n.tables.every((t) => PUBLIC_TABLES.includes(t));
+  return !!s.data || table || n?.layout === "checks" || shown(s).flatMap(placeholders).some((k) => Object.hasOwn(facts.facts, k));
 }
 
 /** The text with each {key} replaced by that fact's display string, from the facts or the dated facts. An unknown key

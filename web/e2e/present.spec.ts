@@ -319,7 +319,7 @@ test("share against fair share shows its agencies on arrival, then one thing a p
   // the notes that recede: each one's words without the values that keep their color, as one color
   const notes = figure.locator("[data-motion-item][data-recede]");
   const noteSteps = await notes.evaluateAll((els) => els.map((el) => Number(el.getAttribute("data-step"))));
-  expect(noteSteps.length, "the sentence about the made-up seat shares and two callouts").toBe(3);
+  expect(noteSteps.length, "the note on why fair share barely moves and where the seats come from, and two callouts").toBe(3);
   const fills = () => notes.evaluateAll((els) => els.map((el) => [...new Set([...el.querySelectorAll("text:not([data-keep])")].map((t) => getComputedStyle(t).fill))]));
   const kept = () => figure.locator("text[data-keep]").evaluateAll((els) => els.map((el) => getComputedStyle(el).fill));
   for (let step = 1; step <= count; step++) {
@@ -939,7 +939,7 @@ test("the welcome and the thanks show the logo alone, a still shows no frame at 
   await expect(slideAt(page, "manager").locator("[data-tracker] [aria-current]")).toHaveCount(0);
 });
 
-test("the welcome hides its page's caption and shows the talk's title, his name, the role and the made-up data line", async ({ page }) => {
+test("the welcome hides its page's caption and shows the talk's title, his name, the role and the line on what is made up and what is real", async ({ page }) => {
   await openSlide(page, "welcome");
   await expect(page.locator('iframe[data-live-frame][data-shown="1"]')).toBeVisible();
   await expect(page.frameLocator("iframe[data-live-frame]").locator(".caption")).toBeHidden();

@@ -13,7 +13,7 @@ One sales agent over one semantic layer, every number with its query. Read `READ
 7. Secrets stay in `.env` (gitignored). The Databricks token is a personal token: Genie is called as the user, never as a service principal.
    Inside the App the viewer's forwarded token is bound per request (fairshare/dbx.py `bind`); nothing about a viewer lives in a module global.
 9. Copy in the app (web/src/copy.ts) is full sentences a 10th grader follows (short words, no jargon, nothing that sounds like a model wrote it); buttons are short verb phrases; no em dashes.
-8. Dummy data stays dummy. Agencies, corporates, contracts and seat shares are made up (one seat share per route; the T-100 loader, `data/t100.py`, has never run). Do not add anything that looks like a real customer, price list, or airline-internal figure.
+8. Dummy data stays dummy. Agencies, corporates, sales, goals, bookings, contracts and the CRM stand-in are made up. The seats are the one real input: public DOT T-100 data (`data/t100.py` writes `data/t100/aa_seat_share.csv`), with the months the DOT has not published repeating the year before and flagged `is_projected`. Do not add anything that looks like a real customer, price list, or airline-internal figure.
 
 ## Layout
 

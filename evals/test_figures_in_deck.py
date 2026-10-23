@@ -246,7 +246,7 @@ def test_06_shows_its_headings_and_tier_cards_on_arrival_and_keeps_each_number_f
 # labels stay as they were: at 11px FOUNDATIONS would start at x 17, outside the 40px margin the figure keeps, unless the grid moves, which is
 # Chirag's call. The FOCAL and LEGEND eyebrows stay small.
 STRUCTURE_LABELS = {"02-answer-checked": (r"^STEP \d$", 5, 12), "06-data-pipeline": (r"^(SOURCES|READ BY)$", 2, 12),
-                    "15-at-aa": (r"^(WHERE IT STANDS IN THE DEMO|TABLE OF MADE-UP DATA|AA FEED THAT WOULD REPLACE IT|HARDEST FIRST)$", 4, 11)}
+                    "15-at-aa": (r"^(WHERE IT STANDS IN THE DEMO|TABLE IN THE DEMO|AA FEED THAT WOULD REPLACE IT|HARDEST FIRST)$", 4, 11)}
 
 
 @pytest.mark.parametrize("name", [n for page in STRUCTURE_LABELS for n in (page, f"{page}-animated")])
@@ -690,7 +690,7 @@ NUMBERS = {
         ("aa_share", "AA share", "AA share is AA revenue divided by everything the agency sold on the same routes, all airlines together.",
          "harbor_share_sep26"),
         ("fair_share", "Fair share", "Fair share is AA's share of the seats on each route, weighted by how much the agency sold there. "
-                                     "The seat shares are made up.", "harbor_fair_share_sep26"),
+                                     "September's seats are last year's.", "harbor_fair_share_sep26"),
     ],
     "09b-numbers-gaps": [
         ("share_gap_pts", "Share gap in points", "The share gap in points is AA share minus fair share.", "harbor_gap_pts_sep26"),
@@ -781,10 +781,10 @@ def test_the_drift_strip_stays_on_the_glossary_and_off_the_two_numbers_pages():
 SHARE = "12-share-vs-fair"
 SHARE_PAGES = [SHARE, f"{SHARE}-animated"]
 SHARE_FACT = re.compile(r"agency_q3_(aa|fair)_share_(\w+)")
-# the note under the chart, as share_fair.py words it: why fair share barely moves (check_claims proves the reason on every build), and that the
-# seat shares are made up, as the seats row's column meaning says it
+# the note under the chart, as share_fair.py words it: why fair share barely moves (check_claims shows the reason on the data on every build), and
+# where the seat shares come from, as the seats row's column meaning says it (deck_facts.SEATS_ARE)
 SEATS_NOTE = ("Fair share is nearly the same for every agency because each one spreads its sales over the same twelve routes in similar proportions. "
-              "The seat shares are made up, one base share per route, moved a little each month.")
+              "The seat shares are real T-100 data, and August and September 2026 repeat the same months of 2025 until the DOT publishes them.")
 
 
 def series(fig: Node, name: str) -> list[Node]:
@@ -820,17 +820,17 @@ def test_share_fair_shows_its_agencies_and_its_axis_on_arrival():
     assert all(re.fullmatch(r"\d+%", n.words()) for n in ticks), "each tick carries its unit, so the axis needs no title"
 
 
-def test_share_fair_brings_in_fair_share_then_the_made_up_seats_then_aa_share_then_one_callout_a_press():
+def test_share_fair_brings_in_fair_share_then_where_the_seats_come_from_then_aa_share_then_one_callout_a_press():
     name = f"{SHARE}-animated"
     fig = figure(name)
     fair, solid = series(fig, "fair"), series(fig, "aa")
     assert len(fair) == len(solid) == FACTS["agencies"]["value"], "a fair share dot and an AA share dot for every agency"
     fair_step, solid_step = {step_of(d) for d in fair}, {step_of(d) for d in solid}
     assert fair_step == {1} and len(solid_step) == 1, "each series comes in whole, fair share first"
-    (seats,) = texts(fig, r"(?i)made.up")
+    (seats,) = texts(fig, r"T-100")
     words = [n for n in item_of(seats).walk() if n.tag == "text"]
     assert all(n.attrs.get("data-note") == "seats" for n in words) and 1 < step_of(seats) < min(solid_step), \
-        "the note about the made-up seat shares is a step of its own, before AA share"
+        "the note about where the seat shares come from is a step of its own, before AA share"
     connectors = [n for n in fig.walk() if n.tag == "line" and "data-agency" in n.attrs]
     assert connectors and {step_of(c) for c in connectors} == solid_step, "the line between the two dots comes in with AA share"
     callouts: dict[str, set] = {}
@@ -863,10 +863,10 @@ def test_share_fair_prints_four_values_at_most_each_one_a_fact(name):
 
 
 @pytest.mark.parametrize("name", SHARE_PAGES)
-def test_share_fair_keeps_the_made_up_seat_shares_labeled_in_plain_words(name):
+def test_share_fair_says_where_the_seat_shares_come_from_in_plain_words(name):
     fig = figure(name)
     note = sorted(marked(fig, "note", "seats"), key=lambda n: float(n.attrs["y"]))
-    assert said(note) == SEATS_NOTE, "the note says why fair share barely moves, and that the seat shares are made up, in share_fair.py's words"
+    assert said(note) == SEATS_NOTE, "the note says why fair share barely moves, and where the seat shares come from, in share_fair.py's words"
     assert ":" not in said(note), "no colon used as a connector"
     assert not re.search("[\u2013\u2014]", html(name)), "no em or en dash on the page"
 
@@ -930,7 +930,7 @@ AT_AA_PAGES = [AT_AA, f"{AT_AA}-animated"]
 AT_AA_LAYERS = ["The app", "Checks", "Agents", "Definitions", "Data"]
 # the three marks in the order they come, a press each, with the words the legend gives each one
 AT_AA_MARKS = {"run": "Running today", "built": "Built, not deployed", "wait": "Waiting on AA's Microsoft account"}
-# the made-up tables the AA feeds would replace, hardest first in the data lead's order, and the press each feed comes in on: the hardest
+# the demo's tables the AA feeds would replace, hardest first in the data lead's order, and the press each feed comes in on: the hardest
 # alone, the seat capacity alone, then two a press
 AT_AA_TABLES = ["fact_agency_sales_monthly", "fact_market_capacity", "fact_corporate_bookings", "contract_clauses", "crm_contacts", "agency_goals"]
 AT_AA_FEED_STEPS = [4, 5, 6, 6, 7, 7]
@@ -1010,7 +1010,7 @@ def test_at_aa_brings_in_each_feed_beside_its_table_hardest_first_once_the_marks
     name = f"{AT_AA}-animated"
     fig = figure(name)
     tables = sorted((n for n in fig.walk() if "data-table" in n.attrs), key=at_aa_baseline)
-    assert [n.attrs["data-table"] for n in tables] == AT_AA_TABLES, "the made-up tables down the list, hardest first"
+    assert [n.attrs["data-table"] for n in tables] == AT_AA_TABLES, "the demo's tables down the list, hardest first"
     assert all(step_of(n) is None for n in tables), "a table heads its row, so the tables show on arrival"
     feeds = {n.attrs["data-feed"]: n for n in fig.walk() if "data-feed" in n.attrs}
     assert sorted(feeds, key=lambda k: at_aa_baseline(feeds[k])) == AT_AA_TABLES, "one feed for each table"

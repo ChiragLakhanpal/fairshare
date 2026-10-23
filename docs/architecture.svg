@@ -25,8 +25,8 @@
 
   <!-- sources -->
   <rect x="24" y="96" width="200" height="72" class="box"/>
-  <text x="36" y="118" class="title">Seat shares (made up)</text>
-  <text x="36" y="136" class="sub">one per route, by month</text>
+  <text x="36" y="118" class="title">Seat shares (DOT T-100)</text>
+  <text x="36" y="136" class="sub">AA network, by route and month</text>
   <text x="36" y="152" class="sub">AA seat share = fair share</text>
 
   <rect x="244" y="96" width="220" height="72" class="box"/>
@@ -55,7 +55,7 @@
   <rect x="364" y="216" width="190" height="110" class="box"/>
   <text x="376" y="238" class="title">gold</text>
   <text x="376" y="256" class="sub">fact_agency_sales_monthly</text>
-  <text x="376" y="272" class="sub">fact_market_capacity (made up)</text>
+  <text x="376" y="272" class="sub">fact_market_capacity (T-100)</text>
   <text x="376" y="288" class="sub">dims, goals, pace, weekly bookings</text>
 
   <rect x="580" y="216" width="270" height="110" class="box" stroke="#2b4acb" stroke-width="2"/>

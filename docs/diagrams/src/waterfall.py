@@ -10,11 +10,14 @@ waterfall verifier reads each printed value as a plain number. scripts/verify-wa
 geometry, carries, printed values and sign fills. The animated page brings the bars in left to right, each with the carry line into it;
 the title, the axes and the legend's first three keys stay put. What gives a bar's point away comes in with it: the mix bar's note,
 the focal key and the callout with the focal bar, and the sum note with the last total.
+
+The callout says what the seat shares alone would have predicted (ops.decomposition's fair_share_effect). September 2026's seats are
+not published yet and repeat September 2025's, so that is $0 until the DOT publishes them; build() asserts both on every run.
 """
 from __future__ import annotations
 
 import aa
-from deck_facts import fact
+from deck_facts import fact, query
 
 VW, VH = 1280, 720
 BASE, TOP = 500, 140                 # baseline (the $0 floor) and the top of the plot band; what sits under the floor ends above y 680
@@ -129,8 +132,15 @@ def build(motion=False):
     # the one callout comes in with the focal bar, and the note that the parts add up with the last total
     focal_step = 1 + [b[4] for b in bars].index(True)
     put(focal_step, f'<text x="40" y="{BASE + 96}" fill="{aa.MUTED}" font-size="8" font-weight="500" font-family="{aa.MONO}" letter-spacing="0.18em">FOCAL BAR</text>')
+    # the callout: what the seat shares alone would have predicted, $0 because September 2026's seats repeat September 2025's for now
+    repeated = query("""SELECT COUNT(*) AS routes, COUNT(*) FILTER (WHERE c.is_projected AND c.aa_seat_share = p.aa_seat_share) AS repeats
+                          FROM aa_demo.gold.fact_market_capacity c
+                          JOIN aa_demo.gold.fact_market_capacity p ON p.market_id = c.market_id AND p.sales_month = DATE '2025-09-01'
+                          WHERE c.sales_month = DATE '2026-09-01'""")[0]
+    assert repeated["routes"] == repeated["repeats"] == fact("routes") and fair == 0, \
+        "the callout says September 2026's seats repeat September 2025's, so the seat shares predict $0: rewrite it once the DOT publishes September"
     put(focal_step, f'<text x="144" y="{BASE + 96}" fill="{aa.INK}" font-size="14" font-style="italic" font-family="{aa.SANS}">'
-                    f'The made-up seat shares would have predicted {money(fair)}, so the drop is not about seats.</text>')
+                    f'The seat shares would have predicted {money(fair)}, since September\'s seats repeat last year\'s until the DOT publishes them.</text>')
     put(len(bars), aa.icon("databricks", 144, BASE + 110, 16))
     put(len(bars), f'<text x="168" y="{BASE + 123}" fill="{aa.MUTED}" font-size="12" font-family="{aa.MONO}">volume + mix + share = {money(delta)}, the whole change, exactly · ops.decomposition</text>')
     # legend strip: the first three keys never move, and the focal key, which names AA's share, comes in with its bar

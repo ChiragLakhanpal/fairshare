@@ -70,14 +70,14 @@ markets = [
     (2, "DFW", "ORD", "Central", True),
     (3, "CLT", "LGA", "East", True),
     (4, "MIA", "JFK", "East", True),
-    (5, "PHX", "SEA", "West", True),
+    (5, "PHX", "LAX", "West", True),
     (6, "DFW", "DCA", "East", True),
     (7, "ORD", "SFO", "West", True),
     (8, "DCA", "BOS", "East", True),
     (9, "LAX", "JFK", "East", True),
     (10, "DFW", "DEN", "Central", True),
     (11, "AUS", "ORD", "Central", False),
-    (12, "SEA", "DEN", "West", False),
+    (12, "SEA", "ORD", "West", False),
 ]
 
 # Synthetic AA seat share by market, used only when the T-100 file is missing
@@ -85,7 +85,7 @@ synthetic_fair_share = {1: 0.42, 2: 0.38, 3: 0.55, 4: 0.47, 5: 0.33, 6: 0.51, 7:
 
 # Per-agency base monthly market revenue (all carriers), AA share level, monthly drift
 agency_profile = {
-    1: (900000, 0.45, 0.004),    # steady, above fair share
+    1: (900000, 0.45, 0.004),    # steady climb, to about fair share by 2026
     2: (750000, 0.40, 0.000),
     3: (1400000, 0.30, -0.006),  # OTA, big volume, drifting down
     4: (300000, 0.44, 0.002),

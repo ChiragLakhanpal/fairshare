@@ -15,8 +15,10 @@ published yet (three-month lag; July 2026 was the latest on Oct 11, 2026) take
 the same month of the prior year and are flagged is_projected = true.
 
 "AA network" = AA mainline plus the wholly owned American Eagle carriers
-(Envoy MQ, PSA OH, Piedmont PT). Republic and SkyWest fly for several brands
-and are left out, so the share slightly undercounts AA. Said plainly in README.
+(Envoy MQ, PSA OH, Piedmont PT). Republic and SkyWest fly for several brands,
+American Eagle among them, and are left out, so the share undercounts AA:
+most on DCA-BOS, where they fly about a third of the seats (17.7% of PHX-LAX,
+8.5% of CLT-LGA, Jan 2025 to Jul 2026). Said plainly in README.
 """
 import csv
 import io

@@ -17,7 +17,7 @@ check_claims() asserts on every build that they add up the way the cards say.
 from __future__ import annotations
 
 import aa
-from deck_facts import DATED, display, fact
+from deck_facts import DATED, display, fact, query
 
 VW, VH = 1280, 720
 NO_TWIN = {"pace_pct"}  # the one number with no SQL twin, so no Power BI mark on its card
@@ -240,7 +240,7 @@ NUMBERS = [  # (key in ops.kpi_definitions, name, how it is calculated in the sp
     ("aa_share", "AA share", "AA share is AA revenue divided by everything the agency sold on the same routes, all airlines together.",
      "harbor_share_sep26", ""),
     ("fair_share", "Fair share", "Fair share is AA's share of the seats on each route, weighted by how much the agency sold there. "
-                                 "The seat shares are made up.", "harbor_fair_share_sep26", ""),
+                                 "September's seats are last year's.", "harbor_fair_share_sep26", ""),
     ("share_gap_pts", "Share gap in points", "The share gap in points is AA share minus fair share.", "harbor_gap_pts_sep26", " points"),
     ("share_gap_usd", "Share gap in dollars", "The share gap in dollars is AA revenue minus what fair share would have brought in.",
      "harbor_gap_usd_sep26", ""),
@@ -265,13 +265,19 @@ WHERE_Y, WHERE_H, WHERE_SIZE, WHERE_LEADING = 544, 128, 17, 24  # the close, und
 
 def check_claims() -> None:
     """What the cards say about Harbor's numbers, checked on every build so a rebuilt lakehouse cannot quietly change the story: the gap in
-    points is AA share minus fair share, the two gaps point the same way, and year over year matches the two Septembers figure 08 starts
-    and ends on."""
+    points is AA share minus fair share, the two gaps point the same way, year over year matches the two Septembers figure 08 starts
+    and ends on, and September 2026's seats are September 2025's, as the fair share card says."""
     share, fair, gap = fact("harbor_share_sep26"), fact("harbor_fair_share_sep26"), fact("harbor_gap_pts_sep26")
     assert abs(share - fair - gap) <= 0.1 + 1e-9, f"the share gap in points should be AA share minus fair share: {share} - {fair} against {gap}"
     assert (gap < 0) == (fact("harbor_gap_usd_sep26") < 0), "the share gap in dollars should point the same way as the gap in points"
     now, prior = fact("harbor_revenue_sep26_usd"), fact("harbor_revenue_sep25_usd")
     assert abs(100 * (now - prior) / prior - fact("harbor_yoy_sep26")) <= 0.1, "year over year should match Harbor's two Septembers"
+    # the fair share card says September's seats are last year's: the DOT has not published September 2026, so its seats repeat September 2025
+    (r,) = query("""SELECT COUNT(*) AS routes, COUNT(*) FILTER (WHERE c.is_projected AND c.aa_seats = p.aa_seats AND c.total_seats = p.total_seats) AS repeats
+                     FROM aa_demo.gold.fact_market_capacity c
+                     JOIN aa_demo.gold.fact_market_capacity p ON p.market_id = c.market_id AND p.sales_month = DATE '2025-09-01'
+                     WHERE c.sales_month = DATE '2026-09-01'""")
+    assert r["routes"] == r["repeats"] == fact("routes"), "the fair share card says September 2026's seats are September 2025's, on every route"
 
 
 def numbers_page(title: str, cards, motion: bool = False) -> str:

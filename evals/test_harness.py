@@ -187,7 +187,7 @@ def test_build_facts_all_regions_has_the_first_screen_blocks():
     facts.reset()
     f = summary.build_facts("All", "2026-09")
     r = f["region"].iloc[0]
-    assert r["aa_revenue"] == 4492373 and r["aa_share_pct"] == 37.8 and r["fair_share_pct"] == 39.0
+    assert r["aa_revenue"] == 4492373 and r["aa_share_pct"] == 37.8 and r["fair_share_pct"] == 50.8
     assert f["pace"].iloc[0]["pace_pct"] == 140.0
     assert list(f["movers"]["agency"])[:2] == ["Harbor Business Travel", "FareHub Online"] and len(f["movers"]) == 3
     assert f["movers"].iloc[0]["share_chg_pts"] == -10.1
@@ -198,9 +198,9 @@ def test_build_facts_all_regions_has_the_first_screen_blocks():
 def test_headline_is_deterministic_prose():
     facts.reset()
     f = summary.build_facts("All", "2026-09")
-    assert summary.headline(f, "2026-09") == "September closed ahead of pace and a little under fair share."
+    assert summary.headline(f, "2026-09") == "September closed ahead of pace and under fair share by 13 points."
     f2 = summary.build_facts("West", "2026-09")
-    assert summary.headline(f2, "2026-09") == "September closed ahead of pace and under fair share by 12.8 points."
+    assert summary.headline(f2, "2026-09") == "September closed ahead of pace and under fair share by 24.3 points."
 
 
 def test_template_brief_still_verifies_for_a_region_and_for_all():

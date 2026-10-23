@@ -47,7 +47,7 @@ def test_summary_all_regions(client):
     assert s["kpis"]["aa_revenue"] == 4492373 and s["kpis"]["pace_pct"] == 140.0
     assert len(s["movers"]) == 3 and s["movers"][0]["agency"] == "Harbor Business Travel" and s["movers"][0]["share_chg_pts"] == -10.1
     assert all(b["pace_pct"] < 100 for b in s["behind_pace"]) and {b["agency"] for b in s["behind_pace"]} == {"Harbor Business Travel", "FareHub Online"}
-    assert s["headline"] == "September closed ahead of pace and a little under fair share."
+    assert s["headline"] == "September closed ahead of pace and under fair share by 13 points."
     assert s["prior_month"] == "2025-09" and s["calls"] and s["calls"][0]["sql"]
 
 

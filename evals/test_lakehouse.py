@@ -38,8 +38,40 @@ def test_harbor_august_is_a_share_story():
     text = explain_change.func(agency="Harbor", month="2026-08")
     s = facts.current().calls[0].preview.iloc[0]
     assert s["delta_pct"] < -10 and s["share_effect"] < 0 and abs(s["share_effect"]) > abs(s["volume_effect"])
-    assert abs(s["fair_share_now_pct"] - s["fair_share_prior_pct"]) < 2, "AA capacity barely moved; the story is the agency"
+    assert abs(s["fair_share_now_pct"] - s["fair_share_prior_pct"]) < 2, "fair share barely moved (August's seats repeat last year's); the story is the agency"
     assert "parts_sum" in text
+
+
+def test_the_capacity_exclusion_cannot_be_checked_in_a_month_whose_seats_are_borrowed():
+    """Summit's clause 5.3 leaves out a quarter in which AA cut seats on a route by more than 15% year over year. August and September 2026
+    repeat 2025's seats until the DOT publishes them, so their change would read 0% on every route: those months are not_checkable, with no
+    value. The months the DOT has published are checked."""
+    rows = db.query("""SELECT k.as_of, k.status, k.value, MAX(CASE WHEN c.is_projected THEN 1 ELSE 0 END) AS projected
+                       FROM aa_demo.ops.agreement_checks k JOIN aa_demo.gold.fact_market_capacity c ON c.sales_month = k.as_of
+                       WHERE k.clause_type = 'capacity_exclusion' GROUP BY k.as_of, k.status, k.value ORDER BY k.as_of""")
+    borrowed, published = rows[rows["projected"] == 1], rows[rows["projected"] == 0]
+    assert [pd.Timestamp(d).month for d in borrowed["as_of"]] == [8, 9] and len(published) == 7
+    assert set(borrowed["status"]) == {"not_checkable"} and borrowed["value"].isna().all()
+    assert set(published["status"]) <= {"ok", "watch"} and published["value"].notna().all()
+
+
+SEATS_REPEAT = "This month's seats repeat the same month last year until the DOT publishes them, so there is no seat comparison"
+
+
+def test_why_on_a_month_whose_seats_are_borrowed_says_so_instead_of_a_seat_number():
+    """explain_change carries the month's projection flag. September 2026's seats repeat September 2025's until the DOT publishes them, so the
+    tool says there is no seat comparison and gives no fair-share diagnostic, and the summary row holds no number for it. July 2026, which
+    the DOT has published, still has one."""
+    facts.reset()
+    text = explain_change.func(agency="Harbor", month="2026-09")
+    s = facts.current().calls[0].preview.iloc[0]
+    assert bool(s["seats_projected"]) and pd.isna(s["fair_share_effect"])
+    assert SEATS_REPEAT in text and "Fair-share diagnostic" not in text
+    facts.reset()
+    text = explain_change.func(agency="Harbor", month="2026-07")
+    s = facts.current().calls[0].preview.iloc[0]
+    assert not bool(s["seats_projected"]) and pd.notna(s["fair_share_effect"])
+    assert "Fair-share diagnostic" in text and SEATS_REPEAT not in text
 
 
 def test_run_sql_is_read_only():

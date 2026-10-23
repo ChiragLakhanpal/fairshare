@@ -1,7 +1,11 @@
-"""The repo never calls the made-up seat data real, never says Power BI itself was checked, fair share has no wrong synonym, portable SQL never escapes a quote, no $$ body holds a semicolon, and the nightly job cuts every SQL file where run.py does."""
+"""The seats are the DOT's T-100 with the months it has not published flagged, the seats are never called made up and the made-up agency data is
+never called real, Power BI itself is never said to be checked, fair share has no wrong synonym, portable SQL never escapes a quote, no $$ body holds
+a semicolon, and the nightly job cuts every SQL file where run.py does."""
+import csv
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -9,28 +13,94 @@ sys.path.insert(0, str(ROOT))
 
 from fairshare import db  # noqa: E402
 
-REAL = re.compile(r"T-100 \(real\)|seat data is real|seats are BTS|real, public|public\s+airline\s+(seat\s+)?data|real seat data"
-                  r"|BTS T-100 seats|BTS T-100 ·|BTS T-100 \+|seat share from BTS|\(BTS T-100|capacity \(T-100\)"
-                  r"|BTS has not published|published BTS data|^Real: BTS", re.M)
+# Words that would call the made-up data real: the agencies and their sales, the goals, the bookings and the corporates, the agreements and the CRM,
+# alone or as their data ("the agency data is real", "real data on the agencies"). The seats are the DOT's T-100 and may be called real; nothing
+# else may.
+MADE_UP = r"(?:agenc(?:y|ies)|agency sales|sales(?: data)?|goals?|bookings?|corporates?|companies|contracts?|agreements?|CRM(?: data)?)"
+# "Not a real contract", as each agreement says of itself, is the opposite claim, so a "real" after "not a" or "never a" passes.
+AGENCY_REAL = re.compile(rf"\b{MADE_UP}(?: data)? (?:is|are) real\b|(?<!not a )(?<!never a )\breal {MADE_UP}\b|\b{MADE_UP}(?: data)? (?:is|are) not made up\b"
+                         rf"|\breal data (?:on|for|from|about|of) (?:the |its |their )?{MADE_UP}", re.I)
+# Words that would still call the seats made up, as the repo did before the switch to T-100 on Oct 21, 2026.
+# A dated record of the switch ("until this day the seat shares were made up") is history, so the past tense passes.
+SEATS_MADE_UP = re.compile(r"made.up (?:seat|capacity)|seat (?:shares?|counts?|data|numbers)(?: here)? (?:are|is) (?:all )?made up"
+                           r"|\bseats?\b[^.\n]{0,40}, (?:all )?made up\b|\bseats?\b[^.\n]{0,60}\. made up\b"
+                           r"|(?:seat shares|capacity) \(made up\)|synthetic (?:seat|fair share)|\bsource\b[^.\n]{0,30}\bsynthetic\b|loader[^\n]{0,40}never run", re.I)
 POWER_BI = re.compile(r"Power BI uses the same definition|the Power BI check|kept equal by|checked vs Power BI"
                       r"|check vs Power BI|Power BI twin, checked|Power BI twin of each one")
-# what happens when real files exist, how to get them, and this file
-ALLOWED = {"data/t100.py", "data/make_data.py", "docs/day0.md", "evals/test_labels.py"}
+# this file, which spells the patterns out
+ALLOWED = {"evals/test_labels.py"}
 TEXT = (".py", ".sql", ".md", ".svg", ".html", ".mjs", ".ts", ".tsx", ".yaml", ".json")
+# history: the design notes and the recorded results stay as they were written
+HISTORY = ("docs/superpowers/", "evals/results/", "web/dist/")
 
 
 def hits(rx):
     files = subprocess.run(["git", "ls-files", "-co", "--exclude-standard"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.splitlines()
     out = []
     for f in files:
-        if f.endswith(TEXT) and f not in ALLOWED and not f.startswith(("docs/superpowers/", "web/dist/")):
+        if f.endswith(TEXT) and f not in ALLOWED and not f.startswith(HISTORY):
             text = (ROOT / f).read_text(encoding="utf-8", errors="ignore")
             out += [f"{f}:{text.count(chr(10), 0, m.start()) + 1}: {m.group(0)}" for m in rx.finditer(text)]
     return out
 
 
-def test_nothing_calls_the_seat_data_real():
-    assert not hits(REAL), "\n".join(hits(REAL))
+def _csv(path):
+    with open(ROOT / path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+# The months the DOT had not published when the T-100 files were downloaded (Oct 21, 2026; July 2026 was the newest month). data/t100.py gives
+# each the same month of 2025, and the deck says so ("August and September 2026 repeat 2025"), so a fresh download that publishes them fails
+# here first, before the copy is out of date.
+PROJECTED = {date(2026, 8, 1), date(2026, 9, 1)}
+
+
+def test_the_seats_are_the_dots_t100_in_the_files_and_in_gold():
+    """Every seat row is a T-100 row: the generator's CSV copies data/t100/aa_seat_share.csv (data/t100.py's output) and says source t100, and
+    gold.fact_market_capacity holds the same rows."""
+    t100 = {(r["market_id"], r["sales_month"]): r for r in _csv("data/t100/aa_seat_share.csv")}
+    out = _csv("data/out/fact_market_capacity.csv")
+    routes, months = len(_csv("data/out/dim_market.csv")), len({r["sales_month"] for r in _csv("data/out/fact_agency_sales_monthly.csv")})
+    assert len(out) == len(t100) == routes * months, "one seat row per route and month, in both files"
+    assert {r["source"] for r in out} == {"t100"}, "every seat row says it came from T-100"
+    for r in out:
+        t = t100[(r["market_id"], r["sales_month"])]
+        assert (int(r["aa_seats"]), int(r["total_seats"]), float(r["aa_seat_share"])) == (int(t["aa_seats"]), int(t["total_seats"]), float(t["aa_seat_share"])), r
+    gold = db.query("SELECT source, COUNT(*) AS n FROM aa_demo.gold.fact_market_capacity GROUP BY source")
+    assert list(gold["source"]) == ["t100"] and int(gold["n"].iloc[0]) == routes * months, "gold holds the same T-100 rows"
+
+
+def test_the_months_the_dot_has_not_published_are_flagged_and_repeat_2025():
+    """is_projected marks exactly the months the DOT has not published, on every route, in the T-100 file, the generator's CSV and gold; each of
+    those rows is the same month of 2025; and the metric view gives the flag to Genie and the dashboard as capacity_is_projected."""
+    for path in ("data/t100/aa_seat_share.csv", "data/out/fact_market_capacity.csv"):
+        rows = _csv(path)
+        flagged = {date.fromisoformat(r["sales_month"]) for r in rows if r["is_projected"].lower() == "true"}
+        assert flagged == PROJECTED, (path, sorted(flagged))
+        by = {(r["market_id"], date.fromisoformat(r["sales_month"])): r for r in rows}
+        for (market, month), r in by.items():
+            if month in PROJECTED:
+                last = by[(market, date(month.year - 1, month.month, 1))]
+                assert (r["aa_seats"], r["total_seats"], r["aa_seat_share"]) == (last["aa_seats"], last["total_seats"], last["aa_seat_share"]), (path, market, month)
+    gold = db.query("""SELECT c.sales_month, COUNT(*) AS n, COUNT(*) FILTER (WHERE c.aa_seats = p.aa_seats AND c.total_seats = p.total_seats) AS repeats
+                       FROM aa_demo.gold.fact_market_capacity c
+                       JOIN aa_demo.gold.fact_market_capacity p ON p.market_id = c.market_id
+                        AND EXTRACT(YEAR FROM p.sales_month) = EXTRACT(YEAR FROM c.sales_month) - 1 AND EXTRACT(MONTH FROM p.sales_month) = EXTRACT(MONTH FROM c.sales_month)
+                       WHERE c.is_projected GROUP BY c.sales_month ORDER BY c.sales_month""")
+    routes = int(db.query("SELECT COUNT(*) AS n FROM aa_demo.gold.dim_market")["n"].iloc[0])
+    assert [(d.date() if hasattr(d, "date") else d, int(n), int(k)) for d, n, k in zip(gold["sales_month"], gold["n"], gold["repeats"])] == \
+        [(m, routes, routes) for m in sorted(PROJECTED)], "gold flags the same months on every route, each with last year's seats"
+    view = (ROOT / "lakehouse/03_metric_view.sql").read_text(encoding="utf-8")
+    assert re.search(r"- name: capacity_is_projected\s+expr: cap\.is_projected", view), "the metric view lets a question filter or show the flag"
+
+
+def test_nothing_calls_the_made_up_agency_data_real():
+    assert not hits(AGENCY_REAL), "\n".join(hits(AGENCY_REAL))
+
+
+def test_nothing_calls_the_seats_made_up():
+    # data/make_data.py keeps a synthetic stand-in for a clone without the T-100 file; its words say so and match none of these
+    assert not hits(SEATS_MADE_UP), "\n".join(hits(SEATS_MADE_UP))
 
 
 def test_nothing_says_power_bi_itself_was_checked():
